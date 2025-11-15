@@ -1,0 +1,134 @@
+/* ============================================
+   SECTION 1: CSS VARIABLES (DESIGN TOKENS)
+   ============================================ */
+
+:root {
+  /* Light theme colors */
+  --figma-color-bg: #ffffff;
+  --figma-color-bg-secondary: #f5f5f5;
+  --figma-color-bg-tertiary: #f0f0f0;
+  --figma-color-bg-brand: #18a0fb;
+  --figma-color-bg-brand-hover: #0d8ce0;
+  --figma-color-bg-brand-pressed: #0b7bc7;
+  --figma-color-bg-danger: #ff3b30;
+  --figma-color-bg-danger-hover: #e6352b;
+  --figma-color-bg-danger-pressed: #cc2e26;
+  --figma-color-bg-success: #34c759;
+  --figma-color-bg-warning: #ff9500;
+
+  /* Light theme text colors */
+  --figma-color-text: #000000;
+  --figma-color-text-secondary: #333333;
+  --figma-color-text-tertiary: #666666;
+  --figma-color-text-disabled: #999999;
+  --figma-color-text-brand: #18a0fb;
+  --figma-color-text-danger: #ff3b30;
+  --figma-color-text-success: #34c759;
+
+  /* Light theme border colors */
+  --figma-color-border: #e5e5e5;
+  --figma-color-border-strong: #cccccc;
+  --figma-color-border-focus: #18a0fb;
+  --figma-color-border-danger: #ff3b30;
+
+  /* Light theme shadow */
+  --figma-shadow-small: 0px 1px 2px rgba(0, 0, 0, 0.05);
+  --figma-shadow-medium: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  --figma-shadow-large: 0px 4px 8px rgba(0, 0, 0, 0.15);
+
+  /* Typography */
+  --figma-font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, sans-serif;
+  --figma-font-size-xs: 11px;
+  --figma-font-size-sm: 12px;
+  --figma-font-size-md: 14px;
+  --figma-font-size-lg: 16px;
+  --figma-font-size-xl: 18px;
+
+  /* Spacing */
+  --figma-space-xs: 4px;
+  --figma-space-sm: 8px;
+  --figma-space-md: 12px;
+  --figma-space-lg: 16px;
+  --figma-space-xl: 24px;
+  --figma-space-xxl: 32px;
+
+  /* Border radius */
+  --figma-radius-sm: 2px;
+  --figma-radius-md: 4px;
+  --figma-radius-lg: 6px;
+  --figma-radius-xl: 8px;
+}
+
+/* Dark theme overrides */
+[data-theme="dark"] {
+  --figma-color-bg: #2c2c2c;
+  --figma-color-bg-secondary: #383838;
+  --figma-color-bg-tertiary: #484848;
+  --figma-color-bg-brand: #18a0fb;
+  --figma-color-bg-brand-hover: #0d8ce0;
+  --figma-color-bg-brand-pressed: #0b7bc7;
+  --figma-color-bg-danger: #ff453a;
+  --figma-color-bg-danger-hover: #ff375f;
+  --figma-color-bg-danger-pressed: #ff2d55;
+  --figma-color-bg-success: #30d158;
+  --figma-color-bg-warning: #ff9f0a;
+
+  --figma-color-text: #ffffff;
+  --figma-color-text-secondary: #e5e5e5;
+  --figma-color-text-tertiary: #b3b3b3;
+  --figma-color-text-disabled: #666666;
+  --figma-color-text-brand: #18a0fb;
+  --figma-color-text-danger: #ff453a;
+  --figma-color-text-success: #30d158;
+
+  --figma-color-border: #484848;
+  --figma-color-border-strong: #666666;
+  --figma-color-border-focus: #18a0fb;
+  --figma-color-border-danger: #ff453a;
+
+  --figma-shadow-small: 0px 1px 2px rgba(0, 0, 0, 0.3);
+  --figma-shadow-medium: 0px 2px 4px rgba(0, 0, 0, 0.4);
+  --figma-shadow-large: 0px 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================
+   SECTION 2: BASE STYLES
+   ============================================ */
+
+body {
+  background-color: var(--figma-color-bg);
+  font-family: var(--figma-font-family);
+  margin: 0;
+  padding: 0;
+  color: var(--figma-color-text);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  align-content: center;
+  text-align: center;
+  margin-top: 2%;
+  padding-bottom: 3rem; /* Space for fixed footer */
+}
+
+a:link,
+a:active {
+  text-decoration: none;
+  color: var(--figma-color-text-tertiary);
+}
+
+a:visited {
+  color: var(--figma-color-text-tertiary);
+  cursor: pointer;
+  text-decoration: none;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+a:hover {
+  color: var(--figma-color-text-secondary);
+  transition-duration: 0.2s;
+}
