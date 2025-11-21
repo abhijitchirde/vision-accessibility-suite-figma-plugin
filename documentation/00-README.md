@@ -2,7 +2,7 @@
 
 **Plugin Name**: Accessibility Genie
 **Version**: 1.0
-**Last Updated**: 2025-11-15
+**Last Updated**: 2025-11-21
 
 ---
 
@@ -33,33 +33,39 @@ Complete architectural overview of the plugin including:
 ### [02-implementation-plan.md](./02-implementation-plan.md)
 **Phase-Wise Implementation Plan**
 
-Detailed development roadmap broken into phases:
-- **Phase 0**: Project Setup (1 week)
-- **Phase 1**: MVP - Core Testing Tools (2-3 weeks)
-  - Touch Targets Checker
-  - Contrast Checker
-  - Typography Checker
-- **Phase 2**: Essential Annotation Tools (3-4 weeks)
-  - Headings Manager
-  - Landmarks Manager
-  - Alt-Text Manager
-  - Focus Order Manager
-- **Phase 3**: Advanced Features + Automation (3-4 weeks)
-  - Vision Simulator
-  - Accessibility Notes
-  - Auto Scan Integration (orchestrates all testing tools)
-  - Automatic Monitoring (real-time)
-  - Export System (JSON/CSV/Markdown)
-- **Phase 4**: Polish & Optimization (2-3 weeks)
-- **Phase 5**: Future Enhancements (Ongoing)
+Detailed development roadmap with **tool-based modular phases** (one tool per phase):
+
+**Development Approach**: Pragmatic, incremental development where each tool is implemented as a self-contained phase. Infrastructure (components, services, utilities) is built only when first needed, but always as proper reusable modules.
+
+**Implementation Protocols**: Includes strict guidelines for:
+- Phase start confirmation workflow
+- Git commit recommendations (format and requirements)
+- Tool-specific documentation requirements (data flows, references, testing)
+
+**Phase Structure** (13 phases):
+- **Phase 0**: Project Setup & Verification
+- **Phase 1**: Contrast Checker (+ initial infrastructure)
+- **Phase 2**: Touch Targets Checker
+- **Phase 3**: Typography Checker
+- **Phase 4**: Vision Simulator
+- **Phase 5**: Automatic Monitoring
+- **Phase 6**: Alt-Text Manager (first annotation tool)
+- **Phase 7**: Focus Order Manager
+- **Phase 8**: Headings Manager
+- **Phase 9**: Landmarks Manager
+- **Phase 10**: Accessibility Notes
+- **Phase 11**: Integration & Polish
+- **Phase 12**: Auto Scan & Fix (deferred)
 
 Each phase includes:
-- Day-by-day task breakdown
-- Complexity estimates
-- Implementation details
-- Deliverables and success criteria
+- Detailed implementation tasks
+- Infrastructure to be built (when first needed)
+- Tool-specific module structure
+- Comprehensive README template
+- Git commit recommendations
+- Testing approach
 
-**Read this** to understand the development timeline and priorities.
+**Read this** to understand the modular development strategy and phase details.
 
 ---
 
@@ -111,8 +117,9 @@ Complete data architecture and storage patterns:
 ### For Developers Joining the Project
 
 1. Read all documents in order (01 → 04)
-2. Set up your development environment (see Phase 0 in implementation plan)
-3. Start with Phase 1 features (Touch Targets → Contrast → Typography)
+2. Review Implementation Protocols in [02-implementation-plan.md](./02-implementation-plan.md)
+3. Verify Phase 0 setup (useFigmaMessage and useFigmaTheme hooks already exist)
+4. Request confirmation before starting Phase 1 (Contrast Checker)
 
 ---
 
@@ -125,6 +132,8 @@ Complete data architecture and storage patterns:
 - **Standards-based**: WCAG 2.1, ARIA, platform guidelines
 - **Modular**: Each feature is independent and extensible
 - **React-based**: Modern component architecture
+- **Pragmatic**: Infrastructure built when needed, not speculatively
+- **Tool-based phases**: One tool per phase for focused development
 
 ### Technology Stack
 
@@ -154,16 +163,30 @@ Complete data architecture and storage patterns:
 
 ## 📊 Development Timeline
 
-| Phase | Duration | Deliverable |
-|-------|----------|-------------|
-| Phase 0 | 1 week | Project foundation |
-| Phase 1 | 2-3 weeks | MVP with 3 testing tools (individual) |
-| Phase 2 | 3-4 weeks | Annotation suite (4 tools) |
-| Phase 3 | 3-4 weeks | Advanced features + automation |
-| Phase 4 | 2-3 weeks | Production polish |
-| **Total** | **11-15 weeks** | **Full v1.0** |
+**Tool-Based Modular Development**: Each accessibility tool is implemented as a separate phase, allowing for independent development and Git commits.
 
-**Key Change**: Auto Scan and Automatic Monitoring moved from Phase 1 to Phase 3, allowing individual tools to be built and tested first before implementing automation.
+| Phase | Tool/Deliverable | Duration | Category |
+|-------|------------------|----------|----------|
+| Phase 0 | Project Setup & Verification | Quick | Foundation |
+| Phase 1 | Contrast Checker (+ initial infrastructure) | 1-2 weeks | Testing Tool |
+| Phase 2 | Touch Targets Checker | 1 week | Testing Tool |
+| Phase 3 | Typography Checker | 1 week | Testing Tool |
+| Phase 4 | Vision Simulator | 1 week | Testing Tool |
+| Phase 5 | Automatic Monitoring | 1 week | Testing Tool |
+| Phase 6 | Alt-Text Manager | 1 week | Annotation Tool |
+| Phase 7 | Focus Order Manager | 1 week | Annotation Tool |
+| Phase 8 | Headings Manager | 1 week | Annotation Tool |
+| Phase 9 | Landmarks Manager | 1 week | Annotation Tool |
+| Phase 10 | Accessibility Notes | 1 week | Annotation Tool |
+| Phase 11 | Integration & Polish | 1-2 weeks | Polish |
+| Phase 12 | Auto Scan & Fix | Deferred | Advanced |
+| **Total** | **Full v1.0 (Phases 0-11)** | **13-15 weeks** | **Complete Plugin** |
+
+**Development Philosophy**:
+- Build infrastructure when first needed (not speculatively)
+- Each phase is self-contained and committable
+- Proper reusable modules from the start (no inline code)
+- Comprehensive tool documentation with each phase
 
 ---
 
@@ -214,12 +237,13 @@ accessibility-genie/
 
 ## 🚀 Next Steps
 
-1. **Review** all documentation documents
-2. **Set up** development environment (see Phase 0)
-3. **Start implementing** Phase 1 features
-4. **Test continuously** throughout development
-5. **Gather feedback** from beta users
-6. **Iterate** based on real-world usage
+1. **Review** all documentation documents (01 → 04)
+2. **Verify** Phase 0 setup (hooks already exist)
+3. **Request confirmation** before starting Phase 1
+4. **Implement** one tool per phase following Implementation Protocols
+5. **Document** each tool with comprehensive README
+6. **Commit** after each phase completion (see Git commit guidelines)
+7. **Test continuously** throughout development
 
 ---
 
@@ -255,5 +279,5 @@ For questions or issues:
 ---
 
 **Document Status**: ✅ Complete
-**Documentation Version**: 1.0
-**Last Updated**: 2025-11-15
+**Documentation Version**: 2.0
+**Last Updated**: 2025-11-21

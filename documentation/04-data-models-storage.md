@@ -1,7 +1,7 @@
 # Accessibility Genie - Data Models & Storage Strategy
 
-**Version**: 1.0
-**Last Updated**: 2025-11-15
+**Version**: 2.0
+**Last Updated**: 2025-11-21
 **Status**: Design Specification
 
 ---
@@ -9,12 +9,13 @@
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Storage Architecture](#storage-architecture)
-3. [Data Models](#data-models)
-4. [Storage Keys](#storage-keys)
-5. [Data Versioning & Migration](#data-versioning--migration)
-6. [Export Formats](#export-formats)
-7. [Best Practices](#best-practices)
+2. [Data Model Introduction Timeline](#data-model-introduction-timeline)
+3. [Storage Architecture](#storage-architecture)
+4. [Data Models](#data-models)
+5. [Storage Keys](#storage-keys)
+6. [Data Versioning & Migration](#data-versioning--migration)
+7. [Export Formats](#export-formats)
+8. [Best Practices](#best-practices)
 
 ---
 
@@ -27,6 +28,8 @@ Accessibility Genie stores all data locally in Figma files using the Plugin Data
 - **Persistence**: Data survives file close/reopen
 - **Sync**: Automatic with Figma's file sync
 - **Portability**: Data travels with the file
+
+**Development Approach**: Data models and storage services are introduced incrementally during phased development. The StorageService is built in Phase 1 when first needed by the Contrast Checker. Each subsequent phase adds its data models when first required.
 
 ### Storage Layers
 
@@ -58,6 +61,82 @@ Accessibility Genie stores all data locally in Figma files using the Plugin Data
 
 ---
 
+## Data Model Introduction Timeline
+
+This section shows when each data model and storage service is introduced during phased development. Data models are built only when first required by a tool.
+
+### Phase 0: Verification Only
+**No storage needed** - This phase only verifies existing hooks
+
+### Phase 1: Contrast Checker (+ Initial Infrastructure)
+**Introduced**:
+- ✅ **StorageService** - Core storage service for plugin data API operations
+- ✅ **PluginSettings** data model - Global settings (theme, WCAG level, etc.)
+- ✅ Storage keys constants (`STORAGE_KEYS`)
+
+**Note**: The Contrast Checker may not need persistent storage for results (results can be ephemeral). StorageService is built as proper reusable module for settings and future tool needs.
+
+### Phase 2-4: Touch Targets, Typography, Vision Simulator
+**No new data models** - These testing tools produce ephemeral results (not persisted)
+- Results are displayed in UI but not saved to Figma file
+- Reuses PluginSettings for user preferences
+
+### Phase 5: Automatic Monitoring
+**Introduced**:
+- ✅ **MonitoringResults** data model - Cached scan results for monitoring dashboard
+- ✅ **ContrastResult**, **TypographyResult**, **TouchTargetResult** type definitions
+- ✅ `STORAGE_KEYS.MONITORING_RESULTS` storage key
+
+### Phase 6: Alt-Text Manager (First Annotation Tool)
+**Introduced**:
+- ✅ **AnnotationService** - Visual annotations on canvas
+- ✅ **AltTextData** data model - Alt-text annotations stored on image nodes
+- ✅ `STORAGE_KEYS.ALT_TEXT` storage key
+
+**Key Milestone**: First tool that persists node-level data in Figma files
+
+### Phase 7: Focus Order Manager
+**Introduced**:
+- ✅ **FocusOrderData** data model - Focus/tab order stored on interactive nodes
+- ✅ `STORAGE_KEYS.FOCUS_ORDER` storage key
+
+### Phase 8: Headings Manager
+**Introduced**:
+- ✅ **HeadingData** data model - Heading level annotations stored on text nodes
+- ✅ `STORAGE_KEYS.HEADING` storage key
+
+### Phase 9: Landmarks Manager
+**Introduced**:
+- ✅ **LandmarkData** data model - Landmark role annotations stored on frame nodes
+- ✅ `STORAGE_KEYS.LANDMARK` storage key
+
+### Phase 10: Accessibility Notes
+**Introduced**:
+- ✅ **AccessibilityNoteData** data model - Platform-specific accessibility annotations (most complex data model)
+- ✅ `STORAGE_KEYS.NOTES` storage key
+- ✅ Platform-specific type definitions (Web, iOS, Android, Windows, React Native, TV)
+
+### Phase 11: Integration & Polish
+**Introduced**:
+- ✅ **ExportService** - JSON/CSV/Markdown export functionality
+- ✅ Export format type definitions
+- ✅ Data aggregation and reporting utilities
+
+### Phase 12: Auto Scan & Fix (Deferred)
+**Future data models** as needed
+
+---
+
+### Data Model Reuse Strategy
+
+Once introduced, data models and storage services are reused across all subsequent phases:
+- **StorageService**: Used by all phases that need persistent storage (Phase 1+)
+- **PluginSettings**: Extended by each phase to add tool-specific preferences
+- **AnnotationService**: Shared across all annotation tools (Phase 6-10)
+- **ExportService**: Can export data from all tools (Phase 11+)
+
+---
+
 ## Storage Architecture
 
 ### Figma Plugin Data API
@@ -79,6 +158,9 @@ interface DocumentNode {
 ```
 
 ### StorageService Implementation
+
+**Introduced in**: Phase 1 (Contrast Checker - initial infrastructure)
+**File**: `src/services/storage.service.ts`
 
 ```typescript
 // src/services/storage.service.ts
@@ -225,6 +307,7 @@ export class StorageService {
 
 ### 1. Alt-Text Data
 
+**Introduced in**: Phase 6 (Alt-Text Manager)
 **Storage Key**: `a11y-genie:alt-text`
 **Stored On**: Image nodes (rectangles with image fills)
 
@@ -278,6 +361,7 @@ const altTextExample: AltTextData = {
 
 ### 2. Heading Data
 
+**Introduced in**: Phase 8 (Headings Manager)
 **Storage Key**: `a11y-genie:heading`
 **Stored On**: Text nodes
 
@@ -313,6 +397,7 @@ const headingExample: HeadingData = {
 
 ### 3. Landmark Data
 
+**Introduced in**: Phase 9 (Landmarks Manager)
 **Storage Key**: `a11y-genie:landmark`
 **Stored On**: Frame nodes, section nodes
 
@@ -373,6 +458,7 @@ const landmarkExample: LandmarkData = {
 
 ### 4. Focus Order Data
 
+**Introduced in**: Phase 7 (Focus Order Manager)
 **Storage Key**: `a11y-genie:focus-order`
 **Stored On**: Interactive nodes (buttons, inputs, links)
 
@@ -415,6 +501,7 @@ const focusOrderExample: FocusOrderData = {
 
 ### 5. Accessibility Notes Data
 
+**Introduced in**: Phase 10 (Accessibility Notes)
 **Storage Key**: `a11y-genie:notes`
 **Stored On**: Any node
 
@@ -530,6 +617,7 @@ const accessibilityNoteExample: AccessibilityNoteData = {
 
 ### 6. Plugin Settings
 
+**Introduced in**: Phase 1 (Contrast Checker - initial infrastructure)
 **Storage Key**: `a11y-genie:settings`
 **Stored On**: Plugin root (document-level)
 
@@ -615,6 +703,7 @@ const settingsExample: PluginSettings = {
 
 ### 7. Auto-Monitoring Results
 
+**Introduced in**: Phase 5 (Automatic Monitoring)
 **Storage Key**: `a11y-genie:monitoring-results`
 **Stored On**: Plugin root (document-level)
 
@@ -1193,5 +1282,14 @@ function paginateResults<T>(
 ---
 
 **Document Status**: ✅ Complete
-**Last Review**: 2025-11-15
-**Next Review**: After Phase 0 implementation
+**Last Review**: 2025-11-21
+**Next Review**: After Phase 1 implementation
+
+---
+
+**Key Points**:
+- StorageService built in Phase 1 as reusable infrastructure
+- Data models introduced incrementally as each tool needs them
+- Phase 6 (Alt-Text) is first tool to persist node-level data
+- All annotation tools (Phase 6-10) use the same StorageService
+- PluginSettings extended by each phase for tool-specific preferences

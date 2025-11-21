@@ -1,7 +1,7 @@
 # Accessibility Genie - Component Structure & UI Specifications
 
-**Version**: 1.0
-**Last Updated**: 2025-11-15
+**Version**: 2.0
+**Last Updated**: 2025-11-21
 **Status**: Design Specification
 
 ---
@@ -9,17 +9,20 @@
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Design System](#design-system)
-3. [Component Library](#component-library)
-4. [View Components](#view-components)
-5. [Panel Components](#panel-components)
-6. [Component Props & APIs](#component-props--apis)
+2. [Component Introduction Timeline](#component-introduction-timeline)
+3. [Design System](#design-system)
+4. [Component Library](#component-library)
+5. [View Components](#view-components)
+6. [Panel Components](#panel-components)
+7. [Component Props & APIs](#component-props--apis)
 
 ---
 
 ## Overview
 
 This document defines the React component structure for Accessibility Genie, including the design system, shared UI components, views, and feature-specific panels.
+
+**Development Approach**: Components are built incrementally during phased development. Each component is implemented when first needed by a tool (not speculatively upfront), but always as a proper reusable module in `src/components/ui/`.
 
 ### Design Goals
 
@@ -28,6 +31,68 @@ This document defines the React component structure for Accessibility Genie, inc
 - **Accessible**: Plugin itself must be accessible
 - **Themeable**: Support light and dark modes
 - **Responsive**: Adapt to different panel sizes
+- **Pragmatic**: Built when needed, not when speculated
+
+---
+
+## Component Introduction Timeline
+
+This section shows when each UI component is introduced during phased development. Components are built only when first required by a tool.
+
+### Phase 0: Verification Only
+**Existing Infrastructure**:
+- ✅ `useFigmaMessage` hook (already exists)
+- ✅ `useFigmaTheme` hook (already exists)
+
+### Phase 1: Contrast Checker (+ Initial Infrastructure)
+**Components Introduced**:
+- `Button` - Primary CTA for "Check Page" action
+- `Card` - Tool navigation cards in main view
+- `Badge` - Pass/Fail status indicators for contrast results
+- `List` & `ListItem` - Display contrast check results
+- `Dropdown` - WCAG level selector (AA vs AAA)
+- `Icon` - Icons for tools and UI elements
+- `MainView` - Main view with tool cards (basic version)
+- `ContrastPanel` - Contrast checker panel component
+
+**Note**: All Phase 1 components are built as proper reusable modules in `src/components/ui/` so subsequent phases can use them.
+
+### Phase 2-3: Touch Targets & Typography
+**Components Added**:
+- Tool-specific panel components reuse Phase 1 components
+- No new shared UI components needed
+
+### Phase 4: Vision Simulator
+**Components Added** (if needed):
+- Additional UI components only if Vision Simulator requires them
+
+### Phase 5: Automatic Monitoring
+**Components Added**:
+- `Toggle` - Enable/disable monitoring switch
+- Panel component for monitoring dashboard
+
+### Phases 6-10: Annotation Tools
+**Components Added**:
+- `Input` - Text input for alt-text, notes, labels (Phase 6: Alt-Text Manager)
+- `Modal` - Settings and export dialogs (as needed)
+- Tool-specific panel components for each annotation tool
+
+### Phase 11: Integration & Polish
+**Components Added**:
+- Additional components for export functionality
+- Settings panel enhancements
+- Polish existing components
+
+### Component Reuse Strategy
+
+Once a component is introduced, all subsequent phases reuse it:
+- **Button**: Used in every tool panel for actions
+- **Badge**: Used across all testing tools for status
+- **Card**: Used in MainView for all tools
+- **List**: Used across multiple tools for displaying results
+- **Dropdown**: Reused in tools with selection options
+- **Input**: Shared across all annotation tools
+- **Modal**: Shared for settings, exports, confirmations
 
 ---
 
@@ -187,6 +252,7 @@ This document defines the React component structure for Accessibility Genie, inc
 
 ### 1. Button Component
 
+**Introduced in**: Phase 1 (Contrast Checker)
 **File**: `src/components/ui/Button/Button.tsx`
 
 #### Variants
@@ -341,6 +407,7 @@ export const Button: React.FC<ButtonProps> = ({
 
 ### 2. Card Component
 
+**Introduced in**: Phase 1 (Contrast Checker)
 **File**: `src/components/ui/Card/Card.tsx`
 
 ```tsx
@@ -408,6 +475,7 @@ export const Card: React.FC<CardProps> = ({
 
 ### 3. Badge Component
 
+**Introduced in**: Phase 1 (Contrast Checker)
 **File**: `src/components/ui/Badge/Badge.tsx`
 
 ```tsx
@@ -494,6 +562,7 @@ export const Badge: React.FC<BadgeProps> = ({
 
 ### 4. Modal Component
 
+**Introduced in**: Phase 6+ (As needed for settings/exports)
 **File**: `src/components/ui/Modal/Modal.tsx`
 
 ```tsx
@@ -558,6 +627,7 @@ export const Modal: React.FC<ModalProps> = ({
 
 ### 5. Dropdown Component
 
+**Introduced in**: Phase 1 (Contrast Checker - WCAG level selector)
 **File**: `src/components/ui/Dropdown/Dropdown.tsx`
 
 ```tsx
@@ -646,6 +716,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
 ### 6. Input Component
 
+**Introduced in**: Phase 6 (Alt-Text Manager - text input for alt-text)
 **File**: `src/components/ui/Input/Input.tsx`
 
 ```tsx
@@ -714,6 +785,7 @@ export const Input: React.FC<InputProps> = ({
 
 ### 7. Toggle Component
 
+**Introduced in**: Phase 5 (Automatic Monitoring - enable/disable switch)
 **File**: `src/components/ui/Toggle/Toggle.tsx`
 
 ```tsx
@@ -755,6 +827,7 @@ export const Toggle: React.FC<ToggleProps> = ({
 
 ### 8. List Component
 
+**Introduced in**: Phase 1 (Contrast Checker - display results list)
 **File**: `src/components/ui/List/List.tsx`
 
 ```tsx
@@ -809,6 +882,7 @@ export const ListItem: React.FC<ListItemProps> = ({
 
 ### 9. Icon Component
 
+**Introduced in**: Phase 1 (Contrast Checker - tool icons and UI indicators)
 **File**: `src/components/ui/Icon/Icon.tsx`
 
 ```tsx
@@ -873,6 +947,7 @@ export const Icon: React.FC<IconProps> = ({
 
 ### MainView Component
 
+**Introduced in**: Phase 1 (Contrast Checker - basic version with tool cards)
 **File**: `src/components/views/MainView/MainView.tsx`
 
 ```tsx
@@ -1054,9 +1129,12 @@ export const MainView: React.FC = () => {
 
 ## Panel Components
 
+**Development Note**: Each tool introduces its own panel component within its feature module at `src/features/[category]/[tool-name]/components/`. Panel components are introduced phase-by-phase as each tool is implemented.
+
 ### Contrast Panel Example
 
-**File**: `src/components/panels/ContrastPanel/ContrastPanel.tsx`
+**Introduced in**: Phase 1 (Contrast Checker)
+**File**: `src/features/testing/contrast/components/ContrastPanel.tsx`
 
 ```tsx
 import React, { useState, useEffect } from 'react';
@@ -1208,5 +1286,13 @@ export const ContrastPanel: React.FC = () => {
 ---
 
 **Document Status**: ✅ Complete
-**Last Review**: 2025-11-15
-**Next Review**: After Phase 0 implementation
+**Last Review**: 2025-11-21
+**Next Review**: After Phase 1 implementation
+
+---
+
+**Key Points**:
+- Components are built incrementally as needed by each tool
+- Phase 1 establishes the core UI component library
+- All components are proper reusable modules from the start
+- Subsequent phases reuse Phase 1 infrastructure extensively

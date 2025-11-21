@@ -1,23 +1,273 @@
 # Accessibility Genie - Phase-Wise Implementation Plan
 
-**Version**: 1.0
-**Last Updated**: 2025-11-15
-**Status**: Planning Phase
+**Version**: 2.0
+**Last Updated**: 2025-11-21
+**Status**: Active Development
+
+---
+
+## ⚠️ CRITICAL: Implementation Protocols
+
+**These protocols MUST be followed when implementing any phase in this project.**
+
+### Protocol 1: Phase Start Confirmation
+
+**Before starting any phase:**
+- ✋ **MUST explicitly ask**: "Are you ready to start Phase [X]: [Tool Name]?"
+- ⏸️ Wait for user confirmation before proceeding
+- 📋 Review previous phase completion status
+- 🚫 Confirm no blocking issues from previous phases
+
+**Example:**
+```
+"Are you ready to start Phase 2: Touch Targets Checker?
+This phase will build upon the infrastructure from Phase 1 (Contrast Checker)."
+```
+
+### Protocol 2: Git Commit Recommendations
+
+**After completing each phase/feature:**
+
+Provide recommended git commit using conventional commits format:
+
+```
+Commit Message: feat(tool-name): brief description
+
+Description:
+- Detailed change 1
+- Detailed change 2
+- Technical implementation notes
+- Files added/modified
+```
+
+**⛔ CRITICAL RULE**: **NO mention of Claude, AI, AI-assisted development, or any AI tools in commit messages or descriptions.**
+
+**Good Example:**
+```
+feat(contrast): implement contrast checker tool
+
+- Add WCAG 2.1 contrast ratio validation for text nodes
+- Create ContrastPanel component with AA/AAA level filtering
+- Implement StorageService for persisting settings
+- Add color utilities for RGB/luminance calculations
+- Create reusable Button, Card, and Badge components
+
+Files:
+- src/features/testing/contrast/
+- src/services/storage.service.ts
+- src/components/ui/
+```
+
+**Bad Example (DON'T DO THIS):**
+```
+feat(contrast): implement contrast checker
+
+- Built with Claude's help
+- AI-generated contrast calculations
+```
+
+### Protocol 3: Tool-Specific Documentation Requirements
+
+**For each tool implemented, create `README.md` inside the tool folder.**
+
+**Location**: `src/features/[category]/[tool-name]/README.md`
+
+**Required Sections:**
+
+1. **Tool Overview**
+   - What the tool does
+   - Why it's needed for accessibility
+   - WCAG/ARIA standards it addresses
+
+2. **How It Works**
+   - Detailed technical explanation
+   - Algorithm descriptions
+   - Step-by-step process flow
+
+3. **Data Flow Diagram**
+   - Visual representation (ASCII art or Mermaid syntax)
+   - Shows data movement through the system
+   - User action → Plugin code → Figma API → Response
+
+4. **User Interaction Flow**
+   - Step-by-step user interaction diagram
+   - What the user sees and clicks
+   - UI states and transitions
+
+5. **Technical Implementation**
+   - Key algorithms used
+   - Technical approaches
+   - Performance considerations
+   - Edge cases handled
+
+6. **Scientific/Technical References**
+   - Links to WCAG guidelines
+   - Research papers or articles
+   - Technical specifications
+   - Standards documentation (with URLs)
+
+7. **External Resources & Dependencies**
+   - npm packages used (with versions and package URLs)
+   - Open source projects referenced (with URLs)
+   - Code snippets adapted from external sources (with attribution)
+   - All with proper URLs and attribution
+
+8. **Testing Approach**
+   - How to test this specific tool
+   - Test cases covered
+   - Manual testing checklist
+
+9. **Known Limitations**
+   - Current limitations
+   - Edge cases not handled
+   - Browser/environment constraints
+
+10. **Future Enhancements**
+    - Potential improvements
+    - Feature ideas for later phases
+
+**Example Tool Documentation Template:**
+
+````markdown
+# Contrast Checker
+
+## Tool Overview
+
+The Contrast Checker validates color contrast ratios between text and background colors against WCAG 2.1 Level AA and AAA standards.
+
+**Addresses**: WCAG 2.1 Success Criterion 1.4.3 (Contrast Minimum)
+
+## How It Works
+
+1. User selects text nodes or runs check on entire page
+2. Plugin extracts foreground color (text fill) and background color (node fill or parent fill)
+3. Calculate relative luminance for each color using WCAG formula
+4. Compute contrast ratio: (L1 + 0.05) / (L2 + 0.05)
+5. Compare against WCAG thresholds:
+   - AA Normal Text: 4.5:1
+   - AA Large Text: 3:1
+   - AAA Normal Text: 7:1
+   - AAA Large Text: 4.5:1
+
+## Data Flow Diagram
+
+```
+User clicks "Check Contrast"
+    ↓
+UI sends RUN_CONTRAST_CHECK message
+    ↓
+Plugin code: ContrastChecker.checkPage()
+    ↓
+For each text node:
+  ├─ Extract foreground RGB
+  ├─ Extract background RGB
+  ├─ Calculate luminance (WCAG formula)
+  ├─ Calculate contrast ratio
+  └─ Compare against thresholds
+    ↓
+Return ContrastResult[] to UI
+    ↓
+UI displays results in ContrastPanel
+```
+
+## User Interaction Flow
+
+1. User opens plugin → sees main tool list
+2. User clicks "Contrast" card → ContrastPanel opens
+3. User selects WCAG level (AA/AAA) from dropdown
+4. User clicks "Check Page" button
+5. Plugin scans all text nodes on current page
+6. Results list appears showing:
+   - Color swatches (foreground/background)
+   - Contrast ratio (e.g., "4.5:1")
+   - Pass/Fail badge
+7. User can filter: All / Pass / Fail
+8. User clicks result → Figma zooms to that node
+
+## Technical Implementation
+
+**Algorithm**: WCAG 2.1 Relative Luminance Formula
+
+```
+L = 0.2126 * R + 0.7152 * G + 0.0722 * B
+
+Where R, G, B are calculated as:
+if (channel <= 0.03928):
+    channel = channel / 12.92
+else:
+    channel = ((channel + 0.055) / 1.055) ^ 2.4
+```
+
+**Performance Optimization**:
+- Batch process nodes (50 at a time)
+- Cache color calculations
+- Skip hidden/locked layers
+
+## Scientific/Technical References
+
+- **WCAG 2.1 Contrast Minimum**: https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html
+- **Relative Luminance Formula**: https://www.w3.org/TR/WCAG21/#dfn-relative-luminance
+- **Contrast Ratio Formula**: https://www.w3.org/TR/WCAG21/#dfn-contrast-ratio
+- **WebAIM Contrast Checker** (reference implementation): https://webaim.org/resources/contrastchecker/
+
+## External Resources & Dependencies
+
+**npm Packages**: None (using native calculations)
+
+**Reference Code**:
+- WCAG formula implementation inspired by: https://github.com/tmcw/wcag-contrast
+
+## Testing Approach
+
+**Test Cases**:
+1. Black text on white background → Should pass AAA (21:1)
+2. #666 text on white → Should fail AA (3.2:1)
+3. Large text with 3.5:1 ratio → Should pass AA Large, fail Normal
+4. Gradients → Should use average or fallback color
+5. Transparent backgrounds → Should flatten against parent
+
+**Manual Testing**:
+- [ ] Check entire page with multiple text nodes
+- [ ] Verify AA vs AAA filtering works
+- [ ] Test with nested frames (background color detection)
+- [ ] Verify zoom-to-node on result click
+
+## Known Limitations
+
+- Does not handle complex gradients (uses simple average)
+- Cannot detect text over images (requires manual checking)
+- Assumes opaque backgrounds (transparency flattened to white)
+
+## Future Enhancements
+
+- Support for text over images (using image sampling)
+- Gradient analysis with multiple sample points
+- Real-time contrast checking as colors change
+- Color suggestions to achieve AA/AAA compliance
+````
 
 ---
 
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Implementation Phases](#implementation-phases)
-3. [Phase 0: Project Setup](#phase-0-project-setup)
-4. [Phase 1: MVP - Core Testing Tools](#phase-1-mvp---core-testing-tools)
-5. [Phase 2: Essential Annotation Tools](#phase-2-essential-annotation-tools)
-6. [Phase 3: Advanced Features](#phase-3-advanced-features)
-7. [Phase 4: Polish & Optimization](#phase-4-polish--optimization)
-8. [Phase 5: Future Enhancements](#phase-5-future-enhancements)
-9. [Risk Management](#risk-management)
-10. [Success Metrics](#success-metrics)
+2. [Development Philosophy](#development-philosophy)
+3. [Phase Structure Overview](#phase-structure-overview)
+4. [Phase 0: Project Setup](#phase-0-project-setup)
+5. [Phase 1: Contrast Checker](#phase-1-contrast-checker)
+6. [Phase 2: Touch Targets Checker](#phase-2-touch-targets-checker)
+7. [Phase 3: Typography Checker](#phase-3-typography-checker)
+8. [Phase 4: Vision Simulator](#phase-4-vision-simulator)
+9. [Phase 5: Automatic Monitoring](#phase-5-automatic-monitoring)
+10. [Phase 6: Alt-Text Manager](#phase-6-alt-text-manager)
+11. [Phase 7: Focus Order Manager](#phase-7-focus-order-manager)
+12. [Phase 8: Headings Manager](#phase-8-headings-manager)
+13. [Phase 9: Landmarks Manager](#phase-9-landmarks-manager)
+14. [Phase 10: Accessibility Notes](#phase-10-accessibility-notes)
+15. [Phase 11: Integration & Polish](#phase-11-integration--polish)
+16. [Phase 12: Auto Scan & Fix](#phase-12-auto-scan--fix)
+17. [Timeline Summary](#timeline-summary)
+18. [Git Commit Strategy](#git-commit-strategy)
 
 ---
 
@@ -25,1308 +275,1521 @@
 
 ### Project Goals
 
-Build **Accessibility Genie**, a comprehensive Figma plugin that helps designers create accessible designs by providing:
-- Real-time accessibility testing and validation
+Build **Accessibility Genie**, a comprehensive Figma plugin that helps designers create accessible designs through:
+- Real-time accessibility testing tools
 - Annotation tools for documenting accessibility requirements
-- Export capabilities for developer handoff
 - Standards-based guidance (WCAG 2.1, ARIA, platform guidelines)
+- Developer handoff capabilities
 
 ### Development Approach
 
-- **Iterative Development**: Release working features incrementally
-- **User Feedback**: Test with designers and developers early
-- **Quality First**: Thorough testing before moving to next phase
-- **Documentation**: Maintain comprehensive docs throughout
-
-### Timeline Overview
-
-| Phase | Duration | Deliverable |
-|-------|----------|-------------|
-| **Phase 0** | 1 week | Project foundation |
-| **Phase 1** | 2-3 weeks | MVP with 3 core testing tools |
-| **Phase 2** | 3-4 weeks | Complete annotation suite |
-| **Phase 3** | 3-4 weeks | Advanced features + automation |
-| **Phase 4** | 2-3 weeks | Polish and optimization |
-| **Phase 5** | Ongoing | Future enhancements |
-| **Total** | 11-15 weeks | Full-featured v1.0 |
+- **Pragmatic & Incremental**: Build only what's needed, when it's needed
+- **Modular from Start**: Components, services, and utilities built as proper reusable modules
+- **No Speculation**: Don't create infrastructure for hypothetical future needs
+- **One Tool Per Phase**: Each phase implements one complete, testable tool
+- **Git-Friendly**: Each phase completion is a natural commit point
+- **Comprehensive Documentation**: Each tool includes detailed README with diagrams and references
 
 ---
 
-## Implementation Phases
+## Development Philosophy
+
+### Build When Needed, Not When Speculated
+
+**Core Principle**: Only build infrastructure when a specific tool needs it.
+
+**Example**:
+- ❌ **Don't**: Create AnnotationService in Phase 1 because "annotation tools will need it later"
+- ✅ **Do**: Create AnnotationService in Phase 6 when Alt-Text Manager (first annotation tool) actually needs it
+
+### Modular From First Use
+
+**Core Principle**: When you build something, make it a proper reusable module (not inline code).
+
+**Example**:
+- ❌ **Don't**: Write button HTML/styles inline in ContrastPanel
+- ✅ **Do**: Create `src/components/ui/Button/Button.tsx` as a proper component when Contrast Checker needs a button
+
+### Natural Extraction Over Premature Abstraction
+
+**Core Principle**: Extract common patterns when you see duplication, not before.
+
+**Example**:
+- Phase 1: Build color utilities for Contrast Checker
+- Phase 2: Touch Targets Checker doesn't need color utilities, so don't force it
+- Phase 3: If Typography Checker also needs color utilities, great! They're already there
+- If pattern emerges across 3 tools, consider extracting to shared utility
+
+### Each Phase = One Tool = One Commit
+
+**Core Principle**: Each phase implements one complete, tested, documented tool.
+
+**Result**:
+- Clean git history
+- Easy to review changes
+- Easy to roll back if needed
+- Clear progress tracking
+
+---
+
+## Phase Structure Overview
 
 ```
-Phase 0: Project Setup (Week 1)
+Phase 0: Project Setup (Verification)
     ↓
-Phase 1: MVP - Core Testing Tools (Weeks 2-4)
-├─ Contrast Checker
-├─ Touch Targets Checker
-└─ Typography Checker
+Phase 1: Contrast Checker (First Tool + Initial Infrastructure)
+├─ Build: Button, Card, Badge, List, Input, Dropdown components
+├─ Build: StorageService, SelectionService
+├─ Build: color.utils, wcag.utils, node.utils
+└─ Deliver: Working Contrast Checker + Tool Documentation
     ↓
-Phase 2: Essential Annotation Tools (Weeks 5-8)
-├─ Headings Manager
-├─ Landmarks Manager
-├─ Alt-Text Manager (basic)
-└─ Focus Order Manager
+Phase 2: Touch Targets Checker
+├─ Reuse: UI components, StorageService, SelectionService
+├─ Add: Touch target validation utilities
+└─ Deliver: Working Touch Targets Checker + Tool Documentation
     ↓
-Phase 3: Advanced Features + Automation (Weeks 9-12)
-├─ Vision Simulator
-├─ Accessibility Notes
-├─ Auto Scan Integration (orchestrates existing tools)
-├─ Automatic Monitoring (real-time)
-└─ Export System (JSON/CSV/Markdown)
+Phase 3: Typography Checker
+├─ Reuse: Existing infrastructure
+├─ Add: Typography validation utilities
+└─ Deliver: Working Typography Checker + Tool Documentation
     ↓
-Phase 4: Polish & Optimization (Weeks 13-15)
+Phase 4: Vision Simulator
+├─ Reuse: Existing infrastructure
+├─ Add: Image processing utilities, filter algorithms
+└─ Deliver: Working Vision Simulator + Tool Documentation
+    ↓
+Phase 5: Automatic Monitoring
+├─ Reuse: All testing tools built so far
+├─ Add: EventService (document change listening)
+└─ Deliver: Working Automatic Monitoring + Tool Documentation
+    ↓
+Phase 6: Alt-Text Manager (First Annotation Tool)
+├─ Reuse: Existing infrastructure
+├─ Add: AnnotationService (canvas badges/overlays) ← NEW
+└─ Deliver: Working Alt-Text Manager + Tool Documentation
+    ↓
+Phase 7: Focus Order Manager
+├─ Reuse: Existing infrastructure + AnnotationService
+├─ Add: Drag-and-drop utilities, arrow drawing
+└─ Deliver: Working Focus Order Manager + Tool Documentation
+    ↓
+Phase 8: Headings Manager
+├─ Reuse: Existing infrastructure + AnnotationService
+├─ Add: Hierarchy validation utilities
+└─ Deliver: Working Headings Manager + Tool Documentation
+    ↓
+Phase 9: Landmarks Manager
+├─ Reuse: Existing infrastructure + AnnotationService
+├─ Add: Landmark validation utilities
+└─ Deliver: Working Landmarks Manager + Tool Documentation
+    ↓
+Phase 10: Accessibility Notes
+├─ Reuse: Existing infrastructure
+├─ Add: Platform templates, code generation utilities
+└─ Deliver: Working Accessibility Notes + Tool Documentation
+    ↓
+Phase 11: Integration & Polish
+├─ Test all 10 tools working together
 ├─ Performance optimization
 ├─ Bug fixes
-├─ Documentation
-└─ User testing
+├─ Add: ExportService (comprehensive export across all tools)
+└─ Deliver: Production-ready plugin
     ↓
-Phase 5: Future Enhancements (Ongoing)
-├─ AI integration (Alt-Text)
-├─ Additional vision conditions
-├─ Team collaboration
-└─ Advanced reporting
+Phase 12: Auto Scan & Fix (Deferred Final Phase)
+├─ Orchestrate all testing tools
+├─ Build unified results dashboard
+└─ Deliver: One-click accessibility scan
 ```
 
 ---
 
 ## Phase 0: Project Setup
 
-**Duration**: 1 week
-**Goal**: Establish solid foundation for development
+**Duration**: Already complete (verification only)
+**Goal**: Verify development environment is ready
 
-### Tasks
+### Verification Checklist
 
-#### 1. Development Environment Setup ✅
+#### 1. Dependencies Installed ✓
 
-- [x] Initialize Git repository
-- [x] Set up TypeScript configuration
-- [x] Configure Webpack build system
-- [x] Install core dependencies (React, Figma typings)
-- [x] Set up development and production builds
-
-#### 2. Project Structure
-
-- [ ] Create folder structure (see architecture doc)
-  - [ ] `src/types/`
-  - [ ] `src/constants/`
-  - [ ] `src/utils/`
-  - [ ] `src/services/`
-  - [ ] `src/features/`
-  - [ ] `src/components/`
-  - [ ] `src/hooks/`
-  - [ ] `src/contexts/`
-- [ ] Set up path aliases in tsconfig
-- [ ] Create index files for barrel exports
-
-#### 3. Core Infrastructure
-
-**Subtasks**:
-
-##### A. Type System
-```typescript
-// src/types/index.ts - Central type definitions
-- Common types (RGB, Size, Position)
-- Storage types
-- Message types
-- Feature result types
+```bash
+# Verify these are in package.json
+- react (^18.3.0)
+- react-dom (^18.3.0)
+- typescript (^5.6.0)
+- @figma/plugin-typings (latest)
+- webpack (^5.x)
+- webpack-cli
+- ts-loader
+- css-loader
+- html-webpack-plugin
 ```
 
-##### B. Constants
-```typescript
-// src/constants/storage.constants.ts
-- Storage key definitions
-- Version constants
+#### 2. Configuration Files ✓
 
-// src/constants/wcag.constants.ts
-- WCAG thresholds (contrast ratios, touch target sizes)
-- ARIA roles
-- Heading levels
+- [x] `webpack.config.js` exists and properly configured
+  - Entry points: `code.ts` (plugin code), `ui.tsx` (UI)
+  - Output: `dist/` folder
+  - Loaders: TypeScript, CSS
+- [x] `tsconfig.json` exists and properly configured
+  - Target: ES6+
+  - JSX: react
+  - Strict mode enabled
+- [x] `manifest.json` exists with correct plugin metadata
 
-// src/constants/ui.constants.ts
-- Color schemes
-- Icon definitions
-- Tool configurations
+#### 3. Existing Infrastructure ✓
+
+- [x] `src/hooks/useFigmaMessage.ts` - Message protocol for UI ↔ Plugin communication
+- [x] `src/hooks/useFigmaTheme.ts` - Theme system for light/dark mode
+
+#### 4. Build System ✓
+
+```bash
+# Verify these commands work
+npm run dev     # Development build with watch
+npm run build   # Production build
 ```
 
-##### C. Core Services (Foundation)
-```typescript
-// src/services/storage.service.ts
-- Basic get/set plugin data methods
-- Node data storage methods
-- Error handling
+#### 5. Plugin Loading ✓
 
-// src/services/selection.service.ts
-- Get current selection
-- Selection change listener
-- Node type filters
-
-// src/services/annotation.service.ts
-- Create basic annotations (rectangles, text)
-- Annotation namespace/grouping
-- Show/hide/delete annotations
-```
-
-##### D. Utility Functions
-```typescript
-// src/utils/color.utils.ts
-- RGB to hex conversion
-- Relative luminance calculation
-- Contrast ratio calculation
-
-// src/utils/node.utils.ts
-- Node type checking (isTextNode, isFrameNode)
-- Get node colors (fills, strokes)
-- Node traversal helpers
-
-// src/utils/wcag.utils.ts
-- WCAG level checking
-- Large text detection
-- Minimum size validators
-```
-
-#### 4. Base UI Components
-
-**Subtasks**:
-
-##### A. Design System Foundation
-```typescript
-// src/components/ui/Button/Button.tsx
-- Primary, secondary, tertiary variants
-- Icon button support
-- Size variations (small, medium, large)
-- Disabled state
-
-// src/components/ui/Card/Card.tsx
-- Tool card with icon, title, description
-- Hover state
-- Click handler
-- Badge support
-
-// src/components/ui/Icon/Icon.tsx
-- SVG icon component
-- Icon registry
-- Size prop
-
-// src/components/ui/Badge/Badge.tsx
-- Status badge (pass, fail, warning)
-- Count badge
-- Color variants
-```
-
-##### B. Layout Components
-```typescript
-// src/components/ui/List/List.tsx
-- Scrollable list container
-- List item component
-- Empty state
-
-// src/components/ui/Modal/Modal.tsx
-- Overlay background
-- Close button
-- Header, body, footer sections
-
-// src/components/ui/Dropdown/Dropdown.tsx
-- Select dropdown
-- Option rendering
-- Search support (future)
-```
-
-##### C. Form Components
-```typescript
-// src/components/ui/Input/Input.tsx
-- Text input
-- Label support
-- Error state
-- Helper text
-
-// src/components/ui/Toggle/Toggle.tsx
-- On/off switch
-- Label
-- Disabled state
-```
-
-#### 5. Communication Layer
-
-**Subtasks**:
-
-##### A. Message Protocol
-```typescript
-// src/types/messages.types.ts
-- Message type enum
-- PluginMessage interface
-- PluginResponse interface
-
-// src/code.ts - Message handler setup
-- Central message router
-- Error handling
-- Response wrapper
-
-// src/hooks/useFigmaMessage.ts
-- React hook for sending messages
-- Response handling
-- Loading states
-```
-
-##### B. Theme System
-```typescript
-// src/contexts/ThemeContext.tsx
-- Theme state (light/dark)
-- Theme toggle
-- Persist preference
-
-// src/hooks/useFigmaTheme.ts (already exists)
-- Sync with Figma theme
-- Apply CSS variables
-```
-
-#### 6. Main UI Shell
-
-**Subtasks**:
-
-##### A. App Container
-```typescript
-// src/ui.tsx - Main app
-- Theme provider
-- Context providers
-- Router (simple view switching)
-
-// src/components/views/MainView/MainView.tsx
-- Auto Scan button
-- Tool list sections (Testing, Annotation)
-- Navigation handling
-```
-
-##### B. Tool List
-```typescript
-// Tool registry configuration
-- Define all 10 tools (initially disabled)
-- Icon assignments
-- Category grouping
-- Navigation routes
-```
-
-#### 7. Build & Testing
-
-- [ ] Verify development build (`npm run dev`)
-- [ ] Verify production build (`npm run build`)
-- [ ] Test plugin loads in Figma
-- [ ] Test hot reload during development
-- [ ] Set up basic error logging
-
-### Deliverables
-
-- ✅ Working development environment
-- ✅ Complete folder structure
-- ✅ Core services implemented
-- ✅ Base UI components built
-- ✅ Main UI shell functional
-- ✅ Message system operational
-- ✅ Documentation updated
+- [ ] Plugin loads in Figma without errors
+- [ ] UI renders (even if empty)
+- [ ] Console shows no errors
 
 ### Success Criteria
 
-- Plugin loads without errors
-- UI renders correctly with theme support
-- Message passing works between UI and plugin code
-- Basic navigation between views works
-- All tool cards displayed (even if disabled)
+- ✅ All dependencies installed
+- ✅ Build commands work
+- ✅ Plugin loads in Figma
+- ✅ Existing hooks functional (useFigmaMessage, useFigmaTheme)
+
+### No Git Commit
+
+Phase 0 is verification only. First commit happens after Phase 1.
 
 ---
 
-## Phase 1: MVP - Core Testing Tools
+## Phase 1: Contrast Checker
 
-**Duration**: 2-3 weeks
-**Goal**: Deliver functional MVP with highest-value testing tools
+**Duration**: 1-2 weeks
+**Goal**: Implement first complete tool + build initial reusable infrastructure
 
-**Rationale**: Build and test individual testing tools first before implementing automation. Each tool should be fully functional and tested independently.
+### Rationale
 
-### Week 1: Touch Targets Checker
+Contrast Checker is the perfect first tool because:
+- **High Priority**: Most common accessibility issue
+- **Relatively Simple**: Clear algorithm (WCAG contrast formula)
+- **Establishes Patterns**: Sets up UI components, services, and utilities that other tools will reuse
+- **Immediate Value**: Delivers working functionality quickly
 
-**Complexity**: Low | **Priority**: High | **Estimated Time**: 4-5 days
+### What This Phase Builds
 
-#### Implementation Tasks
+#### 1. First UI Components (Reusable)
 
-##### Day 1-2: Core Logic
+Create these in `src/components/ui/`:
+
+- **Button** (`Button/Button.tsx`)
+  - Variants: primary, secondary, tertiary, ghost, destructive
+  - Sizes: small, medium, large
+  - States: disabled, loading
+  - Icon support (left/right positioning)
+
+- **Card** (`Card/Card.tsx`)
+  - Tool card for navigation
+  - Icon, title, description, badge
+  - Clickable with hover states
+
+- **Badge** (`Badge/Badge.tsx`)
+  - Status indicators (success, warning, error, info, neutral)
+  - Sizes: small, medium, large
+  - Used for pass/fail indicators
+
+- **List** (`List/List.tsx`)
+  - Scrollable list container
+  - List item component
+  - Empty state support
+
+- **Input** (`Input/Input.tsx`)
+  - Text input with label
+  - Error state
+  - Helper text
+
+- **Dropdown** (`Dropdown/Dropdown.tsx`)
+  - Select dropdown
+  - Option list
+  - Searchable (future enhancement)
+
+- **Icon** (`Icon/Icon.tsx`)
+  - SVG icon system
+  - Size prop
+  - Color customization
+
+#### 2. First Services (Reusable)
+
+Create these in `src/services/`:
+
+- **StorageService** (`storage.service.ts`)
+  - `setNodeData<T>(node, key, value)` - Store data on node
+  - `getNodeData<T>(node, key)` - Retrieve data from node
+  - `setPluginData<T>(key, value)` - Store plugin-wide settings
+  - `getPluginData<T>(key)` - Retrieve plugin-wide settings
+  - `deleteNodeData(node, key)` - Delete data from node
+  - JSON serialization with versioning
+
+- **SelectionService** (`selection.service.ts`)
+  - `getCurrentSelection()` - Get current Figma selection
+  - `onSelectionChange(callback)` - Listen for selection changes
+  - `findNodesOfType(type)` - Filter nodes by type
+  - `traverseNode(node, callback)` - Tree traversal
+
+#### 3. First Utilities (Reusable)
+
+Create these in `src/utils/`:
+
+- **color.utils.ts**
+  - `rgbToHex(rgb)` - Convert RGB to hex
+  - `getRelativeLuminance(rgb)` - WCAG luminance formula
+  - `getContrastRatio(color1, color2)` - WCAG contrast formula
+  - `isLightColor(rgb)` - Determine if color is light/dark
+
+- **wcag.utils.ts**
+  - `getWCAGLevel(ratio, isLarge)` - Determine AAA/AA/Fail
+  - `isLargeText(fontSize, fontWeight)` - Check if text is "large"
+  - `getMinimumContrast(isLarge, level)` - Get threshold for AA/AAA
+
+- **node.utils.ts**
+  - `isTextNode(node)` - Type guard for text nodes
+  - `getNodeFills(node)` - Extract fill colors
+  - `getBackgroundColor(node)` - Get background (node or parent)
+  - `getTextColor(node)` - Get foreground color
+
+#### 4. Contrast Checker Implementation
+
+Create in `src/features/testing/contrast/`:
+
+**File Structure**:
+```
+src/features/testing/contrast/
+├── README.md                           ⭐ Comprehensive tool documentation
+├── contrast-checker.ts                 Core logic
+├── contrast.types.ts                   TypeScript types
+├── contrast.constants.ts               WCAG thresholds
+└── components/
+    ├── ContrastPanel.tsx               Main UI panel
+    └── ContrastPanel.module.css        Styles
+```
+
+**contrast.types.ts**:
 ```typescript
-// src/features/testing/touch-targets/touch-targets-checker.ts
+export interface ContrastResult {
+  nodeId: string;
+  nodeName: string;
+  foreground: RGB;
+  background: RGB;
+  ratio: number;
+  passAA: boolean;
+  passAAA: boolean;
+  isLargeText: boolean;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+}
 
-Tasks:
+export interface RGB {
+  r: number; // 0-1
+  g: number; // 0-1
+  b: number; // 0-1
+}
+```
+
+**contrast-checker.ts**:
+```typescript
+export class ContrastChecker {
+  constructor(
+    private storage: StorageService,
+    private selection: SelectionService
+  ) {}
+
+  async checkSelection(): Promise<ContrastResult[]> {
+    // Check currently selected nodes
+  }
+
+  async checkPage(): Promise<ContrastResult[]> {
+    // Check all text nodes on page
+  }
+
+  checkNode(node: TextNode): ContrastResult {
+    // Check single node
+    // 1. Extract foreground color
+    // 2. Extract background color
+    // 3. Calculate contrast ratio
+    // 4. Compare against WCAG thresholds
+  }
+}
+```
+
+**ContrastPanel.tsx**:
+```typescript
+export const ContrastPanel: React.FC = () => {
+  const [results, setResults] = useState<ContrastResult[]>([]);
+  const [filter, setFilter] = useState<'all' | 'pass' | 'fail'>('all');
+  const [level, setLevel] = useState<'AA' | 'AAA'>('AA');
+  const { sendMessage } = useFigmaMessage();
+
+  // UI for checking contrast, filtering results, displaying list
+}
+```
+
+#### 5. App Shell & Navigation
+
+Create in `src/`:
+
+- **App.tsx** - Main app container
+  - Theme provider
+  - Router/view switching
+  - Main tool list view
+
+- **MainView.tsx** - Tool list view
+  - Card for each tool (initially just Contrast)
+  - Navigation to tool panels
+
+### Implementation Tasks (Day-by-Day)
+
+#### Day 1-2: Base UI Components
+
+- [ ] Create `src/components/ui/` folder structure
+- [ ] Implement Button component with all variants
+- [ ] Implement Card component
+- [ ] Implement Badge component
+- [ ] Implement List component
+- [ ] Implement Input component
+- [ ] Implement Dropdown component
+- [ ] Implement Icon component (basic SVG icons)
+- [ ] Create CSS modules for each component
+- [ ] Test components in isolation
+
+#### Day 2-3: Core Services & Utilities
+
+- [ ] Create `src/services/` folder
+- [ ] Implement StorageService with async methods
+- [ ] Implement SelectionService with node traversal
+- [ ] Create `src/utils/` folder
+- [ ] Implement color.utils.ts (luminance, contrast formulas)
+- [ ] Implement wcag.utils.ts (WCAG thresholds)
+- [ ] Implement node.utils.ts (type guards, color extraction)
+- [ ] Test utilities with sample data
+
+#### Day 3-4: Contrast Checker Logic
+
+- [ ] Create `src/features/testing/contrast/` folder
+- [ ] Define TypeScript types (contrast.types.ts)
+- [ ] Define constants (WCAG thresholds)
+- [ ] Implement ContrastChecker class
+  - [ ] `checkNode()` method
+  - [ ] `checkSelection()` method
+  - [ ] `checkPage()` method
+- [ ] Test contrast calculations against known values
+- [ ] Handle edge cases (gradients, transparency, nested frames)
+
+#### Day 4-5: Contrast Panel UI
+
+- [ ] Create ContrastPanel component
+- [ ] Implement WCAG level selector (AA/AAA dropdown)
+- [ ] Implement "Check Page" button
+- [ ] Implement results list with:
+  - Color swatches (foreground/background)
+  - Contrast ratio display
+  - Pass/fail badges
+  - Node name
+- [ ] Implement filter buttons (All/Pass/Fail)
+- [ ] Implement click-to-zoom (select node in Figma)
+- [ ] Style panel with CSS modules
+
+#### Day 5-6: App Shell & Integration
+
+- [ ] Create App.tsx with theme provider
+- [ ] Create MainView.tsx with tool list
+- [ ] Add Contrast Checker card to tool list
+- [ ] Implement navigation (MainView ↔ ContrastPanel)
+- [ ] Set up message protocol in code.ts:
+  - Handle `RUN_CONTRAST_CHECK` message
+  - Return results to UI
+- [ ] Test end-to-end flow
+
+#### Day 6-7: Tool Documentation
+
+- [ ] Create `src/features/testing/contrast/README.md`
+- [ ] Write comprehensive tool documentation:
+  - [ ] Tool overview
+  - [ ] How it works (technical explanation)
+  - [ ] Data flow diagram
+  - [ ] User interaction flow
+  - [ ] Technical implementation details
+  - [ ] WCAG references with URLs
+  - [ ] Testing approach
+  - [ ] Known limitations
+  - [ ] Future enhancements
+
+#### Day 7: Testing & Polish
+
+- [ ] Test with various color combinations
+- [ ] Test with large files (100+ text nodes)
+- [ ] Test edge cases (gradients, transparency)
+- [ ] Performance optimization (if needed)
+- [ ] Fix bugs
+- [ ] Code cleanup
+- [ ] Verify documentation is complete
+
+### Deliverables
+
+- ✅ Working Contrast Checker tool
+- ✅ 7 reusable UI components (Button, Card, Badge, List, Input, Dropdown, Icon)
+- ✅ 2 core services (StorageService, SelectionService)
+- ✅ 3 utility modules (color, wcag, node)
+- ✅ App shell with navigation
+- ✅ Comprehensive tool documentation (README.md)
+- ✅ Tested and functional end-to-end
+
+### Testing Checklist
+
+- [ ] Contrast Checker works on selected text node
+- [ ] Contrast Checker works on entire page (100+ nodes)
+- [ ] AA/AAA filtering works correctly
+- [ ] Pass/Fail filtering works correctly
+- [ ] Color swatches display accurately
+- [ ] Contrast ratios calculated correctly (verified against WebAIM)
+- [ ] Large text detection works (18pt+ or 14pt+ bold)
+- [ ] Click on result zooms to node in Figma
+- [ ] UI components are reusable and work correctly
+- [ ] StorageService persists settings correctly
+- [ ] SelectionService detects selection changes
+- [ ] Documentation is complete and accurate
+
+### Git Commit Template
+
+```
+feat(contrast): implement contrast checker tool
+
+- Add WCAG 2.1 contrast ratio validation for text nodes
+- Create ContrastPanel with AA/AAA level filtering
+- Implement StorageService for persisting plugin settings
+- Implement SelectionService for node selection management
+- Add color utilities (luminance, contrast ratio calculations)
+- Add WCAG utilities (threshold validation, large text detection)
+- Add node utilities (type guards, color extraction)
+- Create reusable UI components (Button, Card, Badge, List, Input, Dropdown, Icon)
+- Add comprehensive tool documentation with data flow diagrams
+- Handle edge cases: gradients, transparency, nested backgrounds
+
+Tested with:
+- Various color combinations (black/white, grays, colors)
+- Large files (100+ text nodes)
+- Different WCAG levels (AA, AAA)
+- Large text detection (18pt+, 14pt+ bold)
+
+WCAG Reference: https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html
+```
+
+---
+
+## Phase 2: Touch Targets Checker
+
+**Duration**: 1 week
+**Goal**: Implement touch target size validation
+
+**📢 Start Protocol**: Ask user "Are you ready to start Phase 2: Touch Targets Checker?"
+
+### Rationale
+
+Touch Targets is a straightforward checker focusing on size validation, perfect as the second tool.
+
+### Infrastructure from Previous Phases
+
+**Reuse from Phase 1**:
+- ✅ UI components (Button, Card, Badge, List, Dropdown)
+- ✅ StorageService
+- ✅ SelectionService
+- ✅ node.utils.ts (partially)
+- ✅ App shell and navigation
+
+### New Infrastructure Needed
+
+**Add in this phase**:
+- Touch target validation utilities (may extend node.utils.ts)
+- Touch target specific constants (platform sizes)
+
+### Implementation Tasks
+
+#### Day 1-2: Touch Targets Logic
+
+- [ ] Create `src/features/testing/touch-targets/` folder
+- [ ] Define TypeScript types (touch-targets.types.ts)
+- [ ] Define constants (platform-specific minimum sizes)
+  - Web: 24×24px (AA), 44×44px (AAA)
+  - iOS: 44×44pt
+  - Android: 48×48dp
 - [ ] Implement TouchTargetsChecker class
-- [ ] Identify interactive nodes (buttons, components with reactions)
-- [ ] Measure node dimensions (width, height)
-- [ ] Check against WCAG 2.5.5 standards
-  - AA: 24×24px minimum
-  - AAA: 44×44px recommended
-- [ ] Platform-specific recommendations (iOS: 44×44pt, Android: 48×48dp)
-- [ ] Generate CheckResult objects
-```
+  - [ ] Identify interactive nodes (buttons, with reactions)
+  - [ ] Measure width and height
+  - [ ] Validate against platform standards
+  - [ ] Generate results with severity
 
-##### Day 2-3: Annotation System
-```typescript
-Tasks:
-- [ ] Create visual indicators for failing nodes
-  - Red outline for failures
-  - Yellow outline for warnings
-  - Green outline for passes
-- [ ] Add size labels (e.g., "32×28px - Too small")
-- [ ] Implement show/hide annotations
-```
+#### Day 2-3: Touch Targets Panel UI
 
-##### Day 3-4: UI Panel
-```typescript
-// src/components/panels/TouchTargetsPanel/TouchTargetsPanel.tsx
+- [ ] Create TouchTargetsPanel component
+- [ ] Implement platform selector (Web/iOS/Android dropdown)
+- [ ] Implement "Check Page" button
+- [ ] Implement results list:
+  - Node name
+  - Current size (e.g., "32×28px")
+  - Required size
+  - Pass/fail badge
+- [ ] Implement "Fix" button (auto-resize to minimum, if safe)
+- [ ] Style panel
 
-Tasks:
-- [ ] Display list of interactive elements
-- [ ] Show current size vs. required size
-- [ ] Pass/fail indicators
-- [ ] "Fix" button to resize to minimum (if possible)
-- [ ] Platform selector (Web, iOS, Android)
-- [ ] Export results button
-```
+#### Day 3-4: Integration & Testing
 
-##### Day 4-5: Testing & Polish
-```typescript
-Tasks:
-- [ ] Test with various node types
-- [ ] Test with different platforms
-- [ ] Handle edge cases (nested components, groups)
-- [ ] Performance testing with large files
-- [ ] Documentation
-```
+- [ ] Add Touch Targets card to MainView
+- [ ] Set up message handler in code.ts
+- [ ] Test with various node sizes
+- [ ] Test platform switching
+- [ ] Test "Fix" functionality
 
-#### Deliverables
+#### Day 4-5: Tool Documentation
+
+- [ ] Create `src/features/testing/touch-targets/README.md`
+- [ ] Document WCAG 2.5.5 (Target Size)
+- [ ] Add platform-specific guidelines:
+  - iOS Human Interface Guidelines
+  - Android Material Design
+  - Web (WCAG 2.5.5)
+- [ ] Data flow diagram
+- [ ] User interaction flow
+- [ ] Testing approach
+
+#### Day 5: Testing & Polish
+
+- [ ] Test with nested components
+- [ ] Test with groups
+- [ ] Performance testing
+- [ ] Bug fixes
+- [ ] Documentation review
+
+### Deliverables
+
 - ✅ Working Touch Targets Checker
-- ✅ Visual annotations on canvas
-- ✅ UI panel with results
-- ✅ Export to JSON/CSV
+- ✅ Platform-specific validation (Web, iOS, Android)
+- ✅ "Fix" functionality (auto-resize)
+- ✅ Comprehensive tool documentation
+- ✅ Tested and functional
+
+### Testing Checklist
+
+- [ ] Touch targets checked on entire page
+- [ ] Platform switching works (Web/iOS/Android)
+- [ ] Pass/fail indicators accurate
+- [ ] "Fix" button resizes nodes safely
+- [ ] Interactive node detection accurate (reactions, component instances)
+- [ ] Works with nested components and groups
+
+### Git Commit Template
+
+```
+feat(touch-targets): implement touch targets checker
+
+- Add WCAG 2.5.5 target size validation
+- Support platform-specific standards (Web, iOS, Android)
+- Create TouchTargetsPanel with platform selector
+- Implement auto-resize "Fix" functionality
+- Detect interactive nodes (reactions, buttons, components)
+- Add comprehensive tool documentation
+
+Platform Standards:
+- Web: 24×24px (AA), 44×44px (AAA)
+- iOS: 44×44pt (HIG)
+- Android: 48×48dp (Material Design)
+
+WCAG Reference: https://www.w3.org/WAI/WCAG21/Understanding/target-size.html
+```
 
 ---
 
-### Week 2: Contrast Checker
+## Phase 3: Typography Checker
 
-**Complexity**: Low-Medium | **Priority**: High | **Estimated Time**: 5-6 days
+**Duration**: 1 week
+**Goal**: Implement typography validation (font size, line height, alignment, etc.)
 
-#### Implementation Tasks
+**📢 Start Protocol**: Ask user "Are you ready to start Phase 3: Typography Checker?"
 
-##### Day 1-2: Color Extraction & Calculations
-```typescript
-// src/features/testing/contrast/contrast-checker.ts
+### Rationale
 
-Tasks:
-- [ ] Extract foreground color from text nodes
-- [ ] Extract background color (node fill or parent fill)
-- [ ] Handle gradients (use average or darkest/lightest)
-- [ ] Handle transparency (flatten against white/black)
-- [ ] Implement WCAG contrast formula
-  - Calculate relative luminance
-  - Calculate contrast ratio
-- [ ] Determine if text is "large" (18pt+ or 14pt+ bold)
-```
+Typography Checker validates multiple text properties, expanding validation capabilities.
 
-##### Day 3: WCAG Validation
-```typescript
-Tasks:
-- [ ] Check against AA standards
-  - Normal text: 4.5:1
-  - Large text: 3:1
-- [ ] Check against AAA standards
-  - Normal text: 7:1
-  - Large text: 4.5:1
-- [ ] Generate pass/fail results with recommendations
-```
+### Infrastructure from Previous Phases
 
-##### Day 4-5: UI Panel
-```typescript
-// src/components/panels/ContrastPanel/ContrastPanel.tsx
+**Reuse**:
+- ✅ All UI components
+- ✅ StorageService, SelectionService
+- ✅ node.utils.ts
 
-Tasks:
-- [ ] Display color pairs (foreground/background)
-- [ ] Show contrast ratio (e.g., "4.5:1")
-- [ ] WCAG level indicators (AA ✓, AAA ✗)
-- [ ] Visual color preview swatches
-- [ ] Suggestions for passing colors
-- [ ] Bulk check all text on page
-- [ ] Filter by pass/fail status
-```
+### New Infrastructure Needed
 
-##### Day 5-6: Annotations & Polish
-```typescript
-Tasks:
-- [ ] Annotate failing text nodes
-- [ ] Color-coded indicators
-- [ ] Ratio labels on canvas
-- [ ] Handle edge cases (images, effects, blends)
-- [ ] Performance optimization
-- [ ] Testing and documentation
-```
+**Add in this phase**:
+- Typography validation utilities
+- Bulk text modification utilities (optional)
 
-#### Deliverables
-- ✅ Working Contrast Checker
-- ✅ Accurate WCAG calculations
-- ✅ Visual annotations
-- ✅ UI panel with results and suggestions
-- ✅ Export capability
+### Implementation Tasks
 
----
+#### Day 1-2: Typography Rules & Logic
 
-### Week 3: Typography Checker
+- [ ] Create `src/features/testing/typography/` folder
+- [ ] Define TypeScript types (typography.types.ts)
+- [ ] Define typography rules:
+  - Minimum font size (11px warning, 16px recommended)
+  - Line height (1.5 for body, 1.2 for headings)
+  - Line length (50-75 characters optimal)
+  - Text alignment (left preferred for LTR)
+  - Font weight (minimum 400 for body)
+- [ ] Implement TypographyChecker class
+- [ ] Implement rule engine with severity levels (error, warning, info)
 
-**Complexity**: Low | **Priority**: High | **Estimated Time**: 4-5 days
+#### Day 2-3: Typography Panel UI
 
-#### Implementation Tasks
-
-##### Day 1-2: Typography Rules
-```typescript
-// src/features/testing/typography/typography-checker.ts
-
-Tasks:
-- [ ] Check minimum font size
-  - Warn if < 11px
-  - Recommend 16px for body text
-  - Recommend 14px minimum for UI
-- [ ] Check text alignment
-  - Left-aligned preferred for LTR languages
-  - Avoid justified text (can create rivers)
-- [ ] Check line height
-  - Minimum 1.5 for body text
-  - Minimum 1.2 for headings
-- [ ] Check line length
-  - Optimal 50-75 characters
-  - Max 80 characters
-- [ ] Check font weight
-  - Minimum 400 for body text
-  - Avoid weights < 300
-```
-
-##### Day 2-3: Rule Engine
-```typescript
-Tasks:
-- [ ] Create validation rules with severity (error, warning, info)
-- [ ] Generate actionable recommendations
-- [ ] Priority scoring (which issues to fix first)
-```
-
-##### Day 3-4: UI Panel
-```typescript
-// src/components/panels/TypographyPanel/TypographyPanel.tsx
-
-Tasks:
-- [ ] List all text nodes with issues
-- [ ] Show specific rule violations
-- [ ] Bulk actions:
+- [ ] Create TypographyPanel component
+- [ ] Display list of text nodes with issues
+- [ ] Show specific rule violations per node
+- [ ] Implement bulk actions:
   - Set minimum font size
   - Apply recommended line height
   - Fix alignment
-- [ ] Before/after preview
-- [ ] Issue severity indicators
-```
+- [ ] Before/after preview (optional)
 
-##### Day 4-5: Testing & Polish
-```typescript
-Tasks:
+#### Day 3-4: Integration & Testing
+
+- [ ] Add Typography card to MainView
+- [ ] Set up message handler
 - [ ] Test with various text styles
 - [ ] Test multilingual text (RTL)
-- [ ] Handle special cases (all caps, letter spacing)
-- [ ] Performance testing
-- [ ] Documentation
-```
+- [ ] Test bulk actions
 
-#### Deliverables
+#### Day 4-5: Tool Documentation & Polish
+
+- [ ] Create README.md with typography best practices
+- [ ] Reference typography accessibility guidelines
+- [ ] Data flow and user interaction diagrams
+- [ ] Testing and bug fixes
+
+### Deliverables
+
 - ✅ Working Typography Checker
-- ✅ Comprehensive rule validation
+- ✅ Multiple validation rules
 - ✅ Bulk fix capabilities
-- ✅ UI panel with recommendations
-- ✅ Export results
+- ✅ Comprehensive tool documentation
+
+### Git Commit Template
+
+```
+feat(typography): implement typography checker
+
+- Add font size validation (min 11px, recommend 16px)
+- Add line height validation (1.5 body, 1.2 headings)
+- Add line length validation (50-75 characters)
+- Add text alignment checking
+- Add font weight validation
+- Create TypographyPanel with rule violations list
+- Implement bulk fix actions
+- Add comprehensive tool documentation
+
+Typography Guidelines:
+- WCAG 1.4.8 Visual Presentation
+- Best practices for readability
+
+Reference: https://www.w3.org/WAI/WCAG21/Understanding/visual-presentation.html
+```
 
 ---
 
-### Phase 1 Summary
+## Phase 4: Vision Simulator
 
-**Total Duration**: 2-3 weeks
+**Duration**: 1-2 weeks
+**Goal**: Simulate vision impairments (color blindness, blur, etc.)
 
-**Features Delivered**:
-1. ✅ Touch Targets Checker
-2. ✅ Contrast Checker
-3. ✅ Typography Checker
+**📢 Start Protocol**: Ask user "Are you ready to start Phase 4: Vision Simulator?"
 
-**Capabilities**:
-- Individual testing tools fully functional
-- Each tool can check selection or entire page
-- Visual annotations on canvas for issues
-- Detailed results with recommendations
-- Individual export per tool (JSON, CSV, Markdown)
-- Bulk fix capabilities where applicable
+### Rationale
 
-**Testing Checklist**:
-- [ ] Each checker works independently on selection
-- [ ] Each checker works independently on page
-- [ ] Annotations are accurate and clear
-- [ ] UI panels are responsive and intuitive
-- [ ] Each tool's export works correctly
-- [ ] Performance is acceptable (<2s per check on 1000 nodes)
-- [ ] No crashes or errors
-- [ ] Tools don't interfere with each other
+Vision Simulator provides visual feedback on accessibility issues, higher complexity with image processing.
 
-**Note**: Auto Scan integration deferred to Phase 3 after all individual tools are built and tested.
+### Infrastructure from Previous Phases
+
+**Reuse**:
+- ✅ All UI components
+- ✅ StorageService
+
+### New Infrastructure Needed
+
+**Add in this phase**:
+- Image processing utilities
+- Color blindness filter algorithms
+- Blur filter algorithms
+- Image export/rendering utilities
+
+### Implementation Tasks
+
+#### Day 1-3: Filter Algorithms
+
+- [ ] Create `src/features/testing/vision-simulator/` folder
+- [ ] Research and implement color blindness filters:
+  - Protanopia (red-blind)
+  - Deuteranopia (green-blind)
+  - Tritanopia (blue-blind)
+  - Achromatopsia (total color blindness)
+  - Use Brettel-Viénot-Mollon transformation matrices
+- [ ] Implement Gaussian blur filter
+- [ ] Set up Canvas API for image processing
+
+#### Day 3-5: Image Processing Pipeline
+
+- [ ] Export selected nodes as images (figma.exportAsync)
+- [ ] Apply transformation matrices to image data
+- [ ] Render processed images
+- [ ] Optimize for performance (downsample large images)
+
+#### Day 5-7: Vision Simulator Panel UI
+
+- [ ] Create VisionSimulatorPanel component
+- [ ] Filter selection dropdown
+- [ ] Preview area (original vs filtered)
+- [ ] Side-by-side comparison
+- [ ] Intensity slider (optional)
+- [ ] Export filtered images
+
+#### Day 7-8: Integration, Testing & Documentation
+
+- [ ] Add Vision Simulator card to MainView
+- [ ] Message handler setup
+- [ ] Test all filter types
+- [ ] Performance optimization (caching, progressive rendering)
+- [ ] Create README.md with vision science references
+- [ ] Document filter algorithms and transformation matrices
+
+### Deliverables
+
+- ✅ Working Vision Simulator
+- ✅ 4+ color blindness filters
+- ✅ Blur filter
+- ✅ Side-by-side comparison
+- ✅ Export capability
+- ✅ Comprehensive tool documentation with scientific references
+
+### Git Commit Template
+
+```
+feat(vision-simulator): implement vision impairment simulator
+
+- Add color blindness filters (protanopia, deuteranopia, tritanopia, achromatopsia)
+- Implement Gaussian blur filter
+- Create image processing pipeline using Canvas API
+- Create VisionSimulatorPanel with filter preview
+- Add side-by-side comparison view
+- Export filtered images functionality
+- Optimize for performance (image downsampling)
+- Add comprehensive documentation with vision science references
+
+Filter Algorithms:
+- Brettel-Viénot-Mollon transformation matrices
+- Gaussian blur convolution
+
+Scientific References:
+- Color blindness simulation: [Research paper URL]
+- Brettel et al. method: [URL]
+```
 
 ---
 
-## Phase 2: Essential Annotation Tools
+## Phase 5: Automatic Monitoring
 
-**Duration**: 3-4 weeks
-**Goal**: Complete annotation suite for developer handoff
+**Duration**: 1 week
+**Goal**: Real-time monitoring of accessibility issues as design changes
 
-### Week 4: Headings Manager
+**📢 Start Protocol**: Ask user "Are you ready to start Phase 5: Automatic Monitoring?"
 
-**Complexity**: Low-Medium | **Priority**: High | **Estimated Time**: 5-6 days
+### Rationale
 
-#### Implementation Tasks
+Automatic Monitoring provides proactive accessibility checking, reuses all existing testing tools.
 
-##### Day 1-2: Core Functionality
-```typescript
-// src/features/annotation/headings/headings-manager.ts
+### Infrastructure from Previous Phases
 
-Tasks:
-- [ ] Detect text nodes that could be headings
-  - Large font sizes
-  - Bold weights
-  - Position (top of sections)
-- [ ] Store heading level (H1-H6) in plugin data
-- [ ] Get all headings from page/selection
-- [ ] Update heading level
-- [ ] Delete heading annotation
+**Reuse**:
+- ✅ All testing tools (Contrast, Touch Targets, Typography)
+- ✅ All UI components
+- ✅ StorageService
+
+### New Infrastructure Needed
+
+**Add in this phase**:
+- **EventService** (`src/services/event.service.ts`) ← NEW
+  - Document change listening
+  - Debouncing/throttling
+  - Change detection
+
+### Implementation Tasks
+
+#### Day 1-2: EventService
+
+- [ ] Create `src/services/event.service.ts`
+- [ ] Implement document change listener (figma.on('documentchange'))
+- [ ] Implement debounce utility (500ms delay)
+- [ ] Implement change detection (identify changed nodes)
+- [ ] Determine which checks to re-run based on change type
+
+#### Day 2-3: Monitoring Engine
+
+- [ ] Create `src/features/testing/auto-monitoring/` folder
+- [ ] Implement AutoMonitoring class
+- [ ] Toggle monitoring on/off
+- [ ] Queue check operations
+- [ ] Run checks automatically on document changes
+- [ ] Incremental checking (only changed nodes)
+
+#### Day 3-4: Monitoring Dashboard UI
+
+- [ ] Create AutoMonitoringPanel component
+- [ ] Toggle monitoring on/off
+- [ ] Select which checks to run (Contrast/Touch/Typography)
+- [ ] Live issue dashboard
+- [ ] Issue counts by severity
+- [ ] Performance metrics (checks/second)
+
+#### Day 4-5: Integration, Testing & Documentation
+
+- [ ] Add Automatic Monitoring card to MainView
+- [ ] Message handler setup
+- [ ] Test with live document changes
+- [ ] Performance testing (ensure no UI lag)
+- [ ] Memory leak testing
+- [ ] Create README.md with monitoring architecture
+
+### Deliverables
+
+- ✅ Working Automatic Monitoring
+- ✅ EventService for document change detection
+- ✅ Real-time issue detection
+- ✅ Live dashboard
+- ✅ Comprehensive tool documentation
+
+### Git Commit Template
+
 ```
+feat(monitoring): implement automatic accessibility monitoring
 
-##### Day 2-3: Validation System
-```typescript
-// src/services/validation.service.ts - Heading validation
+- Add EventService for document change detection
+- Implement debounced change listener (500ms)
+- Create AutoMonitoring orchestration system
+- Run accessibility checks automatically on design changes
+- Create AutoMonitoringPanel with live dashboard
+- Toggle monitoring on/off
+- Select which checks to run (Contrast, Touch Targets, Typography)
+- Display real-time issue counts and severity
+- Performance optimized (no UI lag)
 
-Tasks:
-- [ ] Validate heading hierarchy
-  - Exactly one H1 per page
-  - No skipped levels (H2 → H4)
-  - Sequential order
-- [ ] Generate validation warnings
-- [ ] Auto-suggest levels based on document structure
+Monitors:
+- Contrast ratio violations
+- Touch target size issues
+- Typography problems
+
+Reference: Real-time accessibility checking approach
 ```
-
-##### Day 3-4: Visual Annotations
-```typescript
-Tasks:
-- [ ] Create color-coded badges
-  - H1: Purple
-  - H2: Blue
-  - H3: Teal
-  - H4: Green
-  - H5: Yellow
-  - H6: Orange
-- [ ] Badge positioning (top-left of text node)
-- [ ] Badge content (e.g., "H1", "H2")
-- [ ] Update badges when level changes
-```
-
-##### Day 4-5: UI Panel
-```typescript
-// src/components/panels/HeadingsPanel/HeadingsPanel.tsx
-
-Tasks:
-- [ ] List all text nodes on page
-- [ ] Dropdown to assign heading level
-- [ ] "None" option to remove heading
-- [ ] Document outline view (hierarchical)
-- [ ] Validation warnings display
-- [ ] Quick fix suggestions
-- [ ] Export outline (Markdown, HTML)
-```
-
-##### Day 5-6: Testing & Polish
-```typescript
-Tasks:
-- [ ] Test hierarchy validation
-- [ ] Test with complex documents
-- [ ] Auto-suggest accuracy testing
-- [ ] Performance testing
-- [ ] Documentation
-```
-
-#### Deliverables
-- ✅ Headings Manager
-- ✅ Visual heading badges on canvas
-- ✅ Hierarchy validation
-- ✅ UI panel for assignment
-- ✅ Export document outline
 
 ---
 
-### Week 5: Landmarks Manager
+## Phase 6: Alt-Text Manager
 
-**Complexity**: Low-Medium | **Priority**: High | **Estimated Time**: 5-6 days
+**Duration**: 1 week
+**Goal**: Annotate images with alternative text (first annotation tool)
 
-#### Implementation Tasks
+**📢 Start Protocol**: Ask user "Are you ready to start Phase 6: Alt-Text Manager?"
 
-##### Day 1-2: Core Functionality
-```typescript
-// src/features/annotation/landmarks/landmarks-manager.ts
+### Rationale
 
-Tasks:
-- [ ] Identify potential landmark containers (frames, sections)
-- [ ] Store landmark role in plugin data
-  - Roles: header, nav, main, aside, footer, form, section
-- [ ] Get all landmarks from page
-- [ ] Update landmark role
-- [ ] Delete landmark annotation
-```
+Alt-Text Manager is the first annotation tool, introduces canvas annotations/badges.
 
-##### Day 2-3: Validation System
-```typescript
-// src/services/validation.service.ts - Landmark validation
+### Infrastructure from Previous Phases
 
-Tasks:
-- [ ] Validate landmark structure
-  - Exactly one <main> per page
-  - Label multiple <nav> landmarks
-  - No overlapping landmarks
-  - Recommended landmarks present
-- [ ] Auto-suggest roles based on:
-  - Frame names ("Header", "Footer", "Navigation")
-  - Position (top = header, bottom = footer)
-  - Content type
-```
+**Reuse**:
+- ✅ All UI components
+- ✅ StorageService, SelectionService
 
-##### Day 3-4: Visual Annotations
-```typescript
-Tasks:
-- [ ] Create role-specific badges
-  - Different colors per role
-  - Icon for each landmark type
-- [ ] Badge labels (e.g., "<nav>", "<main>")
-- [ ] Badge positioning (top-left of frame)
-- [ ] Nested landmark visualization
-```
+### New Infrastructure Needed
 
-##### Day 4-5: UI Panel
-```typescript
-// src/components/panels/LandmarksPanel/LandmarksPanel.tsx
+**Add in this phase**:
+- **AnnotationService** (`src/services/annotation.service.ts`) ← NEW
+  - Create badges/overlays on canvas
+  - Position badges relative to nodes
+  - Show/hide annotations
+  - Delete annotations
 
-Tasks:
-- [ ] List all frames on page
-- [ ] Dropdown to assign landmark role
-- [ ] Optional label input (for multiple <nav>)
-- [ ] Validation warnings display
-- [ ] Quick access to landmark reference guide
-- [ ] Export documentation with HTML examples
-```
+### Implementation Tasks
 
-##### Day 5-6: Testing & Polish
-```typescript
-Tasks:
-- [ ] Test validation rules
-- [ ] Test auto-suggestions
-- [ ] Test nested landmarks
-- [ ] Performance testing
-- [ ] Documentation
-```
+#### Day 1-2: AnnotationService
 
-#### Deliverables
-- ✅ Landmarks Manager
-- ✅ Visual landmark badges
-- ✅ Validation system
-- ✅ UI panel for assignment
-- ✅ Export with code examples
+- [ ] Create `src/services/annotation.service.ts`
+- [ ] Implement badge creation (text label in rectangle)
+- [ ] Implement badge positioning (top-left of node)
+- [ ] Implement badge styling (color, size)
+- [ ] Implement show/hide functionality
+- [ ] Implement delete annotations
+- [ ] Badge namespace management (group annotations)
 
----
+#### Day 2-3: Alt-Text Logic
 
-### Week 6: Alt-Text Manager (Basic)
-
-**Complexity**: Medium | **Priority**: High | **Estimated Time**: 5-6 days
-
-#### Implementation Tasks
-
-##### Day 1-2: Core Functionality
-```typescript
-// src/features/annotation/alt-text/alt-text-manager.ts
-
-Tasks:
+- [ ] Create `src/features/annotation/alt-text/` folder
+- [ ] Define types (AltTextData)
 - [ ] Identify image nodes (rectangles with image fills)
-- [ ] Store alt text in plugin data
+- [ ] Store alt text in plugin data (StorageService)
 - [ ] Mark images as decorative
-- [ ] Get all images from page
-- [ ] Update alt text
-- [ ] Delete alt text annotation
-```
-
-##### Day 2-3: Alt Text Helpers
-```typescript
-Tasks:
 - [ ] Character counter (200 char limit)
-- [ ] Rule-based suggestions from:
-  - Layer names
-  - Frame names
-  - Component names
-- [ ] Validation
-  - Not too short (<10 chars - warning)
-  - Not too long (>200 chars - error)
-  - Not filename-like ("image_123.png" - warning)
-  - Not placeholder ("image" - warning)
-```
+- [ ] Validation rules:
+  - Not too short (<10 chars warning)
+  - Not too long (>200 chars error)
+  - Not filename-like ("image_123.png" warning)
 
-##### Day 3-4: Visual Annotations
-```typescript
-Tasks:
-- [ ] Status badges
-  - Green: Has alt text
-  - Red: Missing alt text
-  - Gray: Marked decorative
-- [ ] Badge icon (image icon)
-- [ ] Badge positioning
-- [ ] Completion percentage overlay
-```
+#### Day 3-4: Alt-Text Panel UI
 
-##### Day 4-5: UI Panel
-```typescript
-// src/components/panels/AltTextPanel/AltTextPanel.tsx
-
-Tasks:
-- [ ] List all images on page
-- [ ] Image preview thumbnails
+- [ ] Create AltTextPanel component
+- [ ] List all images on page with thumbnails
 - [ ] Text input for alt text
 - [ ] "Decorative" checkbox
 - [ ] Character counter
 - [ ] Validation feedback
 - [ ] Progress indicator (X/Y images completed)
 - [ ] Filter: All / Complete / Incomplete
-- [ ] Export image inventory (CSV, JSON)
-```
 
-##### Day 5-6: Testing & Polish
-```typescript
-Tasks:
+#### Day 4-5: Visual Annotations
+
+- [ ] Create status badges on canvas:
+  - Green: Has alt text
+  - Red: Missing alt text
+  - Gray: Marked decorative
+- [ ] Update badges when alt text changes
+- [ ] Show completion percentage overlay
+
+#### Day 5-6: Integration, Testing & Documentation
+
+- [ ] Add Alt-Text card to MainView
+- [ ] Message handler setup
 - [ ] Test with various image types
 - [ ] Test validation rules
-- [ ] Test export formats
-- [ ] Performance testing
-- [ ] Documentation
-- [ ] Note: AI integration deferred to Phase 5
-```
+- [ ] Create README.md with WCAG alt text guidelines
 
-#### Deliverables
-- ✅ Alt-Text Manager (manual entry)
-- ✅ Visual status badges
+### Deliverables
+
+- ✅ Working Alt-Text Manager
+- ✅ AnnotationService for canvas badges
+- ✅ Visual status badges on images
 - ✅ Validation system
-- ✅ UI panel with preview
-- ✅ Export image inventory
-- ⏸️ AI auto-generation (Phase 5)
+- ✅ Comprehensive tool documentation
+
+### Git Commit Template
+
+```
+feat(alt-text): implement alt-text annotation manager
+
+- Add AnnotationService for canvas badge creation
+- Identify image nodes (rectangles with image fills)
+- Create AltTextPanel with image list and text input
+- Store alt text in plugin data (persisted in Figma file)
+- Mark images as decorative
+- Validate alt text (length, content quality)
+- Character counter (200 char limit)
+- Visual status badges (green=complete, red=missing, gray=decorative)
+- Progress tracking (X/Y images completed)
+- Filter incomplete images
+
+WCAG Guidelines:
+- WCAG 1.1.1 Non-text Content
+- Alt text best practices
+
+Reference: https://www.w3.org/WAI/WCAG21/Understanding/non-text-content.html
+```
 
 ---
 
-### Week 7: Focus Order Manager
+## Phase 7: Focus Order Manager
 
-**Complexity**: Medium | **Priority**: Medium | **Estimated Time**: 5-6 days
+**Duration**: 1 week
+**Goal**: Define keyboard navigation order
 
-#### Implementation Tasks
+**📢 Start Protocol**: Ask user "Are you ready to start Phase 7: Focus Order Manager?"
 
-##### Day 1-2: Core Functionality
-```typescript
-// src/features/annotation/focus-order/focus-order-manager.ts
+### Infrastructure from Previous Phases
 
-Tasks:
-- [ ] Identify focusable elements
-  - Interactive components (buttons, inputs)
-  - Nodes with reactions
-  - Named "Button", "Link", etc.
+**Reuse**:
+- ✅ AnnotationService (for numbered badges and arrows)
+- ✅ All UI components
+- ✅ StorageService, SelectionService
+
+### New Infrastructure Needed
+
+**Add in this phase**:
+- Drag-and-drop utilities (sortablejs or react-beautiful-dnd)
+- Arrow drawing utilities (extend AnnotationService)
+
+### Implementation Tasks
+
+#### Day 1-2: Focus Order Logic
+
+- [ ] Create `src/features/annotation/focus-order/` folder
+- [ ] Identify focusable elements (buttons, inputs, interactive nodes)
 - [ ] Store focus order index in plugin data
-- [ ] Get all focusable elements
-- [ ] Update focus order (reorder)
 - [ ] Auto-detect spatial order (top-to-bottom, left-to-right)
-```
+- [ ] Reorder functionality (move up/down, insert at position)
 
-##### Day 2-3: Order Management
-```typescript
-Tasks:
-- [ ] Reorder elements (move up/down)
-- [ ] Insert element at position
-- [ ] Remove element from order
-- [ ] Validate order (check for gaps)
-- [ ] Generate visual flow
-```
+#### Day 2-3: Drag-and-Drop Implementation
 
-##### Day 3-4: Visual Annotations
-```typescript
-Tasks:
-- [ ] Numbered badges (1, 2, 3, ...)
-- [ ] Different colors for different groups
-- [ ] Arrow connectors between elements
-- [ ] Highlight focus path on hover
-```
+- [ ] Install drag-and-drop library (sortablejs or react-beautiful-dnd)
+- [ ] Create sortable list of elements
+- [ ] Implement reorder on drag
+- [ ] Update focus order indices
 
-##### Day 4-5: UI Panel
-```typescript
-// src/components/panels/FocusOrderPanel/FocusOrderPanel.tsx
+#### Day 3-4: Focus Order Panel UI
 
-Tasks:
-- [ ] Sortable list of elements (drag-and-drop)
-  - Library: sortablejs or react-beautiful-dnd
+- [ ] Create FocusOrderPanel component
+- [ ] Sortable list with drag handles
 - [ ] Element name/type display
 - [ ] Move up/down buttons
 - [ ] Remove from order button
-- [ ] Auto-detect button
+- [ ] Auto-detect button (spatial order)
 - [ ] Show/hide flow arrows toggle
-- [ ] Export focus order (JSON, CSV, Markdown)
-```
 
-##### Day 5-6: Testing & Polish
-```typescript
-Tasks:
+#### Day 4-5: Visual Annotations
+
+- [ ] Create numbered badges (1, 2, 3, ...)
+- [ ] Create arrow connectors between elements
+- [ ] Highlight focus path on hover
+- [ ] Update on reorder
+
+#### Day 5-6: Integration, Testing & Documentation
+
+- [ ] Add Focus Order card to MainView
+- [ ] Message handler setup
 - [ ] Test drag-and-drop
 - [ ] Test arrow rendering
-- [ ] Test with complex layouts
-- [ ] Performance testing
-- [ ] Documentation
-```
+- [ ] Create README.md with keyboard navigation guidelines
 
-#### Deliverables
-- ✅ Focus Order Manager
-- ✅ Numbered badges and flow arrows
+### Deliverables
+
+- ✅ Working Focus Order Manager
 - ✅ Drag-and-drop reordering
+- ✅ Numbered badges and flow arrows
 - ✅ Auto-detect spatial order
-- ✅ UI panel with visual flow
-- ✅ Export focus order
+- ✅ Comprehensive tool documentation
+
+### Git Commit Template
+
+```
+feat(focus-order): implement focus order annotation manager
+
+- Identify focusable elements (interactive nodes)
+- Create FocusOrderPanel with drag-and-drop reordering
+- Store focus order indices in plugin data
+- Auto-detect spatial focus order (top-to-bottom, left-to-right)
+- Create numbered badges on canvas (1, 2, 3, ...)
+- Draw arrow connectors showing focus flow
+- Highlight focus path on hover
+- Manual reordering (drag-and-drop, move up/down buttons)
+
+Dependencies:
+- [sortablejs or react-beautiful-dnd]: Drag-and-drop functionality
+
+WCAG Guidelines:
+- WCAG 2.4.3 Focus Order
+- Keyboard navigation best practices
+
+Reference: https://www.w3.org/WAI/WCAG21/Understanding/focus-order.html
+```
 
 ---
 
-### Phase 2 Summary
+## Phase 8: Headings Manager
 
-**Total Duration**: 3-4 weeks
+**Duration**: 1 week
+**Goal**: Annotate heading structure (H1-H6)
 
-**Features Delivered**:
-1. ✅ Headings Manager
-2. ✅ Landmarks Manager
-3. ✅ Alt-Text Manager (manual)
-4. ✅ Focus Order Manager
+**📢 Start Protocol**: Ask user "Are you ready to start Phase 8: Headings Manager?"
 
-**Capabilities**:
-- Annotate semantic structure (headings, landmarks)
-- Document image alternative text
-- Define keyboard navigation order
-- Visual badges and indicators on canvas
-- Validation and auto-suggestions
-- Export documentation for developers
+### Infrastructure from Previous Phases
 
-**Testing Checklist**:
-- [ ] All annotation tools work correctly
-- [ ] Data persists in Figma file
-- [ ] Badges render properly
-- [ ] Validation rules are accurate
-- [ ] UI is intuitive
-- [ ] Export formats are correct
-- [ ] Performance is good
+**Reuse**:
+- ✅ AnnotationService (for heading badges)
+- ✅ All UI components
+- ✅ StorageService, SelectionService
+
+### New Infrastructure Needed
+
+**Add in this phase**:
+- Hierarchy validation utilities
+
+### Implementation Tasks
+
+#### Day 1-2: Headings Logic
+
+- [ ] Create `src/features/annotation/headings/` folder
+- [ ] Detect potential headings (large font, bold weight, top position)
+- [ ] Store heading level (H1-H6) in plugin data
+- [ ] Validate hierarchy:
+  - Exactly one H1 per page
+  - No skipped levels (H2 → H4)
+  - Sequential order
+- [ ] Auto-suggest levels based on structure
+
+#### Day 2-3: Headings Panel UI
+
+- [ ] Create HeadingsPanel component
+- [ ] List all text nodes on page
+- [ ] Dropdown to assign heading level (H1-H6, None)
+- [ ] Document outline view (hierarchical tree)
+- [ ] Validation warnings display
+- [ ] Quick fix suggestions
+
+#### Day 3-4: Visual Annotations
+
+- [ ] Create color-coded heading badges:
+  - H1: Purple
+  - H2: Blue
+  - H3: Teal
+  - H4: Green
+  - H5: Yellow
+  - H6: Orange
+- [ ] Badge positioning (top-left)
+- [ ] Update on level change
+
+#### Day 4-5: Integration, Testing & Documentation
+
+- [ ] Add Headings card to MainView
+- [ ] Message handler setup
+- [ ] Test hierarchy validation
+- [ ] Test with complex documents
+- [ ] Create README.md with HTML5 heading structure guidelines
+
+### Deliverables
+
+- ✅ Working Headings Manager
+- ✅ Hierarchy validation
+- ✅ Color-coded heading badges
+- ✅ Document outline view
+- ✅ Comprehensive tool documentation
+
+### Git Commit Template
+
+```
+feat(headings): implement headings annotation manager
+
+- Detect potential headings (font size, weight, position)
+- Create HeadingsPanel with level assignment dropdown
+- Store heading levels (H1-H6) in plugin data
+- Validate heading hierarchy:
+  - One H1 per page
+  - No skipped levels
+  - Sequential order
+- Generate validation warnings
+- Auto-suggest levels based on document structure
+- Create color-coded heading badges (H1=purple, H2=blue, etc.)
+- Document outline view (hierarchical tree)
+
+WCAG Guidelines:
+- WCAG 1.3.1 Info and Relationships
+- HTML5 heading structure
+- Heading hierarchy best practices
+
+Reference: https://www.w3.org/WAI/WCAG21/Understanding/info-and-relationships.html
+```
 
 ---
 
-## Phase 3: Advanced Features + Automation
+## Phase 9: Landmarks Manager
 
-**Duration**: 3-4 weeks
-**Goal**: Add advanced capabilities, automation, and comprehensive export system
+**Duration**: 1 week
+**Goal**: Define page landmarks (header, nav, main, footer, etc.)
 
-**Rationale**: Now that all individual testing and annotation tools are built and tested, we can implement the automation layer that orchestrates them.
+**📢 Start Protocol**: Ask user "Are you ready to start Phase 9: Landmarks Manager?"
 
-### Week 8-9: Vision Simulator
+### Infrastructure from Previous Phases
 
-**Complexity**: Medium-High | **Priority**: Medium | **Estimated Time**: 7-8 days
+**Reuse**:
+- ✅ AnnotationService (for landmark badges)
+- ✅ All UI components
+- ✅ StorageService, SelectionService
 
-#### Implementation Tasks
+### New Infrastructure Needed
 
-##### Day 1-3: Filter Algorithms
-```typescript
-// src/features/testing/vision-simulator/vision-simulator.ts
+**Add in this phase**:
+- Landmark validation utilities
 
-Tasks:
-- [ ] Export nodes as images (figma.exportAsync)
-- [ ] Set up Canvas API for image processing
-- [ ] Implement color blindness filters:
-  - Protanopia (red-blind)
-  - Deuteranopia (green-blind)
-  - Tritanopia (blue-blind)
-  - Achromatopsia (total color blindness)
-  - Use Brettel-Viénot-Mollon matrices
-- [ ] Implement blur filter (Gaussian blur)
-- [ ] Implement other filters:
-  - Low contrast
-  - Yellowing (cataracts)
-  - Bright light sensitivity
+### Implementation Tasks
+
+#### Day 1-2: Landmarks Logic
+
+- [ ] Create `src/features/annotation/landmarks/` folder
+- [ ] Identify potential landmarks (frames, sections)
+- [ ] Define landmark roles (header, nav, main, aside, footer, form, section)
+- [ ] Store landmark role in plugin data
+- [ ] Validate landmark structure:
+  - Exactly one <main> per page
+  - Label multiple <nav> landmarks
+  - No overlapping landmarks
+- [ ] Auto-suggest roles based on frame names and position
+
+#### Day 2-3: Landmarks Panel UI
+
+- [ ] Create LandmarksPanel component
+- [ ] List all frames on page
+- [ ] Dropdown to assign landmark role
+- [ ] Optional label input (for multiple <nav>)
+- [ ] Validation warnings display
+- [ ] Quick access to landmark reference guide
+
+#### Day 3-4: Visual Annotations
+
+- [ ] Create role-specific badges with icons:
+  - Different colors per role
+  - Role label (e.g., "<nav>", "<main>")
+- [ ] Badge positioning (top-left of frame)
+- [ ] Handle nested landmarks
+
+#### Day 4-5: Integration, Testing & Documentation
+
+- [ ] Add Landmarks card to MainView
+- [ ] Message handler setup
+- [ ] Test validation rules
+- [ ] Test auto-suggestions
+- [ ] Create README.md with ARIA landmarks guidelines
+
+### Deliverables
+
+- ✅ Working Landmarks Manager
+- ✅ Validation system
+- ✅ Role-specific badges
+- ✅ Auto-suggestions
+- ✅ Comprehensive tool documentation
+
+### Git Commit Template
+
 ```
+feat(landmarks): implement landmarks annotation manager
 
-##### Day 3-5: Image Processing Pipeline
-```typescript
-Tasks:
-- [ ] Image data extraction from Canvas
-- [ ] Apply transformation matrices
-- [ ] Pixel manipulation for blur
-- [ ] Re-render processed image
-- [ ] Optimize for performance
-  - Downsample large images
-  - Optional: WebGL acceleration
-  - Optional: Web Worker offloading
+- Identify potential landmark containers (frames, sections)
+- Create LandmarksPanel with role assignment dropdown
+- Store landmark roles in plugin data (header, nav, main, aside, footer, form, section)
+- Validate landmark structure:
+  - One <main> per page
+  - Label multiple <nav> landmarks
+  - No overlapping landmarks
+- Auto-suggest roles based on frame names and position
+- Create role-specific badges with icons
+- Optional label input for accessibility
+
+ARIA Guidelines:
+- ARIA landmark roles
+- Landmark best practices
+- Required landmarks per page
+
+Reference: https://www.w3.org/TR/wai-aria-practices-1.1/examples/landmarks/
 ```
-
-##### Day 5-7: UI Panel
-```typescript
-// src/components/panels/VisionSimulatorPanel/VisionSimulatorPanel.tsx
-
-Tasks:
-- [ ] Filter selection dropdown
-- [ ] Preview area showing:
-  - Original image
-  - Filtered image
-  - Side-by-side comparison
-- [ ] Apply to selection/page
-- [ ] Slider for intensity (where applicable)
-- [ ] Export filtered images
-- [ ] Educational content about each condition
-```
-
-##### Day 7-8: Testing & Optimization
-```typescript
-Tasks:
-- [ ] Test all filter types
-- [ ] Performance optimization
-  - Cache processed images
-  - Progressive rendering
-- [ ] Handle large images
-- [ ] Documentation
-```
-
-#### Deliverables
-- ✅ Vision Simulator with 9 filters
-- ✅ Image processing pipeline
-- ✅ UI panel with preview
-- ✅ Export filtered images
-- ✅ Performance optimized
 
 ---
 
-### Week 10: Accessibility Notes
+## Phase 10: Accessibility Notes
 
-**Complexity**: Medium | **Priority**: Medium | **Estimated Time**: 5-6 days
+**Duration**: 1 week
+**Goal**: Platform-specific accessibility annotations and code generation
 
-#### Implementation Tasks
+**📢 Start Protocol**: Ask user "Are you ready to start Phase 10: Accessibility Notes?"
 
-##### Day 1-2: Platform Templates
-```typescript
-// src/features/annotation/notes/notes-manager.ts
+### Infrastructure from Previous Phases
 
-Tasks:
-- [ ] Define note templates for each platform:
+**Reuse**:
+- ✅ All UI components
+- ✅ StorageService, SelectionService
+
+### New Infrastructure Needed
+
+**Add in this phase**:
+- Platform templates (Web, iOS, Android, Windows, React Native, TV)
+- Code generation utilities (HTML, Swift, Kotlin, XAML, JSX)
+
+### Implementation Tasks
+
+#### Day 1-2: Platform Templates
+
+- [ ] Create `src/features/annotation/notes/` folder
+- [ ] Define platform-specific templates:
   - Web (ARIA attributes)
   - iOS (VoiceOver properties)
   - Android (TalkBack properties)
   - Windows (Narrator properties)
   - React Native (accessibility props)
   - TV platforms
-  - General notes
 - [ ] Store notes in plugin data
-- [ ] Template-based form generation
-```
 
-##### Day 2-3: Code Generation
-```typescript
-Tasks:
-- [ ] Generate platform-specific code snippets
+#### Day 2-3: Code Generation
+
+- [ ] Implement code snippet generation for each platform:
+  - HTML with ARIA attributes
+  - Swift (iOS)
+  - Kotlin (Android)
+  - XAML (Windows)
+  - React Native JSX
+- [ ] Syntax highlighting (optional)
+- [ ] Copy to clipboard functionality
+
+#### Day 3-4: Notes Panel UI
+
+- [ ] Create NotesPanel component
+- [ ] Platform selector dropdown
+- [ ] Template-based form fields (dynamic based on platform)
+- [ ] Rich text editor for general notes
+- [ ] Code preview panel with syntax highlighting
+- [ ] Copy code button
+
+#### Day 4-5: Integration, Testing & Documentation
+
+- [ ] Add Accessibility Notes card to MainView
+- [ ] Message handler setup
+- [ ] Test all platform templates
+- [ ] Verify code generation accuracy
+- [ ] Create README.md with platform-specific guidelines
+
+### Deliverables
+
+- ✅ Working Accessibility Notes system
+- ✅ 6 platform templates
+- ✅ Code snippet generation
+- ✅ Code preview with copy functionality
+- ✅ Comprehensive tool documentation
+
+### Git Commit Template
+
+```
+feat(notes): implement accessibility notes and code generation
+
+- Create platform-specific annotation templates:
+  - Web (ARIA attributes)
+  - iOS (VoiceOver properties)
+  - Android (TalkBack properties)
+  - Windows (Narrator properties)
+  - React Native (accessibility props)
+  - TV platforms
+- Store accessibility notes in plugin data
+- Generate platform-specific code snippets:
   - HTML with ARIA
   - Swift (iOS)
   - Kotlin (Android)
   - XAML (Windows)
   - React Native JSX
-- [ ] Syntax highlighting in UI
-- [ ] Copy to clipboard functionality
+- Create NotesPanel with platform selector
+- Code preview panel with syntax highlighting
+- Copy to clipboard functionality
+
+Platform References:
+- ARIA Authoring Practices: https://www.w3.org/TR/wai-aria-practices-1.1/
+- iOS Accessibility: https://developer.apple.com/accessibility/
+- Android Accessibility: https://developer.android.com/guide/topics/ui/accessibility
 ```
-
-##### Day 3-5: UI Panel
-```typescript
-// src/components/panels/NotesPanel/NotesPanel.tsx
-
-Tasks:
-- [ ] Platform selector dropdown
-- [ ] Template-based form fields
-- [ ] Rich text editor for general notes
-- [ ] Attached notes list per node
-- [ ] Code preview panel
-- [ ] Export all notes (JSON, Markdown)
-- [ ] Reference guide for each platform
-```
-
-##### Day 5-6: Testing & Polish
-```typescript
-Tasks:
-- [ ] Test all platform templates
-- [ ] Verify code generation accuracy
-- [ ] Test with various node types
-- [ ] Documentation
-```
-
-#### Deliverables
-- ✅ Accessibility Notes system
-- ✅ 7 platform templates
-- ✅ Code snippet generation
-- ✅ UI panel with code preview
-- ✅ Export notes documentation
 
 ---
 
-### Week 11: Auto Scan Integration
+## Phase 11: Integration & Polish
 
-**Complexity**: Medium | **Priority**: High | **Estimated Time**: 5-6 days
+**Duration**: 2 weeks
+**Goal**: System integration, performance optimization, final polish
 
-**Rationale**: All individual testing tools are now complete. Auto Scan orchestrates them to provide a one-click comprehensive check.
+**📢 Start Protocol**: Ask user "Are you ready to start Phase 11: Integration & Polish?"
 
-#### Implementation Tasks
+### Rationale
 
-##### Day 1-2: Orchestration System
-```typescript
-// src/features/testing/auto-scan/auto-scan.ts
+All 10 tools are now complete. This phase ensures they work well together and the plugin is production-ready.
 
-Tasks:
-- [ ] Create AutoScan class that orchestrates existing checkers
-- [ ] Run all testing tools in sequence:
-  1. Contrast Checker
-  2. Touch Targets Checker
-  3. Typography Checker
-- [ ] Aggregate results from all checkers
-- [ ] Calculate issue counts by severity
-- [ ] Generate comprehensive summary report
-```
+### Infrastructure from Previous Phases
 
-##### Day 2-3: Results Dashboard
-```typescript
-// src/components/panels/AutoScanPanel/AutoScanPanel.tsx
+**Reuse**:
+- ✅ All 10 tools
+- ✅ All infrastructure
 
-Tasks:
-- [ ] Issue summary cards
-  - Total issues count
-  - Critical/High/Medium/Low breakdown
-  - Issues by category (contrast, touch, typography)
-- [ ] Unified issue list with filtering
-  - Filter by tool type
-  - Filter by severity
-  - Search by node name
-- [ ] Quick actions per issue
-  - Navigate to node
-  - Show on canvas
-  - Fix if auto-fixable
-- [ ] Re-run specific checks
-```
+### New Infrastructure Needed
 
-##### Day 3-4: Canvas Visualization
-```typescript
-Tasks:
-- [ ] Unified annotation system for all issue types
-- [ ] Color-coded by severity
-  - Red: Critical (WCAG fails)
-  - Orange: High (accessibility barriers)
-  - Yellow: Medium (improvements needed)
-  - Blue: Low (best practice suggestions)
-- [ ] Issue count badges per node
-- [ ] Toggle annotations on/off
-- [ ] Clear all annotations
-- [ ] Filter visible annotations by type
-```
+**Add in this phase**:
+- **ExportService** (`src/services/export.service.ts`) ← NEW
+  - Export all data to JSON
+  - Export all data to CSV
+  - Export all data to Markdown
+  - Generate comprehensive reports
 
-##### Day 4-5: Export System
-```typescript
-// src/services/export.service.ts
+### Implementation Tasks
 
-Tasks:
-- [ ] Comprehensive export to JSON
-  - All test results
-  - All annotations
-  - Structured data for developers
-- [ ] Comprehensive export to CSV
-  - Flat structure for spreadsheet tracking
-- [ ] Comprehensive export to Markdown
-  - Human-readable report with sections
-  - Include recommendations and code examples
-- [ ] Export filters (all vs. specific tool results)
-```
+#### Week 1: Integration Testing
 
-##### Day 5-6: Testing & Polish
-```typescript
-Tasks:
+##### Day 1-2: Cross-Tool Testing
+
+- [ ] Test all tools working together
+- [ ] Verify data isolation (tools don't interfere)
+- [ ] Test navigation between tools
 - [ ] Test with large files (1000+ nodes)
-- [ ] Verify all checkers are called correctly
-- [ ] Performance optimization
-  - Progress indicators
-  - Cancelable scans
-  - Parallel execution where possible
-- [ ] Error handling for individual check failures
-- [ ] Documentation
-```
+- [ ] Test with complex nested structures
+- [ ] Identify and fix integration bugs
 
-#### Deliverables
-- ✅ One-click Auto Scan & Fix button
-- ✅ Comprehensive results dashboard
-- ✅ Unified visual annotations
-- ✅ Multi-format export (JSON/CSV/Markdown)
-- ✅ Performance optimized
+##### Day 2-3: ExportService
 
----
+- [ ] Create `src/services/export.service.ts`
+- [ ] Implement JSON export:
+  - All tool data
+  - All annotations
+  - Structured for developers
+- [ ] Implement CSV export:
+  - Flat structure for spreadsheets
+  - Issue tracking format
+- [ ] Implement Markdown export:
+  - Human-readable report
+  - Sections for each tool
+  - Code examples
+  - Recommendations
 
-### Week 12: Automatic Monitoring (Real-Time)
+##### Day 3-4: Export Integration
 
-**Complexity**: Medium | **Priority**: Medium | **Estimated Time**: 5-6 days
+- [ ] Add "Export All" button to main view
+- [ ] Format selection (JSON/CSV/Markdown)
+- [ ] Preview export before download
+- [ ] Test exports with real data
 
-**Rationale**: Auto Scan runs on-demand. Automatic Monitoring adds real-time checking as the design changes.
+##### Day 4-5: Performance Optimization
 
-#### Implementation Tasks
-
-##### Day 1-2: Document Change Listener
-```typescript
-// src/features/testing/auto-monitoring/auto-monitoring.ts (full version)
-
-Tasks:
-- [ ] Listen to documentchange event
-- [ ] Debounce changes (500ms)
-- [ ] Identify changed nodes
-- [ ] Determine which checks to re-run
-- [ ] Queue check operations
-```
-
-##### Day 2-3: Monitoring Engine
-```typescript
-Tasks:
-- [ ] Toggle monitoring on/off
-- [ ] Store monitoring state
-- [ ] Run checks automatically when:
-  - Node added
-  - Node modified (color, size, text)
-  - Node deleted
-- [ ] Incremental checking (only changed nodes)
-- [ ] Update annotations in real-time
-```
-
-##### Day 3-4: Issue Tracking
-```typescript
-Tasks:
-- [ ] Track issues over time
-- [ ] Store issue history
-- [ ] Issue lifecycle (new, persisting, resolved)
-- [ ] Generate change report
-```
-
-##### Day 4-5: UI Panel
-```typescript
-// src/components/panels/AutoMonitoringPanel/AutoMonitoringPanel.tsx
-
-Tasks:
-- [ ] Toggle monitoring on/off
-- [ ] Select which checks to run
-- [ ] Live issue dashboard
-- [ ] Issue history timeline
-- [ ] Auto-fix suggestions
-- [ ] Performance metrics (checks/second)
-```
-
-##### Day 5-6: Testing & Optimization
-```typescript
-Tasks:
-- [ ] Performance testing
-  - Ensure no UI lag
-  - Optimize debouncing
-- [ ] Memory leak testing
-- [ ] Documentation
-```
-
-#### Deliverables
-- ✅ Automatic Monitoring system
-- ✅ Real-time issue detection
-- ✅ Issue tracking over time
-- ✅ UI panel with live dashboard
-- ✅ Performance optimized
-
----
-
-### Phase 3 Summary
-
-**Total Duration**: 3-4 weeks
-
-**Features Delivered**:
-1. ✅ Vision Simulator (9 filters)
-2. ✅ Accessibility Notes (7 platforms)
-3. ✅ Auto Scan Integration (orchestrates all testing tools)
-4. ✅ Automatic Monitoring (real-time)
-5. ✅ Comprehensive Export System (JSON/CSV/Markdown)
-
-**Capabilities**:
-- Simulate vision impairments
-- Document platform-specific accessibility
-- Generate implementation code
-- One-click comprehensive accessibility scan
-- Real-time monitoring as design changes
-- Export complete accessibility reports
-- All 10 features working together
-
-**Testing Checklist**:
-- [ ] Vision filters are accurate
-- [ ] Code generation is correct
-- [ ] Auto Scan orchestrates all checkers correctly
-- [ ] Monitoring doesn't impact performance
-- [ ] All features work together without conflicts
-- [ ] Export includes all data correctly
-- [ ] No memory leaks
-- [ ] Documentation complete
-
----
-
-## Phase 4: Polish & Optimization
-
-**Duration**: 2-3 weeks
-**Goal**: Production-ready quality
-
-### Week 13-14: Performance Optimization
-
-#### Tasks
-
-##### Performance Audit
-```typescript
-Tasks:
-- [ ] Profile all features with large files (2000+ nodes)
+- [ ] Profile all tools with large files
 - [ ] Identify bottlenecks
-- [ ] Measure memory usage
-- [ ] Check for memory leaks
-```
+- [ ] Optimize:
+  - Pagination for long lists (50 items/page)
+  - Virtual scrolling for results
+  - Debouncing/throttling
+  - Caching frequently accessed data
+  - Lazy loading panels
+- [ ] Memory leak testing
+- [ ] Verify no UI lag
 
-##### Optimization Implementation
-```typescript
-Tasks:
-- [ ] Implement pagination for large lists (50 items/page)
-- [ ] Add virtual scrolling for long lists
-- [ ] Optimize image processing:
-  - Downsample before filtering
-  - WebGL acceleration for Vision Simulator
-  - Web Workers for heavy calculations
-- [ ] Cache frequently accessed data
-- [ ] Debounce/throttle event handlers
-- [ ] Lazy load feature modules
-```
+#### Week 2: Polish & Documentation
 
-##### Code Splitting
-```typescript
-Tasks:
-- [ ] Split features into separate bundles
-- [ ] Lazy load panels on demand
-- [ ] Reduce initial bundle size
-- [ ] Optimize webpack config
-```
+##### Day 6-7: UI Polish
 
-### Week 14-15: Bug Fixes & Edge Cases
+- [ ] Consistent spacing and alignment
+- [ ] Smooth transitions and animations
+- [ ] Loading states for all async operations
+- [ ] Error states with user-friendly messages
+- [ ] Empty states for all lists
+- [ ] Tooltips and help text
+- [ ] Accessibility of the plugin itself:
+  - Keyboard navigation
+  - Focus management
+  - Screen reader support (ARIA labels)
 
-#### Tasks
+##### Day 7-8: Bug Fixes
 
-##### Bug Fixing
-```typescript
-Tasks:
-- [ ] Fix all known bugs from testing
+- [ ] Fix all known bugs
 - [ ] Handle edge cases:
   - Empty selections
   - Nested components
@@ -1335,259 +1798,452 @@ Tasks:
   - Very large/small nodes
 - [ ] Error handling improvements
 - [ ] Graceful degradation
-```
 
-##### Cross-Browser Testing
-```typescript
-Tasks:
-- [ ] Test in different Figma environments:
-  - Desktop app (Windows, macOS)
-  - Browser (Chrome, Firefox, Safari, Edge)
-- [ ] Verify theme switching works
-- [ ] Verify all UI components render correctly
-```
+##### Day 8-9: Documentation
 
-### Week 15-16: Documentation & User Testing
+- [ ] Update all README files
+- [ ] Create user guide (how to use each tool)
+- [ ] Update architecture documentation
+- [ ] Update data models documentation
+- [ ] Create changelog
+- [ ] Screenshots for documentation
 
-#### Tasks
+##### Day 9-10: Final Testing
 
-##### Documentation
-```typescript
-Tasks:
-- [ ] User guide (how to use each feature)
-- [ ] Developer documentation (code architecture)
-- [ ] API reference (for each module)
-- [ ] Contributing guide
-- [ ] Changelog
-- [ ] README with screenshots
-```
+- [ ] Complete system test (all tools)
+- [ ] Cross-browser testing (Figma Desktop, Figma Browser)
+- [ ] Theme switching verification
+- [ ] Export functionality verification
+- [ ] User acceptance testing (if possible)
+- [ ] Final bug fixes
 
-##### User Testing
-```typescript
-Tasks:
-- [ ] Beta test with 5-10 designers
-- [ ] Collect feedback
-- [ ] Identify usability issues
-- [ ] Make refinements based on feedback
-```
+### Deliverables
 
-##### Final Polish
-```typescript
-Tasks:
-- [ ] UI refinements (spacing, colors, typography)
-- [ ] Accessibility of the plugin itself
-  - Keyboard navigation
-  - Screen reader support
-  - Focus management
-- [ ] Tooltips and help text
-- [ ] Onboarding flow (first-time user experience)
-- [ ] Error messages (user-friendly)
-```
-
-### Phase 4 Summary
-
-**Total Duration**: 2-3 weeks
-
-**Deliverables**:
-- ✅ Optimized performance
+- ✅ All 10 tools working together seamlessly
+- ✅ ExportService with JSON/CSV/Markdown export
+- ✅ Performance optimized
 - ✅ All bugs fixed
+- ✅ UI polished and consistent
 - ✅ Comprehensive documentation
-- ✅ User-tested and refined
-- ✅ Production-ready v1.0
+- ✅ Production-ready plugin
 
-**Testing Checklist**:
-- [ ] Performance benchmarks met
+### Testing Checklist
+
+- [ ] All tools load without errors
+- [ ] All tools work independently
+- [ ] All tools work together without conflicts
+- [ ] Navigation works smoothly
+- [ ] Export includes all tool data correctly
+- [ ] Performance benchmarks met (<2s plugin load, <5s scans)
+- [ ] No memory leaks
+- [ ] No UI lag
+- [ ] Theme switching works
+- [ ] Keyboard navigation works
 - [ ] No critical bugs
-- [ ] All features documented
-- [ ] User testing completed
-- [ ] Ready for public release
 
----
+### Git Commit Template
 
-## Phase 5: Future Enhancements
-
-**Duration**: Ongoing (post-v1.0)
-**Goal**: Advanced features and community requests
-
-### Potential Enhancements
-
-#### 1. AI Integration (Alt-Text)
-
-**Estimated Time**: 2-3 weeks
-
-```typescript
-Tasks:
-- [ ] Integrate OpenAI GPT-4 Vision API
-- [ ] API key management (user-provided)
-- [ ] Auto-generate alt text suggestions
-- [ ] Review and edit suggestions
-- [ ] Cost estimation for users
-- [ ] Alternative: Google Cloud Vision API
-- [ ] Alternative: Local AI models (TensorFlow.js)
 ```
+feat(integration): system integration, performance optimization, and polish
 
-#### 2. Additional Vision Conditions
+- Add ExportService for comprehensive data export
+- Export all tool data to JSON/CSV/Markdown formats
+- Generate human-readable accessibility report
+- Performance optimization:
+  - Pagination for long lists (50 items/page)
+  - Virtual scrolling for results
+  - Debounced event handlers
+  - Cached frequently accessed data
+  - Lazy loaded panels
+- UI polish:
+  - Consistent spacing and alignment
+  - Loading states for all async operations
+  - Error states with user-friendly messages
+  - Empty states for lists
+  - Tooltips and help text
+- Accessibility improvements:
+  - Keyboard navigation
+  - Focus management
+  - Screen reader support (ARIA labels)
+- Bug fixes:
+  - Handle edge cases (empty selections, nested components, hidden layers)
+  - Improved error handling
+  - Graceful degradation
+- Documentation updates:
+  - User guide
+  - Updated architecture docs
+  - Changelog
 
-**Estimated Time**: 1-2 weeks
+Performance Benchmarks Achieved:
+- Plugin load: <2 seconds
+- Page scan (1000 nodes): <5 seconds
+- No UI lag during operations
+- No memory leaks
 
-```typescript
-Tasks:
-- [ ] Implement 13+ additional filters:
-  - Protanomaly, Deuteranomaly, Tritanomaly (partial color blindness)
-  - Macular degeneration
-  - Glaucoma (tunnel vision)
-  - Diabetic retinopathy
-  - Cataracts (advanced)
-  - Myopia, Hyperopia, Astigmatism
-  - Hemianopia (half vision loss)
-  - Floaters
-  - Screen glare
-```
-
-#### 3. Team Collaboration Features
-
-**Estimated Time**: 4-6 weeks
-
-```typescript
-Tasks:
-- [ ] Build backend service (Firebase or custom)
-- [ ] User authentication
-- [ ] Shared issue tracking across team
-- [ ] Comments and discussions on issues
-- [ ] Assignment and workflows
-- [ ] Notifications (email, Slack)
-- [ ] Team dashboard
-- [ ] Historical tracking
-- [ ] Analytics and reporting
-```
-
-#### 4. Advanced Reporting
-
-**Estimated Time**: 2-3 weeks
-
-```typescript
-Tasks:
-- [ ] PDF report generation
-- [ ] HTML report with interactive elements
-- [ ] Executive summary
-- [ ] Detailed issue breakdown
-- [ ] Trend analysis over time
-- [ ] Benchmark against industry standards
-- [ ] Integration with issue trackers:
-  - Jira
-  - Linear
-  - GitHub Issues
-  - Asana
-```
-
-#### 5. Custom Rules Engine
-
-**Estimated Time**: 3-4 weeks
-
-```typescript
-Tasks:
-- [ ] User-defined WCAG rules
-- [ ] Custom validators
-- [ ] Rule templates
-- [ ] Share rules with team
-- [ ] Rule marketplace
-```
-
-#### 6. Batch Operations
-
-**Estimated Time**: 2-3 weeks
-
-```typescript
-Tasks:
-- [ ] Process multiple files
-- [ ] Process multiple pages in one file
-- [ ] Scheduled scans
-- [ ] CLI for CI/CD integration
-```
-
-#### 7. Internationalization (i18n)
-
-**Estimated Time**: 2-3 weeks
-
-```typescript
-Tasks:
-- [ ] Translate UI to multiple languages
-- [ ] RTL support for Arabic, Hebrew
-- [ ] Localized WCAG guidelines
-- [ ] Regional accessibility standards
+System is production-ready.
 ```
 
 ---
 
-## Risk Management
+## Phase 12: Auto Scan & Fix
 
-### Identified Risks
+**Duration**: 1 week
+**Goal**: Implement one-click comprehensive accessibility scan
 
-| Risk | Probability | Impact | Mitigation |
-|------|------------|--------|------------|
-| **Performance issues with large files** | Medium | High | Implement pagination, lazy loading, Web Workers early |
-| **Figma API limitations** | Low | Medium | Stay updated with API docs, use stable APIs |
-| **Image processing too slow** | Medium | Medium | WebGL acceleration, downsample images, optimize algorithms |
-| **Complex edge cases** | High | Low | Comprehensive testing, graceful error handling |
-| **Scope creep** | Medium | Medium | Stick to phase plan, defer enhancements to Phase 5 |
-| **User adoption** | Medium | High | Focus on UX, clear documentation, community engagement |
+**📢 Start Protocol**: Ask user "Are you ready to start Phase 12: Auto Scan & Fix?"
 
-### Mitigation Strategies
+**Status**: ⏸️ DEFERRED - Final Phase (after Phase 11)
 
-1. **Weekly reviews**: Assess progress and risks
-2. **Early testing**: Test features with real users ASAP
-3. **Incremental releases**: Ship MVP early, iterate based on feedback
-4. **Documentation**: Keep docs updated throughout development
-5. **Community**: Build community early for feedback and support
+### Rationale
+
+Auto Scan orchestrates all testing tools into a unified one-click experience. Deferred until all individual tools are complete and working together.
+
+### Infrastructure from Previous Phases
+
+**Reuse**:
+- ✅ All testing tools (Contrast, Touch Targets, Typography)
+- ✅ All UI components
+- ✅ All services (Storage, Selection, Event)
+
+### New Infrastructure Needed
+
+**Add in this phase**:
+- Auto Scan orchestration system
+- Unified results dashboard
+- Aggregated issue tracking
+
+### Implementation Tasks
+
+#### Day 1-2: Auto Scan Orchestration
+
+- [ ] Create `src/features/testing/auto-scan/` folder
+- [ ] Implement AutoScan class that orchestrates existing checkers:
+  1. Run Contrast Checker on all text nodes
+  2. Run Touch Targets Checker on interactive nodes
+  3. Run Typography Checker on all text nodes
+- [ ] Aggregate results from all checkers
+- [ ] Calculate issue counts by severity (critical, high, medium, low)
+- [ ] Generate comprehensive summary report
+
+#### Day 2-3: Results Dashboard
+
+- [ ] Create AutoScanPanel component
+- [ ] Issue summary cards:
+  - Total issues count
+  - Critical/High/Medium/Low breakdown
+  - Issues by category (contrast, touch, typography)
+- [ ] Unified issue list with filtering:
+  - Filter by tool type
+  - Filter by severity
+  - Search by node name
+- [ ] Quick actions per issue:
+  - Navigate to node
+  - Show on canvas
+  - Fix (if auto-fixable)
+
+#### Day 3-4: Canvas Visualization
+
+- [ ] Unified annotation system for all issue types
+- [ ] Color-coded by severity:
+  - Red: Critical (WCAG fails)
+  - Orange: High (accessibility barriers)
+  - Yellow: Medium (improvements needed)
+  - Blue: Low (best practice suggestions)
+- [ ] Issue count badges per node
+- [ ] Toggle annotations on/off
+- [ ] Filter visible annotations by type
+
+#### Day 4-5: "Auto Scan & Fix" Button
+
+- [ ] Add prominent "Auto Scan & Fix" button to MainView header
+- [ ] Implement one-click scan:
+  - Show progress indicator
+  - Run all testing tools
+  - Display results dashboard
+- [ ] Implement "Fix All" functionality (for auto-fixable issues)
+- [ ] Cancel scan capability
+
+#### Day 5-6: Integration, Testing & Documentation
+
+- [ ] Message handler setup
+- [ ] Test with large files (1000+ nodes)
+- [ ] Verify all checkers are called correctly
+- [ ] Performance optimization:
+  - Progress indicators
+  - Cancelable scans
+  - Parallel execution where possible
+- [ ] Error handling for individual check failures
+- [ ] Create README.md documenting Auto Scan system
+
+### Deliverables
+
+- ✅ One-click "Auto Scan & Fix" button
+- ✅ Comprehensive results dashboard
+- ✅ Unified visual annotations
+- ✅ Auto-fix capabilities
+- ✅ Comprehensive tool documentation
+
+### Testing Checklist
+
+- [ ] Auto Scan runs all testing tools correctly
+- [ ] Results are aggregated accurately
+- [ ] Issue counts are correct
+- [ ] Severity levels are accurate
+- [ ] Filtering works (by type, by severity)
+- [ ] Quick actions work (navigate, fix)
+- [ ] Auto-fix functionality works safely
+- [ ] Performance is acceptable (<5s for 1000 nodes)
+- [ ] Cancelable during execution
+- [ ] Error handling for individual tool failures
+
+### Git Commit Template
+
+```
+feat(auto-scan): implement one-click auto scan & fix
+
+- Create AutoScan orchestration system
+- Orchestrate all testing tools (Contrast, Touch Targets, Typography)
+- Aggregate results from all checkers
+- Calculate issue counts by severity (critical, high, medium, low)
+- Create AutoScanPanel with unified results dashboard
+- Issue summary cards (total, by severity, by category)
+- Unified issue list with filtering and search
+- Quick actions (navigate to node, fix if auto-fixable)
+- Unified canvas annotations (color-coded by severity)
+- Add prominent "Auto Scan & Fix" button to main view
+- Implement "Fix All" functionality
+- Progress indicators and cancelable scans
+- Performance optimized (<5s for 1000 nodes)
+
+Features:
+- One-click comprehensive accessibility scan
+- All testing tools in one operation
+- Prioritized issue list by severity
+- Visual issue indicators on canvas
+- Auto-fix for fixable issues
+
+Final feature completing Accessibility Genie v1.0.
+```
+
+---
+
+## Timeline Summary
+
+| Phase | Tool/Feature | Duration | Cumulative |
+|-------|-------------|----------|------------|
+| **Phase 0** | Project Setup (Verification) | Already complete | - |
+| **Phase 1** | Contrast Checker + Initial Infrastructure | 1-2 weeks | 1-2 weeks |
+| **Phase 2** | Touch Targets Checker | 1 week | 2-3 weeks |
+| **Phase 3** | Typography Checker | 1 week | 3-4 weeks |
+| **Phase 4** | Vision Simulator | 1-2 weeks | 4-6 weeks |
+| **Phase 5** | Automatic Monitoring | 1 week | 5-7 weeks |
+| **Phase 6** | Alt-Text Manager | 1 week | 6-8 weeks |
+| **Phase 7** | Focus Order Manager | 1 week | 7-9 weeks |
+| **Phase 8** | Headings Manager | 1 week | 8-10 weeks |
+| **Phase 9** | Landmarks Manager | 1 week | 9-11 weeks |
+| **Phase 10** | Accessibility Notes | 1 week | 10-12 weeks |
+| **Phase 11** | Integration & Polish | 2 weeks | 12-14 weeks |
+| **Phase 12** | Auto Scan & Fix (Deferred) | 1 week | 13-15 weeks |
+| **Total** | **All 10 tools + Auto Scan** | **13-15 weeks** | **~3.5 months** |
+
+### Milestone Breakdown
+
+- **End of Phase 1**: First working tool (Contrast Checker) + reusable infrastructure
+- **End of Phase 5**: All 5 testing tools complete
+- **End of Phase 10**: All 10 tools complete (5 testing + 5 annotation)
+- **End of Phase 11**: Production-ready plugin
+- **End of Phase 12**: Complete with Auto Scan feature
+
+---
+
+## Git Commit Strategy
+
+### Conventional Commits Format
+
+Use conventional commits format for all git commits:
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+**Types**:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation only
+- `style`: Code style changes (formatting, no logic change)
+- `refactor`: Code refactoring (no feature change)
+- `perf`: Performance improvement
+- `test`: Adding tests
+- `chore`: Build process, dependencies, etc.
+
+**Scopes**:
+- Tool names: `contrast`, `touch-targets`, `typography`, `vision-simulator`, `monitoring`, `alt-text`, `focus-order`, `headings`, `landmarks`, `notes`
+- Infrastructure: `ui`, `services`, `utils`, `export`, `storage`, `annotation`
+- General: `integration`, `polish`, `setup`
+
+### ⛔ Critical Rule: No AI Mentions
+
+**NEVER mention Claude, AI, AI-assisted development, or any AI tools in commit messages or descriptions.**
+
+### Example Commits
+
+**Good Examples**:
+
+```
+feat(contrast): implement contrast checker tool
+
+- Add WCAG 2.1 contrast ratio validation for text nodes
+- Create ContrastPanel with AA/AAA level filtering
+- Implement color utilities (luminance, contrast ratio calculations)
+- Add comprehensive tool documentation
+
+WCAG Reference: https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html
+```
+
+```
+feat(ui): add reusable UI component library
+
+- Create Button component with 5 variants
+- Create Card component for tool navigation
+- Create Badge component for status indicators
+- Create List component for scrollable results
+- All components follow design system
+```
+
+```
+fix(contrast): handle gradient backgrounds correctly
+
+- Use average color for simple gradients
+- Fallback to solid color for complex gradients
+- Add warning when gradient detected
+```
+
+**Bad Examples (DON'T DO THIS)**:
+
+```
+feat(contrast): add contrast checker
+
+- Built with Claude's help
+```
+
+```
+feat(ui): create components
+
+- AI-generated UI components
+- Used Claude Code for implementation
+```
+
+### Commit Frequency
+
+- **One commit per phase completion**: After each tool is fully implemented, tested, and documented
+- **Additional commits for bug fixes**: If critical bugs found, separate fix commits
+- **Final commit for integration**: After Phase 11 (Integration & Polish)
+
+---
+
+## Tool Module Template
+
+Every tool follows this structure:
+
+```
+src/features/[category]/[tool-name]/
+├── README.md                           ⭐ REQUIRED: Comprehensive tool documentation
+│   ├── Tool Overview
+│   ├── How It Works
+│   ├── Data Flow Diagram
+│   ├── User Interaction Flow
+│   ├── Technical Implementation
+│   ├── Scientific/Technical References (with URLs)
+│   ├── External Resources & Dependencies (with URLs)
+│   ├── Testing Approach
+│   ├── Known Limitations
+│   └── Future Enhancements
+│
+├── [tool-name]-[type].ts              # Core logic (e.g., contrast-checker.ts)
+├── [tool-name].types.ts               # TypeScript types
+├── [tool-name].constants.ts           # Constants
+│
+├── components/                         # Tool-specific components
+│   ├── [Tool]Panel.tsx                # Main panel (e.g., ContrastPanel.tsx)
+│   ├── [Tool]Panel.module.css         # Styles
+│   └── [Other components as needed]
+│
+├── utils/                              # Tool-specific utilities (if needed)
+│   └── [tool-specific].utils.ts
+│
+└── __tests__/                          # Tool-specific tests
+    └── [tool-name].test.ts
+```
+
+**Example**: Contrast Checker
+```
+src/features/testing/contrast/
+├── README.md                           ⭐ Comprehensive documentation
+├── contrast-checker.ts                 Core logic
+├── contrast.types.ts                   TypeScript types
+├── contrast.constants.ts               WCAG thresholds
+└── components/
+    ├── ContrastPanel.tsx               Main UI panel
+    └── ContrastPanel.module.css        Styles
+```
 
 ---
 
 ## Success Metrics
 
-### Phase 1 (MVP)
-- [ ] All 3 testing tools functional independently
-- [ ] Each tool works on 1000+ node files in <2s
+### Phase 1 (Contrast Checker)
+- [ ] Contrast Checker works on 1000+ node files in <2s
+- [ ] 95%+ accuracy on WCAG checks (verified against WebAIM)
+- [ ] All reusable components documented
+- [ ] Comprehensive tool documentation (README.md)
+
+### Phase 5 (All Testing Tools)
+- [ ] All 5 testing tools functional independently
+- [ ] Each tool works on 1000+ node files efficiently
 - [ ] 90%+ accuracy on WCAG checks
-- [ ] Individual export works for all formats
-- [ ] 5+ beta testers provide positive feedback
+- [ ] All tools documented
 
-### Phase 2 (Annotations)
-- [ ] All 4 annotation tools functional
+### Phase 10 (All Tools)
+- [ ] All 10 tools functional (5 testing + 5 annotation)
 - [ ] Data persists correctly in Figma files
-- [ ] Visual badges render without performance issues
-- [ ] Export generates usable developer documentation
-- [ ] 10+ beta testers actively using annotation features
+- [ ] Visual annotations render without performance issues
+- [ ] All tools documented
 
-### Phase 3 (Advanced + Automation)
-- [ ] Vision Simulator renders filters in <3s
-- [ ] Code generation produces valid, usable code
-- [ ] Auto Scan completes in <5s (1000 nodes, all 3 checks)
-- [ ] Automatic Monitoring has no perceptible performance impact
-- [ ] All 10 features work together without conflicts
-- [ ] Comprehensive export includes all data correctly
-
-### Phase 4 (Production)
+### Phase 11 (Production)
 - [ ] Zero critical bugs
 - [ ] Performance benchmarks met:
   - Plugin loads in <2s
-  - Scans complete in <5s (1000 nodes)
+  - Scans complete in <5s (1000 nodes, all 3 checks)
   - UI remains responsive during operations
-- [ ] Documentation complete
-- [ ] 20+ beta testers ready for v1.0
+- [ ] Comprehensive export works
+- [ ] All documentation complete
 - [ ] Ready for Figma Community publication
+
+### Phase 12 (Complete)
+- [ ] Auto Scan completes in <5s (1000 nodes, all 3 checks)
+- [ ] All 10 features work together without conflicts
+- [ ] One-click accessibility scan functional
+- [ ] Plugin fully production-ready
 
 ---
 
 ## Next Steps
 
-1. **Start with Phase 0** - Set up project foundation
-2. **Build incrementally** - Complete each feature before moving on
-3. **Test continuously** - Don't accumulate technical debt
-4. **Document as you go** - Keep docs in sync with code
-5. **Gather feedback** - Engage with users early and often
+1. **Verify Phase 0**: Confirm project setup is complete
+2. **Start Phase 1**: Begin Contrast Checker implementation
+3. **Follow Protocols**: Always ask before starting each phase
+4. **Document Thoroughly**: Create comprehensive tool README for each phase
+5. **Commit Properly**: Use conventional commits with no AI mentions
+6. **Test Continuously**: Each tool tested independently before moving on
+7. **Iterate**: Gather feedback and improve
 
 ---
 
 **Document Status**: ✅ Complete
-**Last Review**: 2025-11-15
+**Version**: 2.0
+**Last Review**: 2025-11-21
 **Next Review**: After Phase 1 completion

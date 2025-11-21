@@ -1,7 +1,7 @@
 # Accessibility Genie - Plugin Architecture
 
-**Version**: 1.0
-**Last Updated**: 2025-11-15
+**Version**: 2.0
+**Last Updated**: 2025-11-21
 **Status**: Architecture Design
 
 ---
@@ -32,14 +32,36 @@
 - **Standards-Based**: Implements WCAG 2.1, ARIA, and platform guidelines
 - **Real-Time**: Immediate feedback and validation
 - **Extensible**: Modular architecture for easy feature additions
+- **Pragmatic Development**: Infrastructure built when first needed, not speculatively
+- **Tool-Based Phases**: One tool per development phase for focused, incremental progress
 
 ### Architecture Goals
 
 1. **Separation of Concerns**: Clear boundaries between UI, business logic, and Figma API
 2. **Modularity**: Each feature is an independent module
-3. **Reusability**: Shared utilities and components
+3. **Reusability**: Shared utilities and components built as proper modules when first needed
 4. **Testability**: Easy to unit test and mock
 5. **Performance**: Optimized for large Figma files
+6. **Just-in-Time Infrastructure**: Components, services, and utilities are implemented when first required by a tool, not built speculatively upfront
+
+### Development Approach
+
+The plugin is developed using a **tool-based phased approach** where each accessibility tool is implemented as a separate, self-contained phase:
+
+**Phase Structure**:
+- **Phase 0**: Verification only (useFigmaMessage and useFigmaTheme hooks already exist)
+- **Phase 1**: Contrast Checker + initial infrastructure (Button, Card, Badge components; StorageService, SelectionService; color, wcag, node utilities)
+- **Phases 2-10**: Individual tools (one per phase), reusing and extending infrastructure as needed
+- **Phase 11**: Integration & Polish
+- **Phase 12**: Auto Scan & Fix (deferred)
+
+**Key Principles**:
+1. **Build When Needed**: Infrastructure (components, services, utilities) is built only when the first tool requires it
+2. **Proper Modularity**: When infrastructure is first implemented, it must be a proper reusable module (not inline code)
+3. **Self-Contained Phases**: Each phase is independently implementable and committable to Git
+4. **Natural Evolution**: The architecture emerges naturally from real requirements, not speculation
+
+**Example**: The Button component is created in Phase 1 because Contrast Checker needs it. It's built as a proper reusable component in `src/components/ui/Button/` so that Phase 2 (Touch Targets) and all subsequent phases can use it.
 
 ---
 
@@ -575,6 +597,14 @@ function migrateData(stored: StoredData): any {
 
 ### File Organization
 
+**Note**: The structure below represents the complete plugin architecture. However, modules are built incrementally during phased development (see [02-implementation-plan.md](./02-implementation-plan.md) for phase-by-phase introduction of components, services, and utilities).
+
+**Infrastructure Introduction**:
+- **Phase 1** introduces: Button, Card, Badge components; StorageService, SelectionService; color, wcag, node utilities
+- **Phase 5** introduces: EventService (for Automatic Monitoring)
+- **Phase 6** introduces: AnnotationService (for Alt-Text Manager)
+- **Phase 11** introduces: ExportService (for Integration & Polish)
+
 ```
 accessibility-genie/
 ├── src/
@@ -612,9 +642,13 @@ accessibility-genie/
 │   ├── features/                        # Feature modules
 │   │   ├── testing/                     # Testing tools
 │   │   │   ├── contrast/
+│   │   │   │   ├── README.md            # ⭐ REQUIRED: Comprehensive tool documentation
 │   │   │   │   ├── contrast-checker.ts
 │   │   │   │   ├── contrast.types.ts
-│   │   │   │   └── contrast.constants.ts
+│   │   │   │   ├── contrast.constants.ts
+│   │   │   │   └── components/
+│   │   │   │       ├── ContrastPanel.tsx
+│   │   │   │       └── ContrastPanel.module.css
 │   │   │   ├── typography/
 │   │   │   │   ├── typography-checker.ts
 │   │   │   │   ├── typography.types.ts
@@ -929,14 +963,33 @@ class Cache<T> {
 
 ### Adding New Features
 
-New features follow a standard pattern:
+New features follow a **tool-based phased pattern**:
 
-1. **Create feature module** in `src/features/`
-2. **Define types** in `[feature].types.ts`
-3. **Add message types** to message protocol
-4. **Create UI panel** in `src/components/panels/`
-5. **Register in main handler** in `code.ts`
-6. **Add to tool list** in UI
+1. **Request confirmation** before starting the new phase (see Implementation Protocols)
+2. **Create feature module** in `src/features/[category]/[tool-name]/`
+   - Include **README.md** with comprehensive tool documentation (data flows, references, testing)
+3. **Build required infrastructure** (components, services, utilities) as proper reusable modules if not already present
+4. **Define types** in `[tool-name].types.ts`
+5. **Add message types** to message protocol
+6. **Create tool panel component** in the tool's `components/` subdirectory
+7. **Register in main handler** in `code.ts`
+8. **Add to tool list** in UI
+9. **Create Git commit** following commit guidelines (NO AI mentions)
+10. **Update documentation** if new architectural patterns emerge
+
+**Tool Module Template**:
+```
+src/features/[category]/[tool-name]/
+├── README.md                    # ⭐ REQUIRED: Comprehensive documentation
+├── [tool-name]-[type].ts       # Core logic (e.g., contrast-checker.ts)
+├── [tool-name].types.ts        # TypeScript types
+├── [tool-name].constants.ts    # Constants
+├── components/
+│   ├── [Tool]Panel.tsx         # Main panel (e.g., ContrastPanel.tsx)
+│   └── [Tool]Panel.module.css  # Styles
+├── utils/                      # Tool-specific utilities (if needed)
+└── __tests__/                  # Tool-specific tests
+```
 
 ### Plugin Configuration
 
@@ -1010,12 +1063,19 @@ Update to allow AI services (optional):
 ## Next Steps
 
 Refer to:
-- **02-implementation-plan.md**: Detailed phase-wise development plan
-- **03-component-structure.md**: UI component specifications
-- **04-data-models.md**: Complete data model definitions
+- **[02-implementation-plan.md](./02-implementation-plan.md)**: Tool-based phased development plan with Implementation Protocols
+- **[03-component-structure.md](./03-component-structure.md)**: UI component specifications and phase introduction timeline
+- **[04-data-models-storage.md](./04-data-models-storage.md)**: Complete data model definitions with phase-based introduction
+
+**Development Workflow**:
+1. Review Implementation Protocols in 02-implementation-plan.md
+2. Request confirmation before starting each phase
+3. Implement tool following the Tool Module Template
+4. Create comprehensive tool README.md
+5. Commit following Git guidelines (NO AI mentions)
 
 ---
 
 **Document Status**: ✅ Complete
-**Last Review**: 2025-11-15
+**Last Review**: 2025-11-21
 **Next Review**: After Phase 1 implementation
