@@ -1,4 +1,5 @@
 import { ContrastChecker } from './features/testing/contrast/contrast-checker';
+import { TouchTargetsChecker } from './features/testing/touch-targets/touch-targets-checker';
 import { SelectionService } from './services/selection.service';
 import { StorageService } from './services/storage.service';
 
@@ -9,6 +10,7 @@ figma.showUI(__html__, { width: 400, height: 600 });
 const storageService = new StorageService();
 const selectionService = new SelectionService();
 const contrastChecker = new ContrastChecker(selectionService);
+const touchTargetsChecker = new TouchTargetsChecker();
 
 // Function to check contrast for current selection
 async function checkContrastSelection() {
@@ -98,6 +100,44 @@ figma.ui.onmessage = async (msg) => {
           type: 'CONTRAST_PAGE_RESULT',
           success: true,
           data: results,
+        });
+        break;
+
+      case 'CHECK_TOUCH_TARGETS_PAGE':
+        const touchTargetsPageResults = touchTargetsChecker.checkPage({
+          platform: msg.data?.platform || msg.platform || 'web',
+          level: msg.data?.level || msg.level || 'AA'
+        });
+        figma.ui.postMessage({
+          type: 'TOUCH_TARGETS_RESULT',
+          success: true,
+          data: touchTargetsPageResults,
+        });
+        break;
+
+      case 'CHECK_TOUCH_TARGETS_SELECTION':
+        // For selection, check all selected nodes (user knows what's interactive)
+        const touchTargetsSelectionResults = touchTargetsChecker.checkSelection({
+          platform: msg.data?.platform || msg.platform || 'web',
+          level: msg.data?.level || msg.level || 'AA'
+        }, true); // Skip interactive detection - check whatever user selected
+        figma.ui.postMessage({
+          type: 'TOUCH_TARGETS_RESULT',
+          success: true,
+          data: touchTargetsSelectionResults,
+        });
+        break;
+
+      case 'FIX_TOUCH_TARGET':
+        const fixed = await touchTargetsChecker.fixNode(
+          msg.data?.nodeId || msg.nodeId,
+          msg.data?.requiredWidth || msg.requiredWidth,
+          msg.data?.requiredHeight || msg.requiredHeight
+        );
+        figma.ui.postMessage({
+          type: 'TOUCH_TARGET_FIXED',
+          success: fixed,
+          nodeId: msg.data?.nodeId || msg.nodeId,
         });
         break;
 

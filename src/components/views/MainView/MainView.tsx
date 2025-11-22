@@ -21,6 +21,14 @@ const TOOLS: Tool[] = [
     category: 'testing',
     enabled: true,
   },
+  {
+    id: 'touch-targets',
+    name: 'Touch Targets',
+    description: 'Validate touch target sizes',
+    icon: 'target',
+    category: 'testing',
+    enabled: true,
+  },
 ];
 
 interface MainViewProps {

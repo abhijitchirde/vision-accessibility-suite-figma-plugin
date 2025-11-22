@@ -1,0 +1,266 @@
+.touch-targets-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--figma-color-bg);
+  color: var(--figma-color-text);
+}
+
+.touch-targets-panel__header {
+  display: flex;
+  align-items: center;
+  gap: var(--figma-space-sm);
+  padding: var(--figma-space-md) var(--figma-space-lg);
+  border-bottom: 1px solid var(--figma-color-border);
+}
+
+.touch-targets-panel__header h2 {
+  margin: 0;
+  font-size: var(--figma-font-size-lg);
+  font-weight: 600;
+}
+
+.touch-targets-panel__content {
+  flex: 1;
+  padding: var(--figma-space-lg);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--figma-space-lg);
+}
+
+.touch-targets-panel__loading,
+.touch-targets-panel__error,
+.touch-targets-panel__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--figma-space-xxl);
+  text-align: center;
+  color: var(--figma-color-text-tertiary);
+}
+
+.touch-targets-panel__error {
+  color: #ef4444;
+}
+
+.empty-hint {
+  font-size: var(--figma-font-size-sm);
+  margin-top: var(--figma-space-sm);
+}
+
+/* Controls */
+.touch-targets-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--figma-space-md);
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--figma-space-xs);
+}
+
+.control-label {
+  font-size: var(--figma-font-size-sm);
+  font-weight: 500;
+  color: var(--figma-color-text-secondary);
+}
+
+.control-select {
+  padding: var(--figma-space-sm) var(--figma-space-md);
+  background-color: var(--figma-color-bg);
+  border: 1px solid var(--figma-color-border);
+  border-radius: var(--figma-radius-md);
+  color: var(--figma-color-text);
+  font-size: var(--figma-font-size-md);
+  font-family: var(--figma-font-family);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.control-select:hover {
+  border-color: var(--figma-color-border-selected);
+}
+
+.control-select:focus {
+  outline: none;
+  border-color: var(--figma-color-border-selected);
+  box-shadow: 0 0 0 2px var(--figma-color-bg-brand-tertiary);
+}
+
+/* Actions */
+.touch-targets-actions {
+  display: flex;
+  gap: var(--figma-space-sm);
+}
+
+.touch-targets-actions button {
+  flex: 1;
+}
+
+/* Summary Stats */
+.touch-targets-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--figma-space-md);
+  padding: var(--figma-space-lg);
+  background-color: var(--figma-color-bg-secondary);
+  border-radius: var(--figma-radius-lg);
+}
+
+.summary-stat {
+  text-align: center;
+}
+
+.summary-stat__value {
+  display: block;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--figma-color-text);
+  line-height: 1;
+  margin-bottom: var(--figma-space-xs);
+}
+
+.summary-stat__label {
+  display: block;
+  font-size: var(--figma-font-size-sm);
+  color: var(--figma-color-text-tertiary);
+}
+
+.summary-stat--pass .summary-stat__value {
+  color: #10b981;
+}
+
+.summary-stat--fail .summary-stat__value {
+  color: #ef4444;
+}
+
+/* Filters */
+.touch-targets-filters {
+  display: flex;
+  gap: var(--figma-space-sm);
+  padding: var(--figma-space-xs);
+  background-color: var(--figma-color-bg-secondary);
+  border-radius: var(--figma-radius-md);
+}
+
+.filter-btn {
+  flex: 1;
+  padding: var(--figma-space-sm) var(--figma-space-md);
+  background-color: transparent;
+  border: none;
+  border-radius: var(--figma-radius-sm);
+  color: var(--figma-color-text-secondary);
+  font-size: var(--figma-font-size-sm);
+  font-family: var(--figma-font-family);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-btn:hover {
+  background-color: var(--figma-color-bg-hover);
+  color: var(--figma-color-text);
+}
+
+.filter-btn.active {
+  background-color: var(--figma-color-bg);
+  color: var(--figma-color-text);
+  box-shadow: var(--figma-shadow-small);
+}
+
+/* Results List */
+.touch-targets-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--figma-space-md);
+}
+
+.touch-target-item {
+  padding: var(--figma-space-lg);
+  background-color: var(--figma-color-bg-secondary);
+  border-radius: var(--figma-radius-lg);
+  border-left: 3px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: var(--figma-space-md);
+  transition: all 0.2s ease;
+}
+
+.touch-target-item:hover {
+  box-shadow: var(--figma-shadow-small);
+}
+
+.touch-target-item.pass {
+  border-left-color: #10b981;
+}
+
+.touch-target-item.fail {
+  border-left-color: #ef4444;
+}
+
+.touch-target-item__header {
+  display: flex;
+  align-items: center;
+  gap: var(--figma-space-md);
+}
+
+.touch-target-item__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.touch-target-item__name {
+  font-weight: 600;
+  font-size: var(--figma-font-size-md);
+  color: var(--figma-color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.touch-target-item__type {
+  font-size: var(--figma-font-size-sm);
+  color: var(--figma-color-text-tertiary);
+  text-transform: capitalize;
+}
+
+.touch-target-item__size {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--figma-space-md);
+  background-color: var(--figma-color-bg);
+  border-radius: var(--figma-radius-md);
+}
+
+.size-comparison {
+  display: flex;
+  align-items: center;
+  gap: var(--figma-space-md);
+  font-size: var(--figma-font-size-md);
+  font-family: var(--figma-font-family);
+}
+
+.size-current {
+  font-weight: 600;
+  color: var(--figma-color-text);
+}
+
+.size-required {
+  font-weight: 600;
+  color: var(--figma-color-text-brand);
+}
+
+.touch-target-item__message {
+  font-size: var(--figma-font-size-sm);
+  color: var(--figma-color-text-secondary);
+  line-height: 1.5;
+}
+
+.touch-target-item button {
+  align-self: flex-start;
+}
