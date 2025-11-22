@@ -14,18 +14,22 @@ The Touch Targets Checker validates the size of interactive elements against pla
 
 1. User selects platform (Web, iOS, Android, Windows) and compliance level (AA/AAA)
 2. User triggers check for entire page or current selection
-3. Plugin identifies potentially interactive nodes based on:
-   - Nodes with reactions (click, hover, drag, etc.)
-   - Component instances (often interactive)
-   - Nodes with interactive naming patterns (button, btn, link, etc.)
-4. For each interactive node:
+3. Plugin identifies nodes to check:
+   - **Check Page**: Identifies potentially interactive nodes based on:
+     - Nodes with reactions (click, hover, drag, etc.)
+     - Component instances (often interactive)
+     - Nodes with interactive naming patterns (button, btn, link, etc.)
+   - **Check Selection**: Validates ALL selected nodes (skips interactive detection)
+     - Text layers, frames, groups, shapes, etc.
+     - User selection indicates intent to check, regardless of interactivity
+4. For each node:
    - Measure width and height
    - Compare against platform-specific minimum sizes
    - Calculate severity based on how far below minimum
    - Generate result with pass/fail status and message
 5. Display results with:
    - Summary statistics (total, pass, fail)
-   - Detailed list of each interactive element
+   - Detailed list of each element
    - Current size vs. required size comparison
    - Fix button for auto-resizing to minimum size
 
@@ -89,13 +93,28 @@ UI refreshes results
 
 ### Interactive Node Detection
 
-The checker uses multiple heuristics to identify potentially interactive nodes:
+The checker uses multiple heuristics to identify potentially interactive nodes **when scanning the page**:
 
 1. **Reactions**: Nodes with Figma reactions (CLICK, HOVER, DRAG, etc.) are always considered interactive
 2. **Component Instances**: Component instances are likely to be interactive buttons/controls
 3. **Naming Patterns**: Nodes with names matching `/button|btn|link|clickable|interactive|touch|tap/i` are considered interactive
 
 This multi-layered approach ensures we catch interactive elements even if they don't have reactions assigned in the design.
+
+**Important**: When using "Check Selection", interactive detection is **skipped entirely**. All selected nodes are validated regardless of whether they appear interactive, because user selection indicates explicit intent to check those elements. This allows checking of:
+- Text layers
+- Frames and groups
+- Shapes (rectangles, ellipses, etc.)
+- Any element with width and height
+
+**Technical Implementation:**
+```typescript
+// Check Page: Uses interactive detection
+checkPage(options) → calls checkNode(node, options, false)
+
+// Check Selection: Skips interactive detection
+checkSelection(options, true) → calls checkNode(node, options, true)
+```
 
 ### Platform-Specific Requirements
 
@@ -138,6 +157,29 @@ The "Fix" button automatically resizes nodes to meet minimum requirements:
 5. Refresh results after fix to show new status
 
 **Safety**: The fix only makes nodes larger, never smaller, to avoid breaking layouts.
+
+### Message Data Access Pattern
+
+Messages from the UI are wrapped by `useFigmaMessage` hook in a `data` property. The plugin code handles this with fallbacks:
+
+```typescript
+// Message structure from UI
+{
+  pluginMessage: {
+    type: 'CHECK_TOUCH_TARGETS_PAGE',
+    data: { platform: 'web', level: 'AA' }
+  }
+}
+
+// Plugin code access pattern (with fallbacks)
+const platform = msg.data?.platform || msg.platform || 'web';
+const level = msg.data?.level || msg.level || 'AA';
+```
+
+This pattern provides:
+- **Robustness**: Works even if message structure changes
+- **Defaults**: Always has valid values (web/AA fallback)
+- **Type safety**: Optional chaining prevents runtime errors
 
 ## Scientific/Technical References
 
@@ -190,8 +232,12 @@ Touch target detection approach inspired by:
 4. **Link in text** → Should be detected as interactive if has reaction
 5. **Component instance** → Should be checked even without explicit reactions
 6. **Hidden button** → Should be skipped (not checked)
-7. **Non-interactive frame** → Should be skipped (not detected as interactive)
+7. **Non-interactive frame** → Should be skipped when checking page (not detected as interactive)
 8. **Button with reaction** → Should always be detected as interactive
+9. **Text layer (Check Selection)** → Should be validated when explicitly selected (skip detection)
+10. **Frame (Check Selection)** → Should be validated when explicitly selected (skip detection)
+11. **Group (Check Selection)** → Should be validated when explicitly selected (skip detection)
+12. **Shape (Check Selection)** → Should be validated when explicitly selected (skip detection)
 
 ### Manual Testing Checklist
 
@@ -202,18 +248,25 @@ Touch target detection approach inspired by:
 - [ ] Test "Fix" button resizes correctly
 - [ ] Verify fixed nodes pass validation
 - [ ] Test filtering (All / Pass / Fail)
-- [ ] Verify interactive node detection accuracy
+- [ ] Verify interactive node detection accuracy (Check Page)
 - [ ] Test with component instances
 - [ ] Test with nodes that have reactions
 - [ ] Test with various node types (FRAME, RECTANGLE, ELLIPSE, etc.)
+- [ ] Test "Check Selection" with text layers (should validate)
+- [ ] Test "Check Selection" with frames (should validate)
+- [ ] Test "Check Selection" with groups (should validate)
+- [ ] Test "Check Selection" with shapes (should validate)
+- [ ] Verify "Check Page" skips non-interactive frames
+- [ ] Verify "Check Selection" validates all selected nodes
 
 ## Known Limitations
 
-1. **Interactive Detection Heuristic**: May miss interactive elements that don't have reactions, aren't components, and don't follow naming patterns
+1. **Interactive Detection Heuristic**: May miss interactive elements that don't have reactions, aren't components, and don't follow naming patterns (**Mitigation**: Use "Check Selection" to explicitly validate any element)
 2. **No Physical Size Calculation**: Sizes are in pixels, not converted to physical mm/inches based on device DPI
 3. **No Spacing Consideration**: WCAG 2.5.5 allows smaller targets if spacing is adequate (currently not implemented)
 4. **Auto-Fix Doesn't Preserve Constraints**: Fixed nodes may break auto-layout or constraints
 5. **No Nested Touch Target Analysis**: Doesn't check if touch target overlaps with other interactive elements
+6. **Type Safety**: Runtime check for `resize` method prevents errors but doesn't validate all layout implications
 
 ## Future Enhancements
 
