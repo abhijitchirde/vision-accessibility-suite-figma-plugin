@@ -103,15 +103,22 @@ body {
   padding: 0;
   color: var(--figma-color-text);
   transition: background-color 0.2s ease, color 0.2s ease;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#react-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 main {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  align-content: center;
-  text-align: center;
-  margin-top: 2%;
-  padding-bottom: 3rem; /* Space for fixed footer */
+  overflow-y: auto;
+  padding-bottom: 56px; /* Space for fixed footer */
 }
 
 a:link,
@@ -131,4 +138,48 @@ a:visited {
 a:hover {
   color: var(--figma-color-text-secondary);
   transition-duration: 0.2s;
+}
+
+/* ============================================
+   SECTION 3: BOTTOM SECTION (FIXED FOOTER)
+   ============================================ */
+
+.bottom-wrapper {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--figma-space-md) var(--figma-space-lg);
+  background-color: var(--figma-color-bg);
+  border-top: 1px solid var(--figma-color-border);
+  z-index: 100;
+}
+
+.theme-toggle-container {
+  display: flex;
+  align-items: center;
+}
+
+.credit-container {
+  display: flex;
+  align-items: center;
+}
+
+.credit-text {
+  margin: 0;
+  font-size: var(--figma-font-size-xs);
+  color: var(--figma-color-text-tertiary);
+}
+
+.credit-text a {
+  color: var(--figma-color-text-tertiary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.credit-text a:hover {
+  color: var(--figma-color-text-secondary);
 }

@@ -1,0 +1,67 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Sizes */
+.badge--small {
+  height: 18px;
+  padding: 0 var(--figma-space-sm);
+  font-size: var(--figma-font-size-xs);
+}
+
+.badge--medium {
+  height: 22px;
+  padding: 0 var(--figma-space-md);
+  font-size: var(--figma-font-size-sm);
+}
+
+/* Variants */
+.badge--success {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+[data-theme='dark'] .badge--success {
+  background-color: #064e3b;
+  color: #34d399;
+}
+
+.badge--warning {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+[data-theme='dark'] .badge--warning {
+  background-color: #78350f;
+  color: #fbbf24;
+}
+
+.badge--error {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+[data-theme='dark'] .badge--error {
+  background-color: #7f1d1d;
+  color: #f87171;
+}
+
+.badge--info {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+[data-theme='dark'] .badge--info {
+  background-color: #1e3a8a;
+  color: #60a5fa;
+}
+
+.badge--neutral {
+  background-color: var(--figma-color-bg-tertiary);
+  color: var(--figma-color-text-secondary);
+}
