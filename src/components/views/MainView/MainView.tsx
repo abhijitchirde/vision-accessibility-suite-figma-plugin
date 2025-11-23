@@ -29,6 +29,14 @@ const TOOLS: Tool[] = [
     category: 'testing',
     enabled: true,
   },
+  {
+    id: 'typography',
+    name: 'Typography',
+    description: 'Validate font size, line height, and readability',
+    icon: 'text',
+    category: 'testing',
+    enabled: true,
+  },
 ];
 
 interface MainViewProps {

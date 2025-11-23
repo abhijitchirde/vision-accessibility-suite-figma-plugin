@@ -5,10 +5,11 @@ import BottomSection from './components/ui/BottomSection';
 import { MainView } from './components/views/MainView/MainView';
 import { ContrastPanel } from './features/testing/contrast/components/ContrastPanel';
 import { TouchTargetsPanel } from './features/testing/touch-targets/components/TouchTargetsPanel';
+import { TypographyPanel } from './features/testing/typography/components/TypographyPanel';
 
 declare function require(path: string): any;
 
-type View = 'main' | 'contrast' | 'touch-targets';
+type View = 'main' | 'contrast' | 'touch-targets' | 'typography';
 
 function App() {
   const [currentView, setCurrentView] = React.useState<View>('main');
@@ -26,6 +27,7 @@ function App() {
       {currentView === 'main' && <MainView onToolSelect={handleToolSelect} />}
       {currentView === 'contrast' && <ContrastPanel onBack={handleBack} />}
       {currentView === 'touch-targets' && <TouchTargetsPanel onBack={handleBack} />}
+      {currentView === 'typography' && <TypographyPanel onBack={handleBack} />}
 
       {/* Footer section with credits and mode toggle */}
       <BottomSection />
