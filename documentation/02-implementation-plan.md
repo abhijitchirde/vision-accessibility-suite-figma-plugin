@@ -1,7 +1,7 @@
 # Accessibility Genie - Phase-Wise Implementation Plan
 
-**Version**: 2.0
-**Last Updated**: 2025-11-21
+**Version**: 2.1
+**Last Updated**: 2025-11-23
 **Status**: Active Development
 
 ---
@@ -40,7 +40,12 @@ Description:
 - Files added/modified
 ```
 
-**⛔ CRITICAL RULE**: **NO mention of Claude, AI, AI-assisted development, or any AI tools in commit messages or descriptions.**
+**⛔ CRITICAL RULES**:
+1. **NO mention of Claude, AI, AI-assisted development, or any AI tools in commit messages or descriptions.**
+2. **ONLY provide the recommended git message - DO NOT execute git commands yourself.**
+   - Provide the message in a code block for the user to use
+   - Let the user handle staging files and committing
+   - The user will decide when and how to commit
 
 **Good Example:**
 ```
@@ -245,6 +250,122 @@ else:
 - Real-time contrast checking as colors change
 - Color suggestions to achieve AA/AAA compliance
 ````
+
+### Protocol 4: Phase Implementation Documentation
+
+**After completing each phase, create comprehensive implementation documentation.**
+
+**Location**: `documentation/implementation/phase-[X]-[tool-name].md`
+
+**Examples:**
+- `documentation/implementation/phase-1-contrast-checker.md`
+- `documentation/implementation/phase-2-touch-targets.md`
+- `documentation/implementation/phase-3-typography.md`
+
+**Required Sections:**
+
+1. **Header Information**
+   - Implementation Date
+   - Status (✅ Completed, 🚧 In Progress, ⏸️ Deferred)
+   - Version number
+
+2. **Overview**
+   - High-level description of the phase
+   - What was implemented
+   - Why this phase is important
+
+3. **Features Implemented**
+   - Detailed list of all features (6-10 major features)
+   - Organized by category
+   - Each feature with clear description
+
+4. **Technical Architecture**
+   - File structure (before/after)
+   - System components added/modified
+   - Integration points
+
+5. **Key Algorithms**
+   - Code examples with TypeScript
+   - Algorithm explanations
+   - 4-6 major algorithms documented
+
+6. **WCAG Compliance Thresholds**
+   - Specific WCAG guidelines followed
+   - Threshold values
+   - Compliance levels (AA/AAA)
+
+7. **Message Protocol**
+   - All plugin → UI messages
+   - All UI → plugin messages
+   - TypeScript interface definitions
+   - Example message payloads
+
+8. **Key Implementation Decisions**
+   - 5-10 major decisions documented
+   - Each with: Decision, Rationale
+   - Technical trade-offs explained
+
+9. **Known Limitations**
+   - Current constraints
+   - What's not supported
+   - Future considerations
+
+10. **Testing Scenarios Verified**
+    - Checkmarked list (✅)
+    - All major test cases
+    - Edge cases covered
+
+11. **Debug Support**
+    - Debugging approaches
+    - Console log strategies
+    - Troubleshooting tips
+
+12. **Performance Considerations**
+    - Optimization strategies
+    - Performance metrics
+    - Efficiency improvements
+
+13. **UX Enhancements** *(if applicable)*
+    - Visual design improvements
+    - Interaction design patterns
+    - Information architecture
+
+14. **Future Enhancements**
+    - Post-phase improvements
+    - 5-10 potential features
+    - Numbered list format
+
+15. **Dependencies**
+    - Runtime dependencies
+    - Development dependencies
+    - Reused from previous phases
+    - New components added
+
+16. **Build Configuration**
+    - Build commands
+    - Build output details
+    - Compilation notes
+
+17. **Conclusion**
+    - Summary of achievements
+    - Key accomplishments (checkmarked ✅)
+    - Production readiness notes
+
+**Format Requirements:**
+- Use markdown formatting
+- Include code blocks with syntax highlighting
+- Use checkmarks (✅) for completed items
+- Include TypeScript type definitions
+- Reference URLs to WCAG guidelines
+- Use clear section headings with ##
+
+**Purpose:**
+This documentation serves as:
+- Historical record of implementation decisions
+- Reference for future development
+- Onboarding material for new contributors
+- Technical specification for the phase
+- Knowledge base for troubleshooting
 
 ---
 
@@ -2235,15 +2356,17 @@ src/features/testing/contrast/
 
 1. **Verify Phase 0**: Confirm project setup is complete
 2. **Start Phase 1**: Begin Contrast Checker implementation
-3. **Follow Protocols**: Always ask before starting each phase
-4. **Document Thoroughly**: Create comprehensive tool README for each phase
-5. **Commit Properly**: Use conventional commits with no AI mentions
+3. **Follow Protocols**: Always ask before starting each phase (Protocol 1-4)
+4. **Document Thoroughly**:
+   - Create tool README in `src/features/[category]/[tool-name]/README.md` (Protocol 3)
+   - Create phase implementation doc in `documentation/implementation/phase-[X]-[tool-name].md` (Protocol 4)
+5. **Commit Properly**: Use conventional commits with no AI mentions (Protocol 2)
 6. **Test Continuously**: Each tool tested independently before moving on
 7. **Iterate**: Gather feedback and improve
 
 ---
 
 **Document Status**: ✅ Complete
-**Version**: 2.0
-**Last Review**: 2025-11-21
-**Next Review**: After Phase 1 completion
+**Version**: 2.1
+**Last Review**: 2025-11-23
+**Next Review**: After Phase 3 completion

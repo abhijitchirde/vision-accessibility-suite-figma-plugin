@@ -37,6 +37,14 @@ const TOOLS: Tool[] = [
     category: 'testing',
     enabled: true,
   },
+  {
+    id: 'vision-simulator',
+    name: 'Vision Simulator',
+    description: 'Simulate color blindness and visual impairments',
+    icon: 'eye',
+    category: 'testing',
+    enabled: true,
+  },
 ];
 
 interface MainViewProps {

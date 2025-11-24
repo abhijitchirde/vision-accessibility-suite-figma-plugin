@@ -1,6 +1,7 @@
 import { ContrastChecker } from "./features/testing/contrast/contrast-checker";
 import { TouchTargetsChecker } from "./features/testing/touch-targets/touch-targets-checker";
 import { TypographyChecker } from "./features/testing/typography/typography-checker";
+import { VisionSimulator } from "./features/testing/vision-simulator/vision-simulator";
 import { SelectionService } from "./services/selection.service";
 import { StorageService } from "./services/storage.service";
 
@@ -17,6 +18,7 @@ const selectionService = new SelectionService();
 const contrastChecker = new ContrastChecker(selectionService);
 const touchTargetsChecker = new TouchTargetsChecker();
 const typographyChecker = new TypographyChecker();
+const visionSimulator = new VisionSimulator();
 
 // Track Typography panel state for auto-check
 let typographyPanelActive = false;
@@ -358,6 +360,107 @@ figma.ui.onmessage = async (msg) => {
           debouncedCheckPage();
         } else {
           autoCheckTypographySelection();
+        }
+        break;
+
+      case "VISION_SIMULATOR_REQUEST_PREVIEW":
+        // Get selected node and export as image for preview
+        const selectedNodes = visionSimulator.getSelectedNodes();
+        if (selectedNodes.length === 0) {
+          figma.ui.postMessage({
+            type: "VISION_SIMULATOR_PREVIEW_DATA",
+            success: false,
+            error: "Please select a layer to preview",
+          });
+        } else {
+          const previewData = await visionSimulator.prepareImageForPreview(selectedNodes[0].id);
+          if (previewData) {
+            figma.ui.postMessage({
+              type: "VISION_SIMULATOR_PREVIEW_DATA",
+              success: true,
+              data: previewData,
+            });
+          } else {
+            figma.ui.postMessage({
+              type: "VISION_SIMULATOR_PREVIEW_DATA",
+              success: false,
+              error: "Failed to export image for preview",
+            });
+          }
+        }
+        break;
+
+      case "VISION_SIMULATOR_GENERATE":
+        // Generate canvas copy with filter applied
+        const nodesToGenerate = visionSimulator.getSelectedNodes();
+        if (nodesToGenerate.length === 0) {
+          figma.notify("Please select an element to generate visual simulation");
+          figma.ui.postMessage({
+            type: "VISION_SIMULATOR_GENERATE_RESULT",
+            success: false,
+            error: "Please select an element to generate visual simulation",
+          });
+        } else {
+          try {
+            const filter = msg.data?.filter || msg.filter;
+            const options = msg.data?.options || msg.options || {};
+
+            // Generate simulation for first selected node with single filter
+            const generatedIds = await visionSimulator.generateSimulations(
+              nodesToGenerate[0],
+              [filter], // Single filter in array
+              options
+            );
+
+            // Apply filter to the generated frame
+            const frameId = generatedIds[0];
+
+            // Export original image
+            const originalImage = await visionSimulator.prepareImageForPreview(nodesToGenerate[0].id);
+
+            if (originalImage) {
+              // Send to UI for filter processing
+              figma.ui.postMessage({
+                type: "VISION_SIMULATOR_PROCESS_FILTER",
+                frameId,
+                filter,
+                imageData: originalImage,
+              });
+            }
+
+            figma.ui.postMessage({
+              type: "VISION_SIMULATOR_GENERATE_RESULT",
+              success: true,
+              filter: filter,
+            });
+          } catch (error) {
+            figma.ui.postMessage({
+              type: "VISION_SIMULATOR_GENERATE_RESULT",
+              success: false,
+              error: error.message || "Failed to generate simulation",
+            });
+          }
+        }
+        break;
+
+      case "VISION_SIMULATOR_APPLY_FILTERED_IMAGE":
+        // Apply processed image back to canvas frame
+        try {
+          await visionSimulator.applyFilteredImage(
+            msg.data?.frameId || msg.frameId,
+            msg.data?.imageData || msg.imageData
+          );
+          figma.ui.postMessage({
+            type: "VISION_SIMULATOR_IMAGE_APPLIED",
+            success: true,
+            frameId: msg.data?.frameId || msg.frameId,
+          });
+        } catch (error) {
+          figma.ui.postMessage({
+            type: "VISION_SIMULATOR_IMAGE_APPLIED",
+            success: false,
+            error: error.message,
+          });
         }
         break;
 
