@@ -63,7 +63,10 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
       // Create a temporary canvas for processing
       const tempCanvas = document.createElement("canvas");
       const ctx = tempCanvas.getContext("2d");
-      if (!ctx) return;
+      if (!ctx) {
+        console.error("Failed to get 2d context");
+        return;
+      }
 
       // Load image
       const blob = new Blob([imageData.imageData as any], {
@@ -138,6 +141,8 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
               frameId,
               imageData: uint8Array,
             });
+          } else {
+            console.error("Failed to create blob from canvas");
           }
         }, "image/png");
 
@@ -163,7 +168,6 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
       if (msg?.type === "VISION_SIMULATOR_GENERATE_RESULT") {
         setGeneratingFilter(null);
         if (msg.success) {
-          console.log(`Generated simulation: ${msg.filter}`);
           setError(null);
         } else {
           setError(msg.error || "Failed to generate simulation");
@@ -171,14 +175,32 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
       } else if (msg?.type === "VISION_SIMULATOR_PREVIEW_DATA") {
         if (msg.success && msg.data) {
           // Convert image data to canvas
+          setError(null);
           loadImageForPreview(
             msg.data.imageData,
             msg.data.width,
             msg.data.height
           );
-        } else {
-          setError(msg.error || "Failed to load preview");
+        } else if (msg.error === null) {
+          // No selection, clear preview
+          setPreviewImage(null);
+          setError(null);
           setLoading(false);
+        } else {
+          // Actual error occurred
+          setPreviewImage(null);
+          setError(null); // Don't show error in UI
+          setLoading(false);
+          // Show figma notification instead
+          parent.postMessage(
+            {
+              pluginMessage: {
+                type: "SHOW_NOTIFICATION",
+                message: msg.error || "Failed to load preview",
+              },
+            },
+            "*"
+          );
         }
       } else if (msg?.type === "VISION_SIMULATOR_PROCESS_FILTER") {
         // Process filter and send back filtered image
@@ -189,6 +211,15 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, [processFilterForGenerate]);
+
+  // Notify plugin when Live view tab becomes active/inactive
+  useEffect(() => {
+    if (activeTab === "simulation") {
+      sendMessage("VISION_SIMULATOR_PANEL_MOUNTED", {});
+    } else {
+      sendMessage("VISION_SIMULATOR_PANEL_UNMOUNTED", {});
+    }
+  }, [activeTab, sendMessage]);
 
   // Apply filter when currentFilter changes
   useEffect(() => {
@@ -295,15 +326,6 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
   };
 
   /**
-   * Request preview from plugin
-   */
-  const requestPreview = () => {
-    setLoading(true);
-    setError(null);
-    sendMessage("VISION_SIMULATOR_REQUEST_PREVIEW", {});
-  };
-
-  /**
    * Handle individual filter button click
    */
   const handleFilterClick = (filter: SimulationType) => {
@@ -315,7 +337,7 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
       options: {
         position: "right",
         spacing: 50,
-        includeLabel: true,
+        includeLabel: false,
       },
     });
   };
@@ -469,10 +491,7 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
             <div className="vision-simulator-panel__preview">
               {!previewImage && !loading && (
                 <div className="vision-simulator-panel__preview-empty">
-                  <p>Select a node to preview simulation</p>
-                  <Button variant="primary" onClick={requestPreview}>
-                    Load Preview
-                  </Button>
+                  <p>Select a node to view simulation</p>
                 </div>
               )}
 
@@ -499,15 +518,6 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
                 <div className="vision-simulator-panel__error">{error}</div>
               )}
             </div>
-
-            {/* Reload Button */}
-            {previewImage && (
-              <div className="vision-simulator-panel__reload-container">
-                <Button variant="secondary" onClick={requestPreview} fullWidth>
-                  Reload Preview
-                </Button>
-              </div>
-            )}
           </div>
         )}
       </div>

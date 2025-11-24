@@ -112,6 +112,12 @@ export class VisionSimulator {
         frame.name = `${node.name} - ${FILTER_METADATA[filter].name}`;
         frame.resize(nodeWidth, nodeHeight);
 
+        // Initialize with empty fills (will be replaced with filtered image)
+        frame.fills = [];
+
+        // Disable clipping
+        frame.clipsContent = false;
+
         // Position the frame
         if (position === 'right') {
           frame.x = nodeX + (nodeWidth + spacing) * (i + 1);
@@ -132,16 +138,9 @@ export class VisionSimulator {
 
         frame.setPluginData(PLUGIN_DATA_KEYS.GENERATED_NODE, JSON.stringify(metadata));
 
-        // Add label if requested
-        if (includeLabel) {
-          this.addLabel(frame, FILTER_METADATA[filter].name);
-        }
-
         // Add to current page
         figma.currentPage.appendChild(frame);
         generatedIds.push(frame.id);
-
-        console.log(`Generated simulation: ${filter} for ${node.name}`);
       } catch (error) {
         console.error(`Failed to generate ${filter} simulation:`, error);
       }
@@ -151,7 +150,7 @@ export class VisionSimulator {
   }
 
   /**
-   * Add a text label to a generated frame
+   * Add a text label below a generated frame
    *
    * @param frame - Frame to add label to
    * @param labelText - Label text
@@ -162,44 +161,23 @@ export class VisionSimulator {
     // Load default font
     figma.loadFontAsync({ family: 'Inter', style: 'Regular' }).then(() => {
       label.fontName = { family: 'Inter', style: 'Regular' };
-      label.fontSize = LABEL_SETTINGS.fontSize;
+      label.fontSize = 12;
       label.characters = labelText;
 
-      // Position label at top-left with padding
-      label.x = LABEL_SETTINGS.padding;
-      label.y = LABEL_SETTINGS.padding;
-
-      // Create background for label
-      const bg = figma.createRectangle();
-      bg.resize(label.width + LABEL_SETTINGS.padding * 2, label.height + LABEL_SETTINGS.padding * 2);
-      bg.fills = [
-        {
-          type: 'SOLID',
-          color: {
-            r: LABEL_SETTINGS.backgroundColor.r / 255,
-            g: LABEL_SETTINGS.backgroundColor.g / 255,
-            b: LABEL_SETTINGS.backgroundColor.b / 255,
-          },
-          opacity: LABEL_SETTINGS.backgroundColor.a,
-        },
-      ];
-      bg.name = 'Label Background';
+      // Position label below the frame
+      label.x = frame.x;
+      label.y = frame.y + frame.height + 8;
 
       // Set text color
       label.fills = [
         {
           type: 'SOLID',
-          color: {
-            r: LABEL_SETTINGS.textColor.r / 255,
-            g: LABEL_SETTINGS.textColor.g / 255,
-            b: LABEL_SETTINGS.textColor.b / 255,
-          },
+          color: { r: 0, g: 0, b: 0 },
         },
       ];
 
-      // Add to frame
-      frame.appendChild(bg);
-      frame.appendChild(label);
+      // Add to current page (not as child of frame)
+      figma.currentPage.appendChild(label);
     });
   }
 
@@ -270,7 +248,7 @@ export class VisionSimulator {
     height: number;
     nodeName: string;
   } | null> {
-    const node = figma.getNodeById(nodeId);
+    const node = await figma.getNodeByIdAsync(nodeId);
     if (!node || node.type === 'PAGE' || node.type === 'DOCUMENT') {
       console.error(`Node not found or not exportable: ${nodeId}`);
       return null;
@@ -301,8 +279,9 @@ export class VisionSimulator {
    * @param imageData - Processed image data (PNG)
    */
   async applyFilteredImage(frameId: string, imageData: Uint8Array): Promise<void> {
-    const frame = figma.getNodeById(frameId) as FrameNode;
+    const frame = await figma.getNodeByIdAsync(frameId) as FrameNode;
     if (!frame) {
+      console.error(`Frame not found with ID: ${frameId}`);
       throw new Error(`Frame not found: ${frameId}`);
     }
 
@@ -318,8 +297,6 @@ export class VisionSimulator {
           scaleMode: 'FILL',
         },
       ];
-
-      console.log(`Applied filtered image to frame: ${frame.name}`);
     } catch (error) {
       console.error('Failed to apply filtered image:', error);
       throw error;

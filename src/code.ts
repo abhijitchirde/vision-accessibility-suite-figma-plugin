@@ -34,6 +34,39 @@ let typographyCheckOptions = {
   checkFontWeight: true,
 };
 
+// Track Vision Simulator panel state for auto-preview
+let visionSimulatorPanelActive = false;
+
+// Function to auto-load vision simulator preview for current selection
+async function autoLoadVisionSimulatorPreview() {
+  if (!visionSimulatorPanelActive) return;
+
+  const selectedNodes = visionSimulator.getSelectedNodes();
+  if (selectedNodes.length === 0) {
+    figma.ui.postMessage({
+      type: "VISION_SIMULATOR_PREVIEW_DATA",
+      success: false,
+      error: null, // No error, just no selection
+    });
+    return;
+  }
+
+  const previewData = await visionSimulator.prepareImageForPreview(selectedNodes[0].id);
+  if (previewData) {
+    figma.ui.postMessage({
+      type: "VISION_SIMULATOR_PREVIEW_DATA",
+      success: true,
+      data: previewData,
+    });
+  } else {
+    figma.ui.postMessage({
+      type: "VISION_SIMULATOR_PREVIEW_DATA",
+      success: false,
+      error: "Failed to export image for preview",
+    });
+  }
+}
+
 // Function to check contrast for current selection
 async function checkContrastSelection() {
   try {
@@ -186,6 +219,9 @@ selectionService.onSelectionChange(async () => {
 
   // Auto-check typography if panel is active
   autoCheckTypographySelection();
+
+  // Auto-load vision simulator preview if panel is active
+  await autoLoadVisionSimulatorPreview();
 });
 
 // Handle messages from UI
@@ -363,36 +399,26 @@ figma.ui.onmessage = async (msg) => {
         }
         break;
 
+      case "VISION_SIMULATOR_PANEL_MOUNTED":
+        visionSimulatorPanelActive = true;
+        // Auto-load preview for current selection when panel mounts
+        await autoLoadVisionSimulatorPreview();
+        break;
+
+      case "VISION_SIMULATOR_PANEL_UNMOUNTED":
+        visionSimulatorPanelActive = false;
+        break;
+
       case "VISION_SIMULATOR_REQUEST_PREVIEW":
-        // Get selected node and export as image for preview
-        const selectedNodes = visionSimulator.getSelectedNodes();
-        if (selectedNodes.length === 0) {
-          figma.ui.postMessage({
-            type: "VISION_SIMULATOR_PREVIEW_DATA",
-            success: false,
-            error: "Please select a layer to preview",
-          });
-        } else {
-          const previewData = await visionSimulator.prepareImageForPreview(selectedNodes[0].id);
-          if (previewData) {
-            figma.ui.postMessage({
-              type: "VISION_SIMULATOR_PREVIEW_DATA",
-              success: true,
-              data: previewData,
-            });
-          } else {
-            figma.ui.postMessage({
-              type: "VISION_SIMULATOR_PREVIEW_DATA",
-              success: false,
-              error: "Failed to export image for preview",
-            });
-          }
-        }
+        // Manual preview request (can be removed if no longer needed)
+        await autoLoadVisionSimulatorPreview();
         break;
 
       case "VISION_SIMULATOR_GENERATE":
         // Generate canvas copy with filter applied
         const nodesToGenerate = visionSimulator.getSelectedNodes();
+        console.log(`VISION_SIMULATOR_GENERATE: Found ${nodesToGenerate.length} selected nodes`);
+
         if (nodesToGenerate.length === 0) {
           figma.notify("Please select an element to generate visual simulation");
           figma.ui.postMessage({
@@ -404,6 +430,7 @@ figma.ui.onmessage = async (msg) => {
           try {
             const filter = msg.data?.filter || msg.filter;
             const options = msg.data?.options || msg.options || {};
+            console.log(`Generating simulation for filter: ${filter}, node: ${nodesToGenerate[0].name}`);
 
             // Generate simulation for first selected node with single filter
             const generatedIds = await visionSimulator.generateSimulations(
@@ -414,18 +441,23 @@ figma.ui.onmessage = async (msg) => {
 
             // Apply filter to the generated frame
             const frameId = generatedIds[0];
+            console.log(`Generated frame ID: ${frameId}`);
 
             // Export original image
             const originalImage = await visionSimulator.prepareImageForPreview(nodesToGenerate[0].id);
+            console.log(`Exported original image: ${originalImage ? 'success' : 'failed'}`);
 
             if (originalImage) {
               // Send to UI for filter processing
+              console.log(`Sending image to UI for ${filter} processing`);
               figma.ui.postMessage({
                 type: "VISION_SIMULATOR_PROCESS_FILTER",
                 frameId,
                 filter,
                 imageData: originalImage,
               });
+            } else {
+              console.error('Failed to export original image');
             }
 
             figma.ui.postMessage({
@@ -434,6 +466,7 @@ figma.ui.onmessage = async (msg) => {
               filter: filter,
             });
           } catch (error) {
+            console.error('Error in VISION_SIMULATOR_GENERATE:', error);
             figma.ui.postMessage({
               type: "VISION_SIMULATOR_GENERATE_RESULT",
               success: false,
@@ -470,6 +503,12 @@ figma.ui.onmessage = async (msg) => {
           type: "theme-changed",
           theme: "light", // You can detect system theme here
         });
+        break;
+
+      case "SHOW_NOTIFICATION":
+        if (msg.message) {
+          figma.notify(msg.message);
+        }
         break;
 
       default:
