@@ -379,16 +379,17 @@ This documentation serves as:
 6. [Phase 2: Touch Targets Checker](#phase-2-touch-targets-checker)
 7. [Phase 3: Typography Checker](#phase-3-typography-checker)
 8. [Phase 4: Vision Simulator](#phase-4-vision-simulator)
-9. [Phase 5: Automatic Monitoring](#phase-5-automatic-monitoring)
-10. [Phase 6: Alt-Text Manager](#phase-6-alt-text-manager)
-11. [Phase 7: Focus Order Manager](#phase-7-focus-order-manager)
-12. [Phase 8: Headings Manager](#phase-8-headings-manager)
-13. [Phase 9: Landmarks Manager](#phase-9-landmarks-manager)
-14. [Phase 10: Accessibility Notes](#phase-10-accessibility-notes)
-15. [Phase 11: Integration & Polish](#phase-11-integration--polish)
-16. [Phase 12: Auto Scan & Fix](#phase-12-auto-scan--fix)
-17. [Timeline Summary](#timeline-summary)
-18. [Git Commit Strategy](#git-commit-strategy)
+9. [Phase 4b: Enhanced Vision Simulator](#phase-4b-enhanced-vision-simulator)
+10. [Phase 5: Automatic Monitoring](#phase-5-automatic-monitoring)
+11. [Phase 6: Alt-Text Manager](#phase-6-alt-text-manager)
+12. [Phase 7: Focus Order Manager](#phase-7-focus-order-manager)
+13. [Phase 8: Headings Manager](#phase-8-headings-manager)
+14. [Phase 9: Landmarks Manager](#phase-9-landmarks-manager)
+15. [Phase 10: Accessibility Notes](#phase-10-accessibility-notes)
+16. [Phase 11: Integration & Polish](#phase-11-integration--polish)
+17. [Phase 12: Auto Scan & Fix](#phase-12-auto-scan--fix)
+18. [Timeline Summary](#timeline-summary)
+19. [Git Commit Strategy](#git-commit-strategy)
 
 ---
 
@@ -477,7 +478,15 @@ Phase 3: Typography Checker
 Phase 4: Vision Simulator
 ├─ Reuse: Existing infrastructure
 ├─ Add: Image processing utilities, filter algorithms
-└─ Deliver: Working Vision Simulator + Tool Documentation
+└─ Deliver: Working Vision Simulator (9 filters) + Tool Documentation
+    ↓
+Phase 4b: Enhanced Vision Simulator
+├─ Reuse: Vision Simulator infrastructure from Phase 4
+├─ Add: Matrix interpolation (severity system)
+├─ Add: Partial color vision deficiencies (protanomaly, deuteranomaly, tritanomaly)
+├─ Add: Visual field defect algorithms (central/peripheral vision loss)
+├─ Add: Preset system for combined conditions
+└─ Deliver: Comprehensive Vision Accessibility Testing Suite + Documentation
     ↓
 Phase 5: Automatic Monitoring
 ├─ Reuse: All testing tools built so far
@@ -1222,6 +1231,299 @@ Filter Algorithms:
 Scientific References:
 - Color blindness simulation: [Research paper URL]
 - Brettel et al. method: [URL]
+```
+
+---
+
+## Phase 4b: Enhanced Vision Simulator
+
+**Duration**: 3-4 weeks
+**Goal**: Transform Vision Simulator into comprehensive vision accessibility testing suite
+
+**📢 Start Protocol**: Ask user "Are you ready to start Phase 4b: Enhanced Vision Simulator?"
+
+### Rationale
+
+Phase 4 delivered a solid foundation with 9 filters, but it's missing the most common vision deficiencies and layout testing capabilities. Phase 4b adds:
+- **Partial color vision deficiencies** (affecting ~8% of males vs current ~2% coverage)
+- **Visual field defects** for layout testing (macular degeneration, glaucoma)
+- **Severity controls** for realistic mild-to-severe testing
+- **Combined presets** for real-world scenarios
+
+### Why This Enhancement Is Critical
+
+**Current Coverage Gap:**
+- ❌ **Deuteranomaly** affects ~5-6% of males (5x more than complete deuteranopia)
+- ❌ **Protanomaly** affects ~1% of males
+- ❌ Visual field defects only test appearance, not layout
+- ❌ Binary on/off filters don't reflect reality (conditions exist on a spectrum)
+
+**After Phase 4b:**
+- ✅ Covers ~8% of males with color vision deficiencies (vs ~1% currently)
+- ✅ Tests layout and positioning (not just color/clarity)
+- ✅ Realistic testing (mild → moderate → severe progression)
+- ✅ Professional-grade comprehensive testing suite
+
+### Infrastructure from Previous Phases
+
+**Reuse from Phase 4**:
+- ✅ All 9 existing filters
+- ✅ Image processing pipeline (Canvas API)
+- ✅ Transformation matrix system
+- ✅ Two-mode interface (Generate + Simulation)
+- ✅ All UI components
+
+### New Infrastructure Needed
+
+**Add in this phase**:
+- Matrix interpolation utilities (severity system)
+- Visual field defect algorithms
+- Preset management system
+- Enhanced UI controls (sliders, preset selector)
+
+### Implementation Tasks
+
+**Detailed planning document**: See [phase-4b-enhanced-vision-simulator-plan.md](./implementation/phase-4b-enhanced-vision-simulator-plan.md)
+
+#### Phase A: Color Vision Completeness (Weeks 1-2)
+
+##### Week 1: Severity System Foundation
+
+- [ ] Create matrix interpolation function
+  - [ ] Implement `interpolateColorMatrix(severity, dichromacyMatrix)`
+  - [ ] Test with known values (0% = identity, 100% = dichromacy)
+  - [ ] Validate intermediate values produce expected results
+
+- [ ] Update type definitions
+  - [ ] Add `severity` to `ColorBlindnessConfig`
+  - [ ] Add `FilterWithSeverity` interface
+  - [ ] Update `SimulationType` to support severity
+
+- [ ] Extend image processing
+  - [ ] Modify color matrix application to use interpolated matrices
+  - [ ] Test performance impact (should be negligible)
+
+##### Week 2: Partial Color Vision & UI
+
+- [ ] Implement partial deficiency types
+  - [ ] Protanomaly (weak red)
+  - [ ] Deuteranomaly (weak green)
+  - [ ] Tritanomaly (weak blue)
+  - [ ] Update filter metadata with prevalence data
+
+- [ ] Create SeveritySlider component
+  - [ ] Slider 0-100% with labels
+  - [ ] Preset buttons (Mild 30%, Moderate 60%, Severe 90%)
+  - [ ] Real-time preview update
+  - [ ] Tooltip showing severity meaning
+
+- [ ] Integrate into panels
+  - [ ] Add severity slider to Simulation tab
+  - [ ] Add severity option to Generate tab
+  - [ ] Update message protocol for severity values
+  - [ ] Test both modes work correctly
+
+#### Phase B: Layout Testing (Week 3)
+
+##### Days 1-3: Visual Field Defect Algorithms
+
+- [ ] Implement Central Vision Loss (Macular Degeneration)
+  - [ ] `applyCentralVisionLoss(imageData, width, height, config)`
+  - [ ] Radial blur/darkening from center
+  - [ ] Configurable radius and severity
+  - [ ] Test with various radius values
+
+- [ ] Implement Peripheral Vision Loss (Glaucoma)
+  - [ ] `applyPeripheralVisionLoss(imageData, width, height, config)`
+  - [ ] Vignette/tunnel vision effect
+  - [ ] Configurable tunnel radius and severity
+  - [ ] Test with various radius values
+
+##### Days 4-5: Field Defect UI Integration
+
+- [ ] Add "Vision Field Defects" category
+  - [ ] Update filter dropdown with new category
+  - [ ] Add central-vision-loss option
+  - [ ] Add peripheral-vision-loss option
+
+- [ ] Create radius controls
+  - [ ] Radius slider for affected area size
+  - [ ] Severity slider for intensity
+  - [ ] Preview overlay showing affected area (optional)
+  - [ ] Side-by-side comparison view
+
+##### Days 6-7: Testing & Refinement
+
+- [ ] Visual validation testing
+  - [ ] Compare with reference images
+  - [ ] Test various radius/severity combinations
+  - [ ] Verify affected areas are correct
+
+- [ ] Performance testing
+  - [ ] Test with various image sizes
+  - [ ] Optimize if needed (may need Web Workers)
+  - [ ] Ensure UI remains responsive
+
+#### Phase C: Realism & Presets (Week 4)
+
+##### Days 1-3: Severity for Existing Filters & Preset System
+
+- [ ] Add severity controls to existing filters
+  - [ ] Blur intensity slider (1-20px radius)
+  - [ ] Yellowing intensity (0-100%)
+  - [ ] Contrast loss intensity (0-100%)
+  - [ ] Ghosting offset and opacity
+  - [ ] Bright light intensity
+
+- [ ] Create preset system
+  - [ ] Define `FilterPreset` and `FilterConfig` types
+  - [ ] Implement `applyFilterPreset()` for sequential application
+  - [ ] Create preset storage (localStorage or plugin data)
+  - [ ] Test multi-filter application
+
+##### Days 4-5: Preset Library & UI
+
+- [ ] Create default presets
+  - [ ] "Advanced Cataracts" (blur + yellowing + contrast loss)
+  - [ ] "Aging Vision (65+)" (mild blur + yellowing + contrast)
+  - [ ] "Aging Vision (80+)" (high blur + yellowing + contrast + central loss)
+  - [ ] "Outdoor Viewing" (bright light + contrast loss)
+  - [ ] "Night Vision" (contrast loss + mild blur)
+
+- [ ] Create preset UI components
+  - [ ] PresetSelector dropdown
+  - [ ] PresetManager modal (view/edit/delete)
+  - [ ] "Save as Preset" button
+  - [ ] Import/Export preset functionality
+
+##### Days 6-7: Documentation, Testing & Polish
+
+- [ ] Update tool documentation
+  - [ ] Document new filter types
+  - [ ] Document severity system
+  - [ ] Document preset system
+  - [ ] Add scientific references for new filters
+  - [ ] Update user flows and diagrams
+
+- [ ] Comprehensive testing
+  - [ ] Test all new filters in both modes
+  - [ ] Test presets with multiple filters
+  - [ ] Edge case testing (extreme values)
+  - [ ] Performance benchmarking
+  - [ ] Cross-browser testing
+
+- [ ] Update phase implementation doc
+  - [ ] Create phase-4b-enhanced-vision-simulator.md
+  - [ ] Document all algorithms added
+  - [ ] Document design decisions
+  - [ ] Add testing scenarios
+
+### Deliverables
+
+- ✅ 3 partial color vision deficiencies (protanomaly, deuteranomaly, tritanomaly)
+- ✅ Severity slider system (0-100%) for all color blindness filters
+- ✅ 2 visual field defects (central and peripheral vision loss)
+- ✅ Severity controls for existing filters (blur, yellowing, contrast, etc.)
+- ✅ 5+ default combined condition presets
+- ✅ Preset management system (save/load/import/export)
+- ✅ Enhanced UI with sliders and preset selector
+- ✅ Updated comprehensive documentation
+
+### Testing Checklist
+
+**Phase A - Color Vision:**
+- [ ] Severity slider works for all color blindness types (0-100%)
+- [ ] Mild/Moderate/Severe preset buttons work correctly
+- [ ] Matrix interpolation produces visually correct results
+- [ ] 0% severity matches original, 100% matches Phase 4 complete deficiency
+- [ ] Real-time preview updates smoothly (<200ms)
+- [ ] Generate mode creates frames with correct severity
+
+**Phase B - Visual Field Defects:**
+- [ ] Central vision loss correctly blurs center, keeps periphery clear
+- [ ] Peripheral vision loss creates correct tunnel vision effect
+- [ ] Radius slider changes affected area size
+- [ ] Severity slider changes intensity
+- [ ] Both filters work in Generate and Simulation modes
+- [ ] Performance acceptable (<1s for 800×600px image)
+
+**Phase C - Presets:**
+- [ ] Severity controls work for all existing filters
+- [ ] At least 5 default presets implemented and tested
+- [ ] Preset manager UI functional (save/load/delete)
+- [ ] Multiple filters apply correctly in sequence
+- [ ] Export/import preset functionality works
+- [ ] Preset descriptions clear and helpful
+
+### Scientific References
+
+**Color Vision Deficiency Prevalence:**
+- Birch (2012), "Color Vision Deficiency", Survey of Ophthalmology
+- https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3485537/
+
+**Macular Degeneration:**
+- National Eye Institute - Age-Related Macular Degeneration
+- https://www.nei.nih.gov/learn-about-eye-health/eye-conditions-and-diseases/age-related-macular-degeneration
+
+**Glaucoma:**
+- Glaucoma Research Foundation Statistics
+- https://www.glaucoma.org/glaucoma/glaucoma-facts-and-stats.php
+
+**Color Vision Simulation:**
+- Machado et al. (2009) - Physiologically-based CVD model
+- https://www.inf.ufrgs.br/~oliveira/pubs_files/CVD_Simulation/CVD_Simulation.html
+
+### Git Commit Template
+
+```
+feat(vision-simulator): enhance with severity controls, field defects, and presets
+
+Phase A - Color Vision Completeness:
+- Add severity slider system (0-100%) for color blindness simulations
+- Implement matrix interpolation for partial color vision deficiencies
+- Add protanomaly, deuteranomaly, tritanomaly (partial deficiencies)
+- Create SeveritySlider component with preset buttons (Mild/Moderate/Severe)
+- Update filter metadata with prevalence data
+
+Phase B - Layout Testing:
+- Implement central vision loss (macular degeneration simulation)
+- Implement peripheral vision loss (tunnel vision/glaucoma simulation)
+- Add radius and severity controls for field defects
+- Add "Vision Field Defects" filter category
+- Enable layout testing dimension (not just appearance)
+
+Phase C - Realism & Presets:
+- Add severity controls to existing filters (blur, yellowing, contrast, etc.)
+- Implement preset system for combined conditions
+- Create 5 default presets:
+  - Advanced Cataracts
+  - Aging Vision (65+)
+  - Aging Vision (80+)
+  - Outdoor Viewing
+  - Night Vision
+- Create PresetSelector and PresetManager UI components
+- Add save/load/import/export preset functionality
+- Sequential multi-filter application
+
+Coverage Improvement:
+- Now covers ~8% of males with color vision deficiencies (vs ~1% before)
+- Added layout testing for visual field defects
+- Realistic mild-to-severe condition testing
+- Real-world combined condition scenarios
+
+Technical Implementation:
+- Matrix interpolation between identity and dichromacy matrices
+- Radial blur algorithms for field defects
+- Sequential filter application pipeline
+- Preset storage system
+
+Scientific References:
+- Birch (2012) - Color vision deficiency prevalence
+- NEI - Macular degeneration statistics
+- GRF - Glaucoma statistics
+- Machado et al. (2009) - CVD simulation methods
+
+Enhanced Vision Simulator is now a comprehensive vision accessibility testing suite.
 ```
 
 ---
@@ -2157,19 +2459,22 @@ Final feature completing Accessibility Genie v1.0.
 | **Phase 2** | Touch Targets Checker | 1 week | 2-3 weeks |
 | **Phase 3** | Typography Checker | 1 week | 3-4 weeks |
 | **Phase 4** | Vision Simulator | 1-2 weeks | 4-6 weeks |
-| **Phase 5** | Automatic Monitoring | 1 week | 5-7 weeks |
-| **Phase 6** | Alt-Text Manager | 1 week | 6-8 weeks |
-| **Phase 7** | Focus Order Manager | 1 week | 7-9 weeks |
-| **Phase 8** | Headings Manager | 1 week | 8-10 weeks |
-| **Phase 9** | Landmarks Manager | 1 week | 9-11 weeks |
-| **Phase 10** | Accessibility Notes | 1 week | 10-12 weeks |
-| **Phase 11** | Integration & Polish | 2 weeks | 12-14 weeks |
-| **Phase 12** | Auto Scan & Fix (Deferred) | 1 week | 13-15 weeks |
-| **Total** | **All 10 tools + Auto Scan** | **13-15 weeks** | **~3.5 months** |
+| **Phase 4b** | Enhanced Vision Simulator | 3-4 weeks | 7-10 weeks |
+| **Phase 5** | Automatic Monitoring | 1 week | 8-11 weeks |
+| **Phase 6** | Alt-Text Manager | 1 week | 9-12 weeks |
+| **Phase 7** | Focus Order Manager | 1 week | 10-13 weeks |
+| **Phase 8** | Headings Manager | 1 week | 11-14 weeks |
+| **Phase 9** | Landmarks Manager | 1 week | 12-15 weeks |
+| **Phase 10** | Accessibility Notes | 1 week | 13-16 weeks |
+| **Phase 11** | Integration & Polish | 2 weeks | 15-18 weeks |
+| **Phase 12** | Auto Scan & Fix (Deferred) | 1 week | 16-19 weeks |
+| **Total** | **All 10 tools + Enhanced Vision + Auto Scan** | **16-19 weeks** | **~4-5 months** |
 
 ### Milestone Breakdown
 
 - **End of Phase 1**: First working tool (Contrast Checker) + reusable infrastructure
+- **End of Phase 4**: Basic Vision Simulator (9 filters)
+- **End of Phase 4b**: Enhanced Vision Simulator (comprehensive accessibility testing suite)
 - **End of Phase 5**: All 5 testing tools complete
 - **End of Phase 10**: All 10 tools complete (5 testing + 5 annotation)
 - **End of Phase 11**: Production-ready plugin
