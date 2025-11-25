@@ -25,6 +25,13 @@ export type ColorBlindnessType =
   | 'tritanomaly';    // Weak blue (weak S-cones) ~0.01% population
 
 /**
+ * Visual field defect types
+ */
+export type VisualFieldDefectType =
+  | 'central-vision-loss'    // Macular degeneration - blur/obscure center
+  | 'peripheral-vision-loss'; // Glaucoma/tunnel vision - blur/darken edges
+
+/**
  * Other visual impairment types
  */
 export type OtherVisionType =
@@ -37,12 +44,12 @@ export type OtherVisionType =
 /**
  * All supported simulation types
  */
-export type SimulationType = ColorBlindnessType | OtherVisionType | 'original';
+export type SimulationType = ColorBlindnessType | VisualFieldDefectType | OtherVisionType | 'original';
 
 /**
  * Filter category for UI organization
  */
-export type FilterCategory = 'color-blind' | 'other';
+export type FilterCategory = 'color-blind' | 'visual-field' | 'other';
 
 /**
  * Filter metadata for UI display
@@ -140,6 +147,26 @@ export interface GeneratedNodeData {
 export interface ColorBlindnessConfig {
   type: ColorBlindnessType;
   severity: number; // 0-1 (0 = normal vision, 1 = complete dichromacy)
+}
+
+/**
+ * Central vision loss configuration (macular degeneration)
+ *
+ * Simulates loss of central vision while peripheral vision remains clear.
+ */
+export interface CentralVisionLossConfig {
+  radius: number; // Radius of affected center area in pixels
+  severity: number; // 0-1 (0 = no loss, 1 = complete center blindness)
+}
+
+/**
+ * Peripheral vision loss configuration (glaucoma/tunnel vision)
+ *
+ * Simulates loss of peripheral vision creating a tunnel vision effect.
+ */
+export interface PeripheralVisionLossConfig {
+  tunnelRadius: number; // Radius of clear center area in pixels
+  severity: number; // 0-1 (0 = no loss, 1 = extreme tunnel vision)
 }
 
 /**

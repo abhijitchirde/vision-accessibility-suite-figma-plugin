@@ -48,6 +48,19 @@ const IconSymbols: Record<string, React.FC<{ color: string; size: number }>> = {
       <path d="M9 15 L5 19" stroke={color} strokeWidth="2" />
     </svg>
   ),
+  'center-dot': ({ color, size }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" stroke={color} strokeWidth="2" opacity="0.3" />
+      <circle cx="12" cy="12" r="5" fill={color} opacity="0.8" />
+    </svg>
+  ),
+  'tunnel': ({ color, size }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" fill={color} opacity="0.7" />
+      <circle cx="12" cy="12" r="5" fill="white" />
+      <circle cx="12" cy="12" r="5" stroke={color} strokeWidth="2" />
+    </svg>
+  ),
 };
 
 /**

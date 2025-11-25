@@ -16,6 +16,8 @@ import {
   YellowingConfig,
   ContrastLossConfig,
   BrightLightConfig,
+  CentralVisionLossConfig,
+  PeripheralVisionLossConfig,
 } from './vision-simulator.types';
 import {
   TRANSFORMATION_MATRICES,
@@ -472,6 +474,124 @@ export function applyBrightLight(
     result[i + 1] = Math.min(255, g2);
     result[i + 2] = Math.min(255, b2);
     result[i + 3] = imageData[i + 3]; // Preserve alpha
+  }
+
+  return result;
+}
+
+/**
+ * Apply central vision loss (macular degeneration simulation)
+ *
+ * Simulates loss of central vision while peripheral vision remains clear.
+ * Blurs and darkens the center of the image based on distance from center.
+ *
+ * @param imageData - Original image data
+ * @param width - Image width in pixels
+ * @param height - Image height in pixels
+ * @param config - Central vision loss configuration
+ * @returns Processed image data
+ */
+export function applyCentralVisionLoss(
+  imageData: Uint8ClampedArray,
+  width: number,
+  height: number,
+  config: CentralVisionLossConfig
+): Uint8ClampedArray {
+  const { radius, severity } = config;
+  const result = new Uint8ClampedArray(imageData);
+  const centerX = width / 2;
+  const centerY = height / 2;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+
+      // Calculate distance from center
+      const dx = x - centerX;
+      const dy = y - centerY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      // Calculate blur factor (1 = full blur at center, 0 = no blur at edges)
+      // Uses smooth falloff from center to radius
+      const blurFactor = Math.max(0, 1 - distance / radius) * severity;
+
+      if (blurFactor > 0) {
+        // Apply blur and darkening to simulate scotoma (blind spot)
+        const r = imageData[idx];
+        const g = imageData[idx + 1];
+        const b = imageData[idx + 2];
+
+        // Convert to grayscale for blur effect
+        const gray = r * 0.299 + g * 0.587 + b * 0.114;
+
+        // Apply darkening (simulates dead photoreceptors)
+        const darkenedGray = gray * 0.5;
+
+        // Blend between original and darkened gray based on blur factor
+        result[idx] = r * (1 - blurFactor) + darkenedGray * blurFactor;
+        result[idx + 1] = g * (1 - blurFactor) + darkenedGray * blurFactor;
+        result[idx + 2] = b * (1 - blurFactor) + darkenedGray * blurFactor;
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Apply peripheral vision loss (glaucoma/tunnel vision simulation)
+ *
+ * Simulates loss of peripheral vision creating a tunnel vision effect.
+ * Blurs and darkens the edges while keeping center clear.
+ *
+ * @param imageData - Original image data
+ * @param width - Image width in pixels
+ * @param height - Image height in pixels
+ * @param config - Peripheral vision loss configuration
+ * @returns Processed image data
+ */
+export function applyPeripheralVisionLoss(
+  imageData: Uint8ClampedArray,
+  width: number,
+  height: number,
+  config: PeripheralVisionLossConfig
+): Uint8ClampedArray {
+  const { tunnelRadius, severity } = config;
+  const result = new Uint8ClampedArray(imageData);
+  const centerX = width / 2;
+  const centerY = height / 2;
+
+  // Calculate max distance from center to corner (for normalization)
+  const maxDistance = Math.sqrt(centerX * centerX + centerY * centerY);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+
+      // Calculate distance from center
+      const dx = x - centerX;
+      const dy = y - centerY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      // Calculate darkening factor (0 at center, 1 at edges)
+      // Starts at tunnelRadius and increases toward edges
+      const darkenFactor = Math.max(
+        0,
+        (distance - tunnelRadius) / (maxDistance - tunnelRadius)
+      ) * severity;
+
+      if (darkenFactor > 0) {
+        // Apply vignette darkening effect
+        const r = imageData[idx];
+        const g = imageData[idx + 1];
+        const b = imageData[idx + 2];
+
+        // Darken toward black (simulates peripheral vision loss)
+        result[idx] = r * (1 - darkenFactor * 0.8);
+        result[idx + 1] = g * (1 - darkenFactor * 0.8);
+        result[idx + 2] = b * (1 - darkenFactor * 0.8);
+      }
+    }
   }
 
   return result;

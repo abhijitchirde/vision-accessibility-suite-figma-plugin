@@ -20,6 +20,8 @@ import {
   YellowingConfig,
   ContrastLossConfig,
   BrightLightConfig,
+  CentralVisionLossConfig,
+  PeripheralVisionLossConfig,
 } from './vision-simulator.types';
 
 /**
@@ -111,6 +113,22 @@ export const DEFAULT_CONTRAST_LOSS_CONFIG: ContrastLossConfig = {
 export const DEFAULT_BRIGHT_LIGHT_CONFIG: BrightLightConfig = {
   intensity: 0.7, // 70% brightness increase
   washout: 0.4, // 40% color washout (desaturation)
+};
+
+/**
+ * Default central vision loss configuration (macular degeneration)
+ */
+export const DEFAULT_CENTRAL_VISION_LOSS_CONFIG: CentralVisionLossConfig = {
+  radius: 150, // 150px radius of affected center area
+  severity: 0.8, // 80% severity (significant center vision loss)
+};
+
+/**
+ * Default peripheral vision loss configuration (glaucoma/tunnel vision)
+ */
+export const DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG: PeripheralVisionLossConfig = {
+  tunnelRadius: 100, // 100px radius of clear center area
+  severity: 0.7, // 70% severity (moderate peripheral loss)
 };
 
 /**
@@ -233,6 +251,23 @@ export const FILTER_METADATA: Record<Exclude<SimulationType, 'original'>, Filter
     description: 'Light sensitivity (photophobia)',
     severity: 'low',
   },
+  // Visual Field Defects
+  'central-vision-loss': {
+    id: 'central-vision-loss',
+    name: 'Central Vision Loss',
+    category: 'visual-field',
+    description: 'Macular degeneration - blurred/dark center, clear periphery',
+    severity: 'high',
+    scientificName: 'Macular Degeneration',
+  },
+  'peripheral-vision-loss': {
+    id: 'peripheral-vision-loss',
+    name: 'Peripheral Vision Loss',
+    category: 'visual-field',
+    description: 'Glaucoma/tunnel vision - clear center, dark/blurred edges',
+    severity: 'high',
+    scientificName: 'Glaucoma (Tunnel Vision)',
+  },
 };
 
 /**
@@ -251,6 +286,9 @@ export const ALL_FILTERS: Exclude<SimulationType, 'original'>[] = [
   'tritanomaly',   // Weak blue
   // Total color blindness
   'achromatopsia', // Complete absence of color vision
+  // Visual field defects
+  'central-vision-loss',     // Macular degeneration
+  'peripheral-vision-loss',  // Glaucoma/tunnel vision
   // Other impairments
   'blurred',
   'ghosting',
@@ -294,6 +332,14 @@ export const ANOMALY_FILTERS: ColorBlindnessType[] = [
   'protanomaly',
   'deuteranomaly',
   'tritanomaly',
+];
+
+/**
+ * Visual field defect filters
+ */
+export const VISUAL_FIELD_FILTERS: SimulationType[] = [
+  'central-vision-loss',      // Macular degeneration
+  'peripheral-vision-loss',   // Glaucoma/tunnel vision
 ];
 
 /**

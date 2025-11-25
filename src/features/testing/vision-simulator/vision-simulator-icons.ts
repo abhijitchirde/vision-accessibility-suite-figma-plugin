@@ -92,4 +92,18 @@ export const FILTER_ICONS: Record<string, FilterIconConfig> = {
     color: '#FFF59D',
     description: 'Bright light sensitivity: washed out colors',
   },
+
+  // Visual field defects - use icon symbols
+  'central-vision-loss': {
+    type: 'icon',
+    icon: 'center-dot',
+    color: '#D32F2F',
+    description: 'Central vision loss: blurred/dark center (macular degeneration)',
+  },
+  'peripheral-vision-loss': {
+    type: 'icon',
+    icon: 'tunnel',
+    color: '#1976D2',
+    description: 'Peripheral vision loss: tunnel vision (glaucoma)',
+  },
 };
