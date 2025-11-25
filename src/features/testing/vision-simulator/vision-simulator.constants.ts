@@ -14,6 +14,7 @@ import {
   FilterMetadata,
   TransformationMatrix,
   SimulationType,
+  ColorBlindnessType,
   BlurConfig,
   GhostingConfig,
   YellowingConfig,
@@ -113,15 +114,37 @@ export const DEFAULT_BRIGHT_LIGHT_CONFIG: BrightLightConfig = {
 };
 
 /**
+ * Default severity levels for partial color vision deficiencies
+ *
+ * These represent "typical" severity for anomalous trichromacy.
+ * Users can adjust via severity slider.
+ */
+export const DEFAULT_ANOMALY_SEVERITY = {
+  protanomaly: 0.6,     // Moderate severity (60%)
+  deuteranomaly: 0.6,   // Moderate severity (60%)
+  tritanomaly: 0.6,     // Moderate severity (60%)
+};
+
+/**
+ * Severity level names and percentages
+ */
+export const SEVERITY_PRESETS = {
+  mild: 0.3,       // 30% - Mild partial deficiency
+  moderate: 0.6,   // 60% - Moderate partial deficiency
+  severe: 0.9,     // 90% - Severe partial deficiency (almost complete)
+  complete: 1.0,   // 100% - Complete dichromacy
+};
+
+/**
  * Filter metadata for UI display
  */
 export const FILTER_METADATA: Record<Exclude<SimulationType, 'original'>, FilterMetadata> = {
-  // Color Blindness
+  // Complete Color Blindness (Dichromacy)
   protanopia: {
     id: 'protanopia',
     name: 'Protanopia',
     category: 'color-blind',
-    description: 'Red-blind (missing L-cones)',
+    description: 'Red-blind (missing L-cones) ~1% males',
     severity: 'high',
     scientificName: 'Protanopia (Red-blind)',
   },
@@ -129,7 +152,7 @@ export const FILTER_METADATA: Record<Exclude<SimulationType, 'original'>, Filter
     id: 'deuteranopia',
     name: 'Deuteranopia',
     category: 'color-blind',
-    description: 'Green-blind (missing M-cones)',
+    description: 'Green-blind (missing M-cones) ~1% males',
     severity: 'high',
     scientificName: 'Deuteranopia (Green-blind)',
   },
@@ -137,7 +160,7 @@ export const FILTER_METADATA: Record<Exclude<SimulationType, 'original'>, Filter
     id: 'tritanopia',
     name: 'Tritanopia',
     category: 'color-blind',
-    description: 'Blue-blind (missing S-cones)',
+    description: 'Blue-blind (missing S-cones) ~0.001% population',
     severity: 'medium',
     scientificName: 'Tritanopia (Blue-blind)',
   },
@@ -145,9 +168,34 @@ export const FILTER_METADATA: Record<Exclude<SimulationType, 'original'>, Filter
     id: 'achromatopsia',
     name: 'Achromatopsia',
     category: 'color-blind',
-    description: 'Total color blindness',
+    description: 'Total color blindness ~0.003% population',
     severity: 'critical',
     scientificName: 'Achromatopsia (Total color blindness)',
+  },
+  // Partial Color Vision Deficiencies (Anomalous Trichromacy)
+  protanomaly: {
+    id: 'protanomaly',
+    name: 'Protanomaly',
+    category: 'color-blind',
+    description: 'Weak red (weak L-cones) ~1% males',
+    severity: 'medium',
+    scientificName: 'Protanomaly (Weak red)',
+  },
+  deuteranomaly: {
+    id: 'deuteranomaly',
+    name: 'Deuteranomaly',
+    category: 'color-blind',
+    description: 'Weak green (weak M-cones) ~5-6% males - MOST COMMON!',
+    severity: 'medium',
+    scientificName: 'Deuteranomaly (Weak green)',
+  },
+  tritanomaly: {
+    id: 'tritanomaly',
+    name: 'Tritanomaly',
+    category: 'color-blind',
+    description: 'Weak blue (weak S-cones) ~0.01% population',
+    severity: 'low',
+    scientificName: 'Tritanomaly (Weak blue)',
   },
   // Other Visual Impairments
   blurred: {
@@ -189,13 +237,20 @@ export const FILTER_METADATA: Record<Exclude<SimulationType, 'original'>, Filter
 
 /**
  * Ordered list of all filters for UI display
+ * Grouped by deficiency type for easier understanding and comparison
  */
 export const ALL_FILTERS: Exclude<SimulationType, 'original'>[] = [
-  // Color blindness (most impactful first)
-  'protanopia',
-  'deuteranopia',
-  'tritanopia',
-  'achromatopsia',
+  // Red deficiency (protan)
+  'protanopia',    // Complete red-blind
+  'protanomaly',   // Weak red
+  // Green deficiency (deutan) - MOST COMMON
+  'deuteranopia',  // Complete green-blind
+  'deuteranomaly', // Weak green (~5-6% of males) - MOST COMMON!
+  // Blue deficiency (tritan)
+  'tritanopia',    // Complete blue-blind
+  'tritanomaly',   // Weak blue
+  // Total color blindness
+  'achromatopsia', // Complete absence of color vision
   // Other impairments
   'blurred',
   'ghosting',
@@ -205,13 +260,40 @@ export const ALL_FILTERS: Exclude<SimulationType, 'original'>[] = [
 ];
 
 /**
- * Color blindness filters only
+ * Color blindness filters only (both complete and partial)
+ * Grouped by deficiency type for easier understanding
  */
 export const COLOR_BLIND_FILTERS: SimulationType[] = [
+  // Red deficiency (protan)
+  'protanopia',    // Complete
+  'protanomaly',   // Partial
+  // Green deficiency (deutan) - MOST COMMON
+  'deuteranopia',  // Complete
+  'deuteranomaly', // Partial (~5-6% males)
+  // Blue deficiency (tritan)
+  'tritanopia',    // Complete
+  'tritanomaly',   // Partial
+  // Total color blindness
+  'achromatopsia',
+];
+
+/**
+ * Complete dichromacy filters (missing cone types)
+ */
+export const DICHROMACY_FILTERS: ColorBlindnessType[] = [
   'protanopia',
   'deuteranopia',
   'tritanopia',
   'achromatopsia',
+];
+
+/**
+ * Partial color vision deficiency filters (weak cone types)
+ */
+export const ANOMALY_FILTERS: ColorBlindnessType[] = [
+  'protanomaly',
+  'deuteranomaly',
+  'tritanomaly',
 ];
 
 /**

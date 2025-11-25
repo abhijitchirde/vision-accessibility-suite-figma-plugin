@@ -3,10 +3,12 @@ import "./VisionSimulatorPanel.css";
 import { Icon } from "../../../../components/ui/Icon/Icon";
 import { Button } from "../../../../components/ui/Button/Button";
 import { FilterIcon } from "./FilterIcon";
+import { SeveritySlider } from "./SeveritySlider";
 import { useFigmaMessage } from "../../../../hooks/useFigmaMessage";
 import {
   SimulationType,
   VisionSimulatorState,
+  ColorBlindnessType,
 } from "../vision-simulator.types";
 import {
   FILTER_METADATA,
@@ -14,6 +16,7 @@ import {
   OTHER_FILTERS,
   ZOOM_LEVELS,
   DEFAULT_ZOOM,
+  COLOR_BLIND_FILTERS as ALL_COLOR_BLIND_FILTERS,
 } from "../vision-simulator.constants";
 import {
   applyColorBlindness,
@@ -39,6 +42,7 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
   // Simulation mode state
   const [currentFilter, setCurrentFilter] =
     useState<SimulationType>("original");
+  const [currentSeverity, setCurrentSeverity] = useState<number>(1.0); // Default to complete (100%)
   const [zoom, setZoom] = useState<number>(DEFAULT_ZOOM);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -49,6 +53,13 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
   const originalImageRef = useRef<HTMLImageElement | null>(null);
 
   const { sendMessage } = useFigmaMessage();
+
+  /**
+   * Check if a filter is a color blindness type (supports severity adjustment)
+   */
+  const isColorBlindnessFilter = (filter: SimulationType): boolean => {
+    return ALL_COLOR_BLIND_FILTERS.includes(filter);
+  };
 
   /**
    * Process filter for generated frame (background processing)
@@ -97,9 +108,17 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
             filter === "protanopia" ||
             filter === "deuteranopia" ||
             filter === "tritanopia" ||
-            filter === "achromatopsia"
+            filter === "achromatopsia" ||
+            filter === "protanomaly" ||
+            filter === "deuteranomaly" ||
+            filter === "tritanomaly"
           ) {
-            filteredData = applyColorBlindness(imgData.data, filter);
+            // For generate mode, use type-appropriate default severity
+            // (complete dichromacy = 1.0, anomalies = 0.6)
+            filteredData = applyColorBlindness(
+              imgData.data,
+              filter as ColorBlindnessType
+            );
           } else if (filter === "blurred") {
             filteredData = applyBlur(
               imgData.data,
@@ -221,12 +240,12 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
     }
   }, [activeTab, sendMessage]);
 
-  // Apply filter when currentFilter changes
+  // Apply filter when currentFilter or currentSeverity changes
   useEffect(() => {
     if (originalImageRef.current && activeTab === "simulation") {
       applyFilterToPreview(currentFilter);
     }
-  }, [currentFilter, activeTab]);
+  }, [currentFilter, currentSeverity, activeTab]); // Re-apply when severity changes
 
   /**
    * Load image data into canvas for preview
@@ -291,9 +310,17 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
         filter === "protanopia" ||
         filter === "deuteranopia" ||
         filter === "tritanopia" ||
-        filter === "achromatopsia"
+        filter === "achromatopsia" ||
+        filter === "protanomaly" ||
+        filter === "deuteranomaly" ||
+        filter === "tritanomaly"
       ) {
-        filteredData = applyColorBlindness(imageData.data, filter);
+        // Apply color blindness with current severity
+        filteredData = applyColorBlindness(
+          imageData.data,
+          filter as ColorBlindnessType,
+          currentSeverity
+        );
       } else if (filter === "blurred") {
         filteredData = applyBlur(imageData.data, canvas.width, canvas.height);
       } else if (filter === "ghosting") {
@@ -381,29 +408,168 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
         {/* Generate Tab */}
         {activeTab === "generate" && (
           <div className="vision-simulator-panel__generate">
-            {/* Color Blind Section */}
+            {/* Red Deficiency Section */}
             <div className="vision-simulator-panel__section">
               <h3 className="vision-simulator-panel__section-title">
-                Color blind
+                Red deficiency (Protan)
               </h3>
               <div className="vision-simulator-panel__filters">
-                {COLOR_BLIND_FILTERS.map((filter) => (
-                  <button
-                    key={filter}
-                    className={`vision-simulator-panel__filter-card ${
-                      generatingFilter === filter
-                        ? "vision-simulator-panel__filter-card--generating"
-                        : ""
-                    }`}
-                    onClick={() => handleFilterClick(filter)}
-                    disabled={generatingFilter !== null}
-                  >
-                    <FilterIcon filterId={filter} size="small" />
-                    <span className="vision-simulator-panel__filter-label">
-                      {FILTER_METADATA[filter].name}
-                    </span>
-                  </button>
-                ))}
+                <button
+                  key="protanopia"
+                  className={`vision-simulator-panel__filter-card ${
+                    generatingFilter === "protanopia"
+                      ? "vision-simulator-panel__filter-card--generating"
+                      : ""
+                  }`}
+                  onClick={() => handleFilterClick("protanopia")}
+                  disabled={generatingFilter !== null}
+                >
+                  <span className="vision-simulator-panel__filter-label">
+                    <FilterIcon filterId="protanopia" size="small" />
+                    Protanopia
+                  </span>
+                  <span className="vision-simulator-panel__filter-info">
+                    Complete • ~1% males
+                  </span>
+                </button>
+                <button
+                  key="protanomaly"
+                  className={`vision-simulator-panel__filter-card ${
+                    generatingFilter === "protanomaly"
+                      ? "vision-simulator-panel__filter-card--generating"
+                      : ""
+                  }`}
+                  onClick={() => handleFilterClick("protanomaly")}
+                  disabled={generatingFilter !== null}
+                >
+                  <span className="vision-simulator-panel__filter-label">
+                    <FilterIcon filterId="protanomaly" size="small" />
+                    Protanomaly
+                  </span>
+                  <span className="vision-simulator-panel__filter-info">
+                    Partial • ~1% males
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Green Deficiency Section - MOST COMMON */}
+            <div className="vision-simulator-panel__section">
+              <h3 className="vision-simulator-panel__section-title">
+                Green deficiency (Deutan)
+                <span className="vision-simulator-panel__badge">
+                  Most common
+                </span>
+              </h3>
+              <div className="vision-simulator-panel__filters">
+                <button
+                  key="deuteranopia"
+                  className={`vision-simulator-panel__filter-card ${
+                    generatingFilter === "deuteranopia"
+                      ? "vision-simulator-panel__filter-card--generating"
+                      : ""
+                  }`}
+                  onClick={() => handleFilterClick("deuteranopia")}
+                  disabled={generatingFilter !== null}
+                >
+                  <span className="vision-simulator-panel__filter-label">
+                    <FilterIcon filterId="deuteranopia" size="small" />
+                    Deuteranopia
+                  </span>
+                  <span className="vision-simulator-panel__filter-info">
+                    Complete • ~1% males
+                  </span>
+                </button>
+                <button
+                  key="deuteranomaly"
+                  className={`vision-simulator-panel__filter-card ${
+                    generatingFilter === "deuteranomaly"
+                      ? "vision-simulator-panel__filter-card--generating"
+                      : ""
+                  }`}
+                  onClick={() => handleFilterClick("deuteranomaly")}
+                  disabled={generatingFilter !== null}
+                >
+                  <span className="vision-simulator-panel__filter-label">
+                    <FilterIcon filterId="deuteranomaly" size="small" />
+                    Deuteranomaly
+                  </span>
+                  <span className="vision-simulator-panel__filter-info">
+                    Partial • ~5-6% males ⭐
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Blue Deficiency Section */}
+            <div className="vision-simulator-panel__section">
+              <h3 className="vision-simulator-panel__section-title">
+                Blue deficiency (Tritan)
+              </h3>
+              <div className="vision-simulator-panel__filters">
+                <button
+                  key="tritanopia"
+                  className={`vision-simulator-panel__filter-card ${
+                    generatingFilter === "tritanopia"
+                      ? "vision-simulator-panel__filter-card--generating"
+                      : ""
+                  }`}
+                  onClick={() => handleFilterClick("tritanopia")}
+                  disabled={generatingFilter !== null}
+                >
+                  <span className="vision-simulator-panel__filter-label">
+                    <FilterIcon filterId="tritanopia" size="small" />
+                    Tritanopia
+                  </span>
+                  <span className="vision-simulator-panel__filter-info">
+                    Complete • ~0.001%
+                  </span>
+                </button>
+                <button
+                  key="tritanomaly"
+                  className={`vision-simulator-panel__filter-card ${
+                    generatingFilter === "tritanomaly"
+                      ? "vision-simulator-panel__filter-card--generating"
+                      : ""
+                  }`}
+                  onClick={() => handleFilterClick("tritanomaly")}
+                  disabled={generatingFilter !== null}
+                >
+                  <span className="vision-simulator-panel__filter-label">
+                    <FilterIcon filterId="tritanomaly" size="small" />
+                    Tritanomaly
+                  </span>
+                  <span className="vision-simulator-panel__filter-info">
+                    Partial • ~0.01%
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Total Color Blindness Section */}
+            <div className="vision-simulator-panel__section">
+              <h3 className="vision-simulator-panel__section-title">
+                Total color blindness
+              </h3>
+              <div className="vision-simulator-panel__filters">
+                <button
+                  key="achromatopsia"
+                  className={`vision-simulator-panel__filter-card ${
+                    generatingFilter === "achromatopsia"
+                      ? "vision-simulator-panel__filter-card--generating"
+                      : ""
+                  }`}
+                  onClick={() => handleFilterClick("achromatopsia")}
+                  disabled={generatingFilter !== null}
+                >
+                  <span className="vision-simulator-panel__filter-label">
+                    <FilterIcon filterId="achromatopsia" size="small" />
+                    Achromatopsia
+                  </span>
+                  <span className="vision-simulator-panel__filter-info">
+                    Grayscale • ~0.003%
+                  </span>
+                </button>
               </div>
             </div>
 
@@ -414,7 +580,7 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
                 {OTHER_FILTERS.map((filter) => (
                   <button
                     key={filter}
-                    className={`vision-simulator-panel__filter-card ${
+                    className={`vision-simulator-panel__filter-card vision-simulator-panel__filter-card--compact ${
                       generatingFilter === filter
                         ? "vision-simulator-panel__filter-card--generating"
                         : ""
@@ -422,8 +588,8 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
                     onClick={() => handleFilterClick(filter)}
                     disabled={generatingFilter !== null}
                   >
-                    <FilterIcon filterId={filter} size="small" />
                     <span className="vision-simulator-panel__filter-label">
+                      <FilterIcon filterId={filter} size="small" />
                       {FILTER_METADATA[filter].name}
                     </span>
                   </button>
@@ -486,6 +652,16 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
                 </select>
               </div>
             </div>
+
+            {/* Severity Slider - only show for color blindness filters */}
+            {isColorBlindnessFilter(currentFilter) && (
+              <SeveritySlider
+                value={currentSeverity}
+                onChange={setCurrentSeverity}
+                label="Severity"
+                showPercentage={true}
+              />
+            )}
 
             {/* Preview Area */}
             <div className="vision-simulator-panel__preview">

@@ -24,7 +24,107 @@ import {
   DEFAULT_YELLOWING_CONFIG,
   DEFAULT_CONTRAST_LOSS_CONFIG,
   DEFAULT_BRIGHT_LIGHT_CONFIG,
+  DEFAULT_ANOMALY_SEVERITY,
 } from './vision-simulator.constants';
+import { ColorBlindnessType } from './vision-simulator.types';
+
+/**
+ * Map partial color vision deficiency (anomaly) to its base dichromacy type
+ *
+ * Anomalies use the same transformation matrices as their complete counterparts,
+ * but with reduced severity (< 1.0).
+ *
+ * @param type - Color blindness type (dichromacy or anomaly)
+ * @returns Base dichromacy type for matrix lookup
+ */
+function getBaseDichromacyType(
+  type: ColorBlindnessType
+): 'protanopia' | 'deuteranopia' | 'tritanopia' | 'achromatopsia' {
+  switch (type) {
+    case 'protanomaly':
+      return 'protanopia';
+    case 'deuteranomaly':
+      return 'deuteranopia';
+    case 'tritanomaly':
+      return 'tritanopia';
+    default:
+      // Already a dichromacy type, return as-is
+      return type as 'protanopia' | 'deuteranopia' | 'tritanopia' | 'achromatopsia';
+  }
+}
+
+/**
+ * Get default severity for a color blindness type
+ *
+ * Dichromacy types default to 1.0 (complete), anomaly types use configured defaults.
+ *
+ * @param type - Color blindness type
+ * @returns Default severity (0-1)
+ */
+function getDefaultSeverity(type: ColorBlindnessType): number {
+  switch (type) {
+    case 'protanomaly':
+    case 'deuteranomaly':
+    case 'tritanomaly':
+      return DEFAULT_ANOMALY_SEVERITY[type];
+    default:
+      return 1.0; // Complete dichromacy
+  }
+}
+
+/**
+ * Interpolate between identity matrix (normal vision) and dichromacy matrix
+ *
+ * This enables simulation of partial color vision deficiencies (anomalous trichromacy)
+ * by linearly interpolating between normal vision and complete color blindness.
+ *
+ * @param severity - Severity level (0-1, where 0 = normal vision, 1 = complete dichromacy)
+ * @param dichromacyMatrix - Target transformation matrix for complete color blindness
+ * @returns Interpolated transformation matrix
+ *
+ * @example
+ * // Mild deuteranomaly (30% severity)
+ * const mildMatrix = interpolateColorMatrix(0.3, DEUTERANOPIA_MATRIX);
+ *
+ * // Moderate deuteranomaly (60% severity)
+ * const moderateMatrix = interpolateColorMatrix(0.6, DEUTERANOPIA_MATRIX);
+ *
+ * // Complete deuteranopia (100% severity)
+ * const completeMatrix = interpolateColorMatrix(1.0, DEUTERANOPIA_MATRIX);
+ */
+export function interpolateColorMatrix(
+  severity: number,
+  dichromacyMatrix: TransformationMatrix
+): TransformationMatrix {
+  // Clamp severity to [0, 1]
+  const s = Math.max(0, Math.min(1, severity));
+
+  // Identity matrix (normal vision)
+  const identityMatrix: TransformationMatrix = [
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+  ];
+
+  // Linear interpolation: result = identity * (1 - s) + dichromacy * s
+  return [
+    [
+      identityMatrix[0][0] * (1 - s) + dichromacyMatrix[0][0] * s,
+      identityMatrix[0][1] * (1 - s) + dichromacyMatrix[0][1] * s,
+      identityMatrix[0][2] * (1 - s) + dichromacyMatrix[0][2] * s,
+    ],
+    [
+      identityMatrix[1][0] * (1 - s) + dichromacyMatrix[1][0] * s,
+      identityMatrix[1][1] * (1 - s) + dichromacyMatrix[1][1] * s,
+      identityMatrix[1][2] * (1 - s) + dichromacyMatrix[1][2] * s,
+    ],
+    [
+      identityMatrix[2][0] * (1 - s) + dichromacyMatrix[2][0] * s,
+      identityMatrix[2][1] * (1 - s) + dichromacyMatrix[2][1] * s,
+      identityMatrix[2][2] * (1 - s) + dichromacyMatrix[2][2] * s,
+    ],
+  ];
+}
 
 /**
  * Apply a color transformation matrix to an RGB color
@@ -55,15 +155,42 @@ export function applyColorMatrix(color: RGB, matrix: TransformationMatrix): RGB 
 /**
  * Apply color blindness simulation to image data
  *
+ * Supports both complete dichromacy and partial color vision deficiencies (anomalous trichromacy).
+ * Anomaly types (protanomaly, deuteranomaly, tritanomaly) automatically use appropriate severity.
+ *
  * @param imageData - Uint8ClampedArray in RGBA format
- * @param type - Type of color blindness
+ * @param type - Type of color blindness (dichromacy or anomaly)
+ * @param severity - Optional severity override (0-1). If not provided, uses type-appropriate default.
  * @returns Modified image data
+ *
+ * @example
+ * // Complete deuteranopia (dichromacy) - uses severity 1.0
+ * applyColorBlindness(imageData, 'deuteranopia');
+ *
+ * // Moderate deuteranomaly (anomaly) - uses default severity 0.6
+ * applyColorBlindness(imageData, 'deuteranomaly');
+ *
+ * // Custom severity for any type
+ * applyColorBlindness(imageData, 'deuteranopia', 0.3); // Mild
+ * applyColorBlindness(imageData, 'protanomaly', 0.9);  // Severe
  */
 export function applyColorBlindness(
   imageData: Uint8ClampedArray,
-  type: 'protanopia' | 'deuteranopia' | 'tritanopia' | 'achromatopsia'
+  type: ColorBlindnessType,
+  severity?: number
 ): Uint8ClampedArray {
-  const matrix = TRANSFORMATION_MATRICES[type];
+  // Use provided severity, or get type-appropriate default
+  const effectiveSeverity = severity !== undefined ? severity : getDefaultSeverity(type);
+
+  // Get the base dichromacy type for matrix lookup
+  const baseDichromacyType = getBaseDichromacyType(type);
+  const baseMatrix = TRANSFORMATION_MATRICES[baseDichromacyType];
+
+  // If severity is 1.0 (complete dichromacy), use the base matrix directly for performance
+  // Otherwise, interpolate between identity and dichromacy matrix
+  const matrix =
+    effectiveSeverity === 1.0 ? baseMatrix : interpolateColorMatrix(effectiveSeverity, baseMatrix);
+
   const result = new Uint8ClampedArray(imageData.length);
 
   // Process each pixel

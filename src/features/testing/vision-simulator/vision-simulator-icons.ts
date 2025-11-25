@@ -44,6 +44,23 @@ export const FILTER_ICONS: Record<string, FilterIconConfig> = {
     description: 'Total color blindness: sees only grayscale',
   },
 
+  // Partial color vision deficiencies (anomalous trichromacy) - use lighter/muted colors
+  protanomaly: {
+    type: 'color-bars',
+    colors: ['#FFCCCB', '#4CAF50', '#2196F3'], // Light red (weak), Green, Blue
+    description: 'Weak red: reduced red sensitivity',
+  },
+  deuteranomaly: {
+    type: 'color-bars',
+    colors: ['#F44336', '#C8E6C9', '#2196F3'], // Red, Light green (weak), Blue
+    description: 'Weak green: reduced green sensitivity',
+  },
+  tritanomaly: {
+    type: 'color-bars',
+    colors: ['#F44336', '#4CAF50', '#BBDEFB'], // Red, Green, Light blue (weak)
+    description: 'Weak blue: reduced blue sensitivity',
+  },
+
   // Other vision conditions - use icon symbols
   blurred: {
     type: 'icon',

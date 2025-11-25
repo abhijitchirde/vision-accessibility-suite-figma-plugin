@@ -1,0 +1,174 @@
+/**
+ * SeveritySlider Component Styles
+ */
+
+.severity-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: var(--figma-color-bg-secondary, #f5f5f5);
+  border-radius: 4px;
+}
+
+/* Header with label and percentage */
+.severity-slider__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.severity-slider__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--figma-color-text, #000);
+}
+
+.severity-slider__percentage {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--figma-color-text-brand, #0066ff);
+  padding: 2px 8px;
+  background: var(--figma-color-bg, #fff);
+  border-radius: 3px;
+  cursor: help;
+}
+
+/* Slider container */
+.severity-slider__slider-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Slider input */
+.severity-slider__slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--figma-color-bg, #fff);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.severity-slider__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--figma-color-text-brand, #0066ff);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: transform 0.15s ease;
+}
+
+.severity-slider__slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.severity-slider__slider::-webkit-slider-thumb:active {
+  transform: scale(1.05);
+}
+
+.severity-slider__slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: var(--figma-color-text-brand, #0066ff);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: transform 0.15s ease;
+}
+
+.severity-slider__slider::-moz-range-thumb:hover {
+  transform: scale(1.15);
+}
+
+.severity-slider__slider::-moz-range-thumb:active {
+  transform: scale(1.05);
+}
+
+.severity-slider__slider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.severity-slider__slider:disabled::-webkit-slider-thumb {
+  cursor: not-allowed;
+}
+
+.severity-slider__slider:disabled::-moz-range-thumb {
+  cursor: not-allowed;
+}
+
+/* Track labels */
+.severity-slider__track-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.severity-slider__track-label {
+  font-size: 10px;
+  color: var(--figma-color-text-secondary, #666);
+}
+
+/* Preset buttons */
+.severity-slider__presets {
+  display: flex;
+  gap: 6px;
+}
+
+.severity-slider__preset {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--figma-color-text, #000);
+  background: var(--figma-color-bg, #fff);
+  border: 1px solid var(--figma-color-border, #ddd);
+  border-radius: 4px;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.severity-slider__preset:hover:not(:disabled) {
+  background: var(--figma-color-bg-hover, #e5e5e5);
+  border-color: var(--figma-color-border-selected, #0066ff);
+}
+
+.severity-slider__preset:active:not(:disabled) {
+  background: var(--figma-color-bg-pressed, #d5d5d5);
+}
+
+.severity-slider__preset--active {
+  background: var(--figma-color-bg-brand, #0066ff);
+  color: #fff;
+  border-color: var(--figma-color-bg-brand, #0066ff);
+}
+
+.severity-slider__preset--active:hover:not(:disabled) {
+  background: var(--figma-color-bg-brand-hover, #0052cc);
+  border-color: var(--figma-color-bg-brand-hover, #0052cc);
+}
+
+.severity-slider__preset:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Description text */
+.severity-slider__description {
+  margin: 0;
+  font-size: 11px;
+  color: var(--figma-color-text-secondary, #666);
+  text-align: center;
+  font-style: italic;
+}

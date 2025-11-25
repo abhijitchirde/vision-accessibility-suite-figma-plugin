@@ -9,12 +9,20 @@ import { Severity } from '../../../types/common.types';
 
 /**
  * Supported color blindness types
+ *
+ * Includes both complete dichromacy (missing cone type) and partial
+ * color vision deficiencies / anomalous trichromacy (weak cone type).
  */
 export type ColorBlindnessType =
-  | 'protanopia'      // Red-blind (missing L-cones)
-  | 'deuteranopia'    // Green-blind (missing M-cones)
-  | 'tritanopia'      // Blue-blind (missing S-cones)
-  | 'achromatopsia';  // Total color blindness (no cones)
+  // Complete dichromacy (missing cone types)
+  | 'protanopia'      // Red-blind (missing L-cones) ~1% males
+  | 'deuteranopia'    // Green-blind (missing M-cones) ~1% males
+  | 'tritanopia'      // Blue-blind (missing S-cones) ~0.001% population
+  | 'achromatopsia'   // Total color blindness (no cones) ~0.003% population
+  // Partial color vision deficiencies (anomalous trichromacy - weak cone types)
+  | 'protanomaly'     // Weak red (weak L-cones) ~1% males
+  | 'deuteranomaly'   // Weak green (weak M-cones) **~5-6% males** - most common!
+  | 'tritanomaly';    // Weak blue (weak S-cones) ~0.01% population
 
 /**
  * Other visual impairment types
@@ -124,6 +132,17 @@ export interface GeneratedNodeData {
 }
 
 /**
+ * Color blindness configuration with severity support
+ *
+ * Enables simulation of both complete dichromacy and partial color vision
+ * deficiencies (anomalous trichromacy) through the severity parameter.
+ */
+export interface ColorBlindnessConfig {
+  type: ColorBlindnessType;
+  severity: number; // 0-1 (0 = normal vision, 1 = complete dichromacy)
+}
+
+/**
  * Blur configuration
  */
 export interface BlurConfig {
@@ -173,12 +192,24 @@ export type FilterConfig =
   | { type: 'bright-light'; config: BrightLightConfig };
 
 /**
+ * Filter with optional severity
+ *
+ * Allows specification of severity for color blindness filters.
+ * Severity is optional for backward compatibility - defaults to 1.0 (complete deficiency).
+ */
+export interface FilterWithSeverity {
+  filter: SimulationType;
+  severity?: number; // 0-1, only applies to color blindness filters. Defaults to 1.0
+}
+
+/**
  * Vision Simulator state
  */
 export interface VisionSimulatorState {
   mode: SimulationMode;
   selectedFilters: SimulationType[]; // For generate mode
   currentFilter: SimulationType; // For preview mode
+  currentSeverity: number; // Current severity level for color blindness filters (0-1)
   zoom: number;
   isProcessing: boolean;
   error?: string;

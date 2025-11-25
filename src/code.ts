@@ -10,7 +10,7 @@ import { StorageService } from "./services/storage.service";
 figma.loadAllPagesAsync();
 
 // Show the plugin UI
-figma.showUI(__html__, { width: 340, height: 600 });
+figma.showUI(__html__, { width: 360, height: 800 });
 
 // Initialize services
 const storageService = new StorageService();
@@ -51,7 +51,9 @@ async function autoLoadVisionSimulatorPreview() {
     return;
   }
 
-  const previewData = await visionSimulator.prepareImageForPreview(selectedNodes[0].id);
+  const previewData = await visionSimulator.prepareImageForPreview(
+    selectedNodes[0].id
+  );
   if (previewData) {
     figma.ui.postMessage({
       type: "VISION_SIMULATOR_PREVIEW_DATA",
@@ -417,10 +419,14 @@ figma.ui.onmessage = async (msg) => {
       case "VISION_SIMULATOR_GENERATE":
         // Generate canvas copy with filter applied
         const nodesToGenerate = visionSimulator.getSelectedNodes();
-        console.log(`VISION_SIMULATOR_GENERATE: Found ${nodesToGenerate.length} selected nodes`);
+        console.log(
+          `VISION_SIMULATOR_GENERATE: Found ${nodesToGenerate.length} selected nodes`
+        );
 
         if (nodesToGenerate.length === 0) {
-          figma.notify("Please select an element to generate visual simulation");
+          figma.notify(
+            "Please select an element to generate visual simulation"
+          );
           figma.ui.postMessage({
             type: "VISION_SIMULATOR_GENERATE_RESULT",
             success: false,
@@ -430,7 +436,9 @@ figma.ui.onmessage = async (msg) => {
           try {
             const filter = msg.data?.filter || msg.filter;
             const options = msg.data?.options || msg.options || {};
-            console.log(`Generating simulation for filter: ${filter}, node: ${nodesToGenerate[0].name}`);
+            console.log(
+              `Generating simulation for filter: ${filter}, node: ${nodesToGenerate[0].name}`
+            );
 
             // Generate simulation for first selected node with single filter
             const generatedIds = await visionSimulator.generateSimulations(
@@ -444,8 +452,12 @@ figma.ui.onmessage = async (msg) => {
             console.log(`Generated frame ID: ${frameId}`);
 
             // Export original image
-            const originalImage = await visionSimulator.prepareImageForPreview(nodesToGenerate[0].id);
-            console.log(`Exported original image: ${originalImage ? 'success' : 'failed'}`);
+            const originalImage = await visionSimulator.prepareImageForPreview(
+              nodesToGenerate[0].id
+            );
+            console.log(
+              `Exported original image: ${originalImage ? "success" : "failed"}`
+            );
 
             if (originalImage) {
               // Send to UI for filter processing
@@ -457,7 +469,7 @@ figma.ui.onmessage = async (msg) => {
                 imageData: originalImage,
               });
             } else {
-              console.error('Failed to export original image');
+              console.error("Failed to export original image");
             }
 
             figma.ui.postMessage({
@@ -466,7 +478,7 @@ figma.ui.onmessage = async (msg) => {
               filter: filter,
             });
           } catch (error) {
-            console.error('Error in VISION_SIMULATOR_GENERATE:', error);
+            console.error("Error in VISION_SIMULATOR_GENERATE:", error);
             figma.ui.postMessage({
               type: "VISION_SIMULATOR_GENERATE_RESULT",
               success: false,
