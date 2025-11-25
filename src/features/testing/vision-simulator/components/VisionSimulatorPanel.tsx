@@ -4,19 +4,26 @@ import { Icon } from "../../../../components/ui/Icon/Icon";
 import { Button } from "../../../../components/ui/Button/Button";
 import { FilterIcon } from "./FilterIcon";
 import { SeveritySlider } from "./SeveritySlider";
+import { RadiusSlider } from "./RadiusSlider";
 import { useFigmaMessage } from "../../../../hooks/useFigmaMessage";
 import {
   SimulationType,
   VisionSimulatorState,
   ColorBlindnessType,
+  VisualFieldDefectType,
+  CentralVisionLossConfig,
+  PeripheralVisionLossConfig,
 } from "../vision-simulator.types";
 import {
   FILTER_METADATA,
   COLOR_BLIND_FILTERS,
+  VISUAL_FIELD_FILTERS,
   OTHER_FILTERS,
   ZOOM_LEVELS,
   DEFAULT_ZOOM,
   COLOR_BLIND_FILTERS as ALL_COLOR_BLIND_FILTERS,
+  DEFAULT_CENTRAL_VISION_LOSS_CONFIG,
+  DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG,
 } from "../vision-simulator.constants";
 import {
   applyColorBlindness,
@@ -25,6 +32,8 @@ import {
   applyYellowing,
   applyContrastLoss,
   applyBrightLight,
+  applyCentralVisionLoss,
+  applyPeripheralVisionLoss,
 } from "../image-utils";
 
 type Tab = "generate" | "simulation";
@@ -43,6 +52,7 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
   const [currentFilter, setCurrentFilter] =
     useState<SimulationType>("original");
   const [currentSeverity, setCurrentSeverity] = useState<number>(1.0); // Default to complete (100%)
+  const [currentRadius, setCurrentRadius] = useState<number>(100); // Default radius for visual field defects
   const [zoom, setZoom] = useState<number>(DEFAULT_ZOOM);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -59,6 +69,13 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
    */
   const isColorBlindnessFilter = (filter: SimulationType): boolean => {
     return ALL_COLOR_BLIND_FILTERS.includes(filter);
+  };
+
+  /**
+   * Check if a filter is a visual field defect type (supports radius and severity)
+   */
+  const isVisualFieldDefect = (filter: SimulationType): boolean => {
+    return VISUAL_FIELD_FILTERS.includes(filter);
   };
 
   /**
@@ -137,6 +154,20 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
             filteredData = applyContrastLoss(imgData.data);
           } else if (filter === "bright-light") {
             filteredData = applyBrightLight(imgData.data);
+          } else if (filter === "central-vision-loss") {
+            filteredData = applyCentralVisionLoss(
+              imgData.data,
+              tempCanvas.width,
+              tempCanvas.height,
+              DEFAULT_CENTRAL_VISION_LOSS_CONFIG
+            );
+          } else if (filter === "peripheral-vision-loss") {
+            filteredData = applyPeripheralVisionLoss(
+              imgData.data,
+              tempCanvas.width,
+              tempCanvas.height,
+              DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG
+            );
           } else {
             filteredData = imgData.data;
           }
@@ -240,12 +271,12 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
     }
   }, [activeTab, sendMessage]);
 
-  // Apply filter when currentFilter or currentSeverity changes
+  // Apply filter when currentFilter, currentSeverity, or currentRadius changes
   useEffect(() => {
     if (originalImageRef.current && activeTab === "simulation") {
       applyFilterToPreview(currentFilter);
     }
-  }, [currentFilter, currentSeverity, activeTab]); // Re-apply when severity changes
+  }, [currentFilter, currentSeverity, currentRadius, activeTab]); // Re-apply when severity or radius changes
 
   /**
    * Load image data into canvas for preview
@@ -335,6 +366,26 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
         filteredData = applyContrastLoss(imageData.data);
       } else if (filter === "bright-light") {
         filteredData = applyBrightLight(imageData.data);
+      } else if (filter === "central-vision-loss") {
+        filteredData = applyCentralVisionLoss(
+          imageData.data,
+          canvas.width,
+          canvas.height,
+          {
+            radius: currentRadius,
+            severity: currentSeverity,
+          }
+        );
+      } else if (filter === "peripheral-vision-loss") {
+        filteredData = applyPeripheralVisionLoss(
+          imageData.data,
+          canvas.width,
+          canvas.height,
+          {
+            tunnelRadius: currentRadius,
+            severity: currentSeverity,
+          }
+        );
       } else {
         filteredData = imageData.data;
       }
@@ -573,6 +624,51 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
               </div>
             </div>
 
+            {/* Visual Field Defects Section */}
+            <div className="vision-simulator-panel__section">
+              <h3 className="vision-simulator-panel__section-title">
+                Visual field defects
+              </h3>
+              <div className="vision-simulator-panel__filters">
+                <button
+                  key="central-vision-loss"
+                  className={`vision-simulator-panel__filter-card ${
+                    generatingFilter === "central-vision-loss"
+                      ? "vision-simulator-panel__filter-card--generating"
+                      : ""
+                  }`}
+                  onClick={() => handleFilterClick("central-vision-loss")}
+                  disabled={generatingFilter !== null}
+                >
+                  <span className="vision-simulator-panel__filter-label">
+                    <FilterIcon filterId="central-vision-loss" size="small" />
+                    Central Vision Loss
+                  </span>
+                  <span className="vision-simulator-panel__filter-info">
+                    Macular degeneration
+                  </span>
+                </button>
+                <button
+                  key="peripheral-vision-loss"
+                  className={`vision-simulator-panel__filter-card ${
+                    generatingFilter === "peripheral-vision-loss"
+                      ? "vision-simulator-panel__filter-card--generating"
+                      : ""
+                  }`}
+                  onClick={() => handleFilterClick("peripheral-vision-loss")}
+                  disabled={generatingFilter !== null}
+                >
+                  <span className="vision-simulator-panel__filter-label">
+                    <FilterIcon filterId="peripheral-vision-loss" size="small" />
+                    Peripheral Vision Loss
+                  </span>
+                  <span className="vision-simulator-panel__filter-info">
+                    Glaucoma / Tunnel vision
+                  </span>
+                </button>
+              </div>
+            </div>
+
             {/* Other Section */}
             <div className="vision-simulator-panel__section">
               <h3 className="vision-simulator-panel__section-title">Other</h3>
@@ -642,6 +738,13 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
                       </option>
                     ))}
                   </optgroup>
+                  <optgroup label="Visual Field Defects">
+                    {VISUAL_FIELD_FILTERS.map((filter) => (
+                      <option key={filter} value={filter}>
+                        {FILTER_METADATA[filter].name}
+                      </option>
+                    ))}
+                  </optgroup>
                   <optgroup label="Other">
                     {OTHER_FILTERS.map((filter) => (
                       <option key={filter} value={filter}>
@@ -661,6 +764,30 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
                 label="Severity"
                 showPercentage={true}
               />
+            )}
+
+            {/* Visual Field Defect Controls - only show for field defect filters */}
+            {isVisualFieldDefect(currentFilter) && (
+              <>
+                <RadiusSlider
+                  value={currentRadius}
+                  onChange={setCurrentRadius}
+                  label={
+                    currentFilter === "central-vision-loss"
+                      ? "Affected Area Radius"
+                      : "Clear Center Radius"
+                  }
+                  min={50}
+                  max={300}
+                  showValue={true}
+                />
+                <SeveritySlider
+                  value={currentSeverity}
+                  onChange={setCurrentSeverity}
+                  label="Severity"
+                  showPercentage={true}
+                />
+              </>
             )}
 
             {/* Preview Area */}

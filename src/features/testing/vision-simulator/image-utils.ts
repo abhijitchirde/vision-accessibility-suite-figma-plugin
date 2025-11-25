@@ -564,6 +564,11 @@ export function applyPeripheralVisionLoss(
   // Calculate max distance from center to corner (for normalization)
   const maxDistance = Math.sqrt(centerX * centerX + centerY * centerY);
 
+  // If tunnel radius is larger than max distance, entire image is clear (no darkening)
+  if (tunnelRadius >= maxDistance) {
+    return result;
+  }
+
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;

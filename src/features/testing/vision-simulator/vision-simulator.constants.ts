@@ -125,10 +125,12 @@ export const DEFAULT_CENTRAL_VISION_LOSS_CONFIG: CentralVisionLossConfig = {
 
 /**
  * Default peripheral vision loss configuration (glaucoma/tunnel vision)
+ *
+ * For generate mode: Uses smaller radius to ensure visible darkening
  */
 export const DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG: PeripheralVisionLossConfig = {
-  tunnelRadius: 100, // 100px radius of clear center area
-  severity: 0.7, // 70% severity (moderate peripheral loss)
+  tunnelRadius: 60, // 60px radius of clear center area (small for visible effect)
+  severity: 0.8, // 80% severity (strong peripheral darkening for clear demonstration)
 };
 
 /**
