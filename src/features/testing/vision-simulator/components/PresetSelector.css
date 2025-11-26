@@ -1,0 +1,97 @@
+.preset-selector {
+  margin-bottom: 12px;
+}
+
+.preset-selector__header {
+  margin-bottom: 8px;
+}
+
+.preset-selector__label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--figma-color-text-secondary);
+}
+
+.preset-selector__manage-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background-color: var(--figma-color-bg);
+  border: 1px solid var(--figma-color-border);
+  border-radius: 2px;
+  color: var(--figma-color-text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.preset-selector__manage-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.preset-selector__manage-btn:hover {
+  background-color: var(--figma-color-bg-hover);
+  border-color: var(--figma-color-border-brand);
+}
+
+.preset-selector__controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.preset-selector__dropdown {
+  flex: 1;
+}
+
+.preset-selector__info {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--figma-color-border);
+}
+
+.preset-selector__description {
+  margin: 0 0 6px 0;
+  font-size: 11px;
+  color: var(--figma-color-text-secondary);
+  line-height: 1.4;
+}
+
+.preset-selector__filters {
+  font-size: 10px;
+  color: var(--figma-color-text-tertiary);
+  font-weight: 500;
+}
+
+.preset-selector__reset-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--figma-color-bg);
+  color: var(--figma-color-text);
+  border: 1px solid var(--figma-color-border);
+  border-radius: 2px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  font-family: inherit;
+}
+
+.preset-selector__reset-btn:hover {
+  background: var(--figma-color-bg-hover);
+  border-color: var(--figma-color-border-strong);
+}
+
+.preset-selector__reset-btn:active {
+  background: var(--figma-color-bg-pressed);
+}

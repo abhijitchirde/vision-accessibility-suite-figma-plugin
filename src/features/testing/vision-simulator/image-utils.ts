@@ -685,3 +685,71 @@ export function calculatePreviewDimensions(
     height: Math.round(newHeight),
   };
 }
+
+/**
+ * Apply a filter preset (multiple filters in sequence)
+ *
+ * This function takes a preset configuration and applies all filters
+ * sequentially to the image data. Each filter's output becomes the input
+ * for the next filter, creating combined effects.
+ *
+ * @param imageData - Original image data (Uint8ClampedArray in RGBA format)
+ * @param width - Image width in pixels
+ * @param height - Image height in pixels
+ * @param preset - Filter preset containing multiple filter configurations
+ * @returns Processed image data with all filters applied
+ *
+ * @example
+ * // Apply "Advanced Cataracts" preset (blur + yellowing + contrast loss)
+ * const filteredData = applyFilterPreset(
+ *   imageData,
+ *   width,
+ *   height,
+ *   DEFAULT_PRESETS.find(p => p.id === 'advanced-cataracts')!
+ * );
+ */
+export function applyFilterPreset(
+  imageData: Uint8ClampedArray,
+  width: number,
+  height: number,
+  preset: import('./vision-simulator.types').FilterPreset
+): Uint8ClampedArray {
+  let result = new Uint8ClampedArray(imageData) as Uint8ClampedArray;
+
+  // Apply each filter in sequence
+  for (const filterConfig of preset.filters) {
+    if (filterConfig.type === 'protanopia' ||
+        filterConfig.type === 'deuteranopia' ||
+        filterConfig.type === 'tritanopia' ||
+        filterConfig.type === 'achromatopsia' ||
+        filterConfig.type === 'protanomaly' ||
+        filterConfig.type === 'deuteranomaly' ||
+        filterConfig.type === 'tritanomaly') {
+      // Color blindness filter
+      result = applyColorBlindness(result, filterConfig.type, filterConfig.severity) as Uint8ClampedArray;
+    } else if (filterConfig.type === 'blurred') {
+      // Blur filter
+      result = applyBlur(result, width, height, filterConfig.config) as Uint8ClampedArray;
+    } else if (filterConfig.type === 'ghosting') {
+      // Ghosting filter
+      result = applyGhosting(result, width, height, filterConfig.config) as Uint8ClampedArray;
+    } else if (filterConfig.type === 'yellowing') {
+      // Yellowing filter
+      result = applyYellowing(result, filterConfig.config) as Uint8ClampedArray;
+    } else if (filterConfig.type === 'loss-of-contrast') {
+      // Contrast loss filter
+      result = applyContrastLoss(result, filterConfig.config) as Uint8ClampedArray;
+    } else if (filterConfig.type === 'bright-light') {
+      // Bright light filter
+      result = applyBrightLight(result, filterConfig.config) as Uint8ClampedArray;
+    } else if (filterConfig.type === 'central-vision-loss') {
+      // Central vision loss filter
+      result = applyCentralVisionLoss(result, width, height, filterConfig.config) as Uint8ClampedArray;
+    } else if (filterConfig.type === 'peripheral-vision-loss') {
+      // Peripheral vision loss filter
+      result = applyPeripheralVisionLoss(result, width, height, filterConfig.config) as Uint8ClampedArray;
+    }
+  }
+
+  return result;
+}

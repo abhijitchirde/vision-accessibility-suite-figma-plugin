@@ -15,6 +15,17 @@
   overflow: hidden;
 }
 
+.filter-icon--bars.filter-icon--tiny {
+  height: 16px;
+  width: 24px;
+}
+
+.filter-icon--bars.filter-icon--tiny .filter-icon__bar {
+  flex: 1;
+  height: 100%;
+  min-width: 6px;
+}
+
 .filter-icon--bars.filter-icon--small {
   height: 24px;
   width: 36px;
@@ -46,6 +57,11 @@
 .filter-icon--symbol {
   width: auto;
   height: auto;
+}
+
+.filter-icon--symbol.filter-icon--tiny {
+  width: 16px;
+  height: 16px;
 }
 
 .filter-icon--symbol.filter-icon--small {

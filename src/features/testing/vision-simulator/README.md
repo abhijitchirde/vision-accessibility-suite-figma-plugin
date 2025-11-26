@@ -77,6 +77,128 @@ Each type of color blindness is simulated by applying a 3×3 transformation matr
 
 ---
 
+## Filter Presets (Phase C)
+
+**NEW**: Filter presets allow you to simulate realistic, complex vision conditions by applying multiple filters in sequence.
+
+### What Are Presets?
+
+Presets are named combinations of filters that simulate real-world vision conditions. Each preset applies multiple filters sequentially, where each filter's output becomes the next filter's input, creating authentic combined effects.
+
+**Example**: The "Advanced Cataracts" preset applies:
+1. Heavy blur (15px radius, 3 iterations)
+2. Yellow tint (80% intensity)
+3. Contrast loss (60% reduction)
+
+This creates a realistic simulation of severe cataracts that's more accurate than applying a single blur filter.
+
+### Built-in Presets
+
+**Advanced Cataracts**
+- Severe cataracts with heavy blur, yellowing, and contrast loss
+- Simulates: Late-stage cataracts requiring surgery
+- Filters: Blur(15px, 3×) + Yellowing(80%) + Contrast Loss(60%)
+
+**Aging Vision (65+)**
+- Typical age-related vision changes
+- Simulates: Normal aging effects in seniors
+- Filters: Blur(4px) + Yellowing(30%) + Contrast Loss(25%)
+
+**Aging Vision (80+)**
+- Advanced aging with significant degradation
+- Simulates: Elderly vision with early macular degeneration
+- Filters: Blur(10px, 2×) + Yellowing(70%) + Contrast Loss(50%) + Central Vision Loss
+
+**Outdoor Viewing**
+- Bright sunlight conditions with glare
+- Simulates: Using a device outdoors in direct sunlight
+- Filters: Bright Light(80%, 60% washout) + Contrast Loss(40%)
+
+**Night Vision**
+- Low-light viewing conditions
+- Simulates: Reduced visibility in dark environments
+- Filters: Contrast Loss(55%) + Blur(3px)
+
+### Using Presets
+
+**In Vision Lab Mode:**
+1. Open the Vision Simulator
+2. Switch to "Vision Lab" tab
+3. Select a node in Figma
+4. Choose a preset from the "Filter Preset" dropdown
+5. Preview updates in real-time with all filters applied
+
+**Note**: When a preset is selected, single-filter controls are hidden. Clear the preset to use individual filters.
+
+### Managing Custom Presets
+
+**Import Presets:**
+1. Click the settings icon next to "Filter Preset"
+2. Click "Import Presets"
+3. Select a JSON file containing preset definitions
+
+**Export Presets:**
+1. Open Preset Manager (settings icon)
+2. Click the download icon next to any preset
+3. Save as JSON file
+
+**Delete Custom Presets:**
+1. Open Preset Manager
+2. Click the trash icon next to custom presets
+3. Confirm deletion
+
+**Built-in presets cannot be deleted** but can be exported and modified as custom presets.
+
+### Preset File Format
+
+Presets are stored as JSON:
+
+```json
+[
+  {
+    "id": "custom-preset-1",
+    "name": "My Custom Preset",
+    "description": "Description of what this simulates",
+    "isBuiltIn": false,
+    "filters": [
+      {
+        "type": "blurred",
+        "config": {
+          "radius": 8,
+          "iterations": 2
+        }
+      },
+      {
+        "type": "yellowing",
+        "config": {
+          "intensity": 0.5,
+          "temperature": 2500
+        }
+      }
+    ]
+  }
+]
+```
+
+### Technical Implementation
+
+**Sequential Application:**
+- Filters are applied in order defined in the preset
+- Each filter processes the output of the previous filter
+- This creates authentic combined effects not possible with parallel processing
+
+**Performance:**
+- Presets are processed client-side using Canvas API
+- Performance scales with number and complexity of filters
+- Typical preset (3-4 filters) processes in <1 second for 800×600px images
+
+**Supported Filter Types:**
+- Color blindness (with severity control)
+- Visual field defects (central/peripheral vision loss)
+- Blur, ghosting, yellowing, contrast loss, bright light
+
+---
+
 ## Data Flow Diagram
 
 ### Generate Mode (Canvas Copies)

@@ -1,0 +1,303 @@
+.preset-manager-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.preset-manager {
+  background: var(--figma-color-bg);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.preset-manager__header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--figma-color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.preset-manager__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--figma-color-text);
+  margin: 0;
+}
+
+.preset-manager__close {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--figma-color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.preset-manager__close:hover {
+  background: var(--figma-color-bg-hover);
+  color: var(--figma-color-text);
+}
+
+.preset-manager__content {
+  overflow-y: auto;
+  padding: 20px;
+  flex: 1;
+}
+
+.preset-manager__section {
+  margin-bottom: 24px;
+}
+
+.preset-manager__section:last-child {
+  margin-bottom: 0;
+}
+
+.preset-manager__section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--figma-color-text);
+  margin: 0 0 6px 0;
+}
+
+.preset-manager__section-description {
+  font-size: 11px;
+  color: var(--figma-color-text-secondary);
+  margin: 0 0 12px 0;
+  line-height: 1.5;
+}
+
+.preset-manager__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preset-manager__item {
+  background: var(--figma-color-bg-secondary);
+  border: 1px solid var(--figma-color-border);
+  border-radius: 4px;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.preset-manager__item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.preset-manager__item-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--figma-color-text);
+  margin-bottom: 4px;
+}
+
+.preset-manager__item-description {
+  font-size: 11px;
+  color: var(--figma-color-text-secondary);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.preset-manager__item-meta {
+  font-size: 10px;
+  color: var(--figma-color-text-tertiary);
+}
+
+.preset-manager__item-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.preset-manager__export-btn,
+.preset-manager__delete-btn {
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: var(--figma-color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.preset-manager__export-btn:hover {
+  background: var(--figma-color-bg-hover);
+  color: var(--figma-color-text-brand);
+}
+
+.preset-manager__delete-btn:hover {
+  background: var(--figma-color-bg-danger-hover);
+  color: var(--figma-color-text-danger);
+}
+
+.preset-manager__actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.preset-manager__import-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  background: var(--figma-color-bg-brand);
+  color: #ffffff;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: var(--figma-font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  height: 28px;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.preset-manager__import-btn:hover {
+  background: var(--figma-color-bg-brand-hover);
+}
+
+.preset-manager__import-btn:active {
+  background: var(--figma-color-bg-brand-pressed);
+}
+
+.preset-manager__error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--figma-color-bg-danger);
+  color: var(--figma-color-text-ondanger);
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.preset-manager__success {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--figma-color-bg-success);
+  color: var(--figma-color-text-onsuccess);
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.preset-manager__template {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--figma-color-border);
+}
+
+.preset-manager__template-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--figma-color-text);
+  margin: 0 0 6px 0;
+}
+
+.preset-manager__template-description {
+  font-size: 11px;
+  color: var(--figma-color-text-secondary);
+  margin: 0 0 10px 0;
+  line-height: 1.5;
+}
+
+.preset-manager__template-wrapper {
+  position: relative;
+  margin: 0 0 10px 0;
+}
+
+.preset-manager__copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--figma-color-bg);
+  border: 1px solid var(--figma-color-border);
+  border-radius: 3px;
+  padding: 6px;
+  cursor: pointer;
+  color: var(--figma-color-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  z-index: 1;
+}
+
+.preset-manager__copy-btn:hover {
+  background: var(--figma-color-bg-hover);
+  color: var(--figma-color-text-brand);
+  border-color: var(--figma-color-border-brand);
+}
+
+.preset-manager__template-code {
+  background: var(--figma-color-bg-secondary);
+  border: 1px solid var(--figma-color-border);
+  border-radius: 4px;
+  padding: 12px;
+  padding-right: 40px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--figma-color-text);
+  overflow-x: auto;
+  margin: 0;
+  white-space: pre;
+}
+
+/* JSON Syntax Highlighting */
+.preset-manager__template-code .json-key {
+  color: #0066cc;
+  font-weight: 500;
+}
+
+.preset-manager__template-code .json-string {
+  color: #008000;
+}
+
+.preset-manager__template-code .json-number {
+  color: #b85c00;
+}
+
+.preset-manager__template-code .json-bracket {
+  color: var(--figma-color-text);
+  font-weight: 600;
+}
+
+.preset-manager__template-code .json-punct {
+  color: var(--figma-color-text-secondary);
+}
+
+.preset-manager__template-note {
+  font-size: 10px;
+  color: var(--figma-color-text-tertiary);
+  margin: 0;
+  line-height: 1.6;
+  font-style: italic;
+}

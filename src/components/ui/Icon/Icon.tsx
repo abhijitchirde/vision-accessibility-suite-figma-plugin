@@ -1,4 +1,8 @@
 import React from 'react';
+import { SlFrame } from 'react-icons/sl';
+import { IoSettingsOutline } from 'react-icons/io5';
+import { VscSettings } from 'react-icons/vsc';
+import { HiOutlineDownload, HiOutlineUpload, HiOutlineTrash, HiX, HiOutlineClipboard, HiOutlineClipboardCheck } from 'react-icons/hi';
 
 interface IconProps {
   name: string;
@@ -184,6 +188,15 @@ export const Icon: React.FC<IconProps> = ({
         />
       </svg>
     ),
+    settings: <IoSettingsOutline size={size} color={color} />,
+    parameters: <VscSettings size={size} color={color} />,
+    frame: <SlFrame size={size} color={color} />,
+    download: <HiOutlineDownload size={size} color={color} />,
+    upload: <HiOutlineUpload size={size} color={color} />,
+    trash: <HiOutlineTrash size={size} color={color} />,
+    x: <HiX size={size} color={color} />,
+    clipboard: <HiOutlineClipboard size={size} color={color} />,
+    'clipboard-check': <HiOutlineClipboardCheck size={size} color={color} />,
   };
 
   return icons[name] || null;

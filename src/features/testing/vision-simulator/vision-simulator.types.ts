@@ -209,14 +209,41 @@ export interface BrightLightConfig {
 }
 
 /**
- * Filter-specific configuration union
+ * Filter-specific configuration union for "other" filters
  */
-export type FilterConfig =
+export type OtherFilterConfig =
   | { type: 'blur'; config: BlurConfig }
   | { type: 'ghosting'; config: GhostingConfig }
   | { type: 'yellowing'; config: YellowingConfig }
   | { type: 'loss-of-contrast'; config: ContrastLossConfig }
   | { type: 'bright-light'; config: BrightLightConfig };
+
+/**
+ * Complete filter configuration that can represent any filter type
+ * with its parameters. Used by the preset system.
+ */
+export type CompleteFilterConfig =
+  | { type: ColorBlindnessType; severity: number }
+  | { type: 'central-vision-loss'; config: CentralVisionLossConfig }
+  | { type: 'peripheral-vision-loss'; config: PeripheralVisionLossConfig }
+  | { type: 'blurred'; config: BlurConfig }
+  | { type: 'ghosting'; config: GhostingConfig }
+  | { type: 'yellowing'; config: YellowingConfig }
+  | { type: 'loss-of-contrast'; config: ContrastLossConfig }
+  | { type: 'bright-light'; config: BrightLightConfig };
+
+/**
+ * Filter preset - a named collection of filters applied sequentially
+ */
+export interface FilterPreset {
+  id: string; // Unique identifier
+  name: string; // Display name (e.g., "Advanced Cataracts")
+  description: string; // Brief description of what this preset simulates
+  filters: CompleteFilterConfig[]; // Filters to apply in sequence
+  isBuiltIn?: boolean; // Whether this is a built-in preset (cannot be deleted)
+  createdAt?: number; // Timestamp
+  updatedAt?: number; // Timestamp
+}
 
 /**
  * Filter with optional severity
@@ -236,7 +263,20 @@ export interface VisionSimulatorState {
   mode: SimulationMode;
   selectedFilters: SimulationType[]; // For generate mode
   currentFilter: SimulationType; // For preview mode
-  currentSeverity: number; // Current severity level for color blindness filters (0-1)
+  currentSeverity: number; // Current severity level for color blindness/visual field filters (0-1)
+  currentRadius: number; // Current radius for visual field defects
+
+  // Configurations for "other" filters
+  blurConfig: BlurConfig;
+  ghostingConfig: GhostingConfig;
+  yellowingConfig: YellowingConfig;
+  contrastLossConfig: ContrastLossConfig;
+  brightLightConfig: BrightLightConfig;
+
+  // Preset management
+  selectedPreset: FilterPreset | null; // Currently selected preset
+  customPresets: FilterPreset[]; // User-created presets
+
   zoom: number;
   isProcessing: boolean;
   error?: string;

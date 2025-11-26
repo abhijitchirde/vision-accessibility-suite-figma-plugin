@@ -12,6 +12,7 @@
 
 import {
   FilterMetadata,
+  FilterPreset,
   TransformationMatrix,
   SimulationType,
   ColorBlindnessType,
@@ -403,6 +404,147 @@ export const PLUGIN_DATA_KEYS = {
   ORIGINAL_NODE_ID: 'vision-simulator-original',
   FILTER_TYPE: 'vision-simulator-filter',
 };
+
+/**
+ * Default built-in filter presets
+ *
+ * These simulate common real-world vision conditions by combining multiple filters.
+ */
+export const DEFAULT_PRESETS: FilterPreset[] = [
+  {
+    id: 'advanced-cataracts',
+    name: 'Advanced Cataracts',
+    description: 'Severe cataracts: heavy blur, yellowing, and contrast loss',
+    isBuiltIn: true,
+    filters: [
+      {
+        type: 'blurred',
+        config: {
+          radius: 15,
+          iterations: 3,
+        },
+      },
+      {
+        type: 'yellowing',
+        config: {
+          intensity: 0.8,
+          temperature: 2000,
+        },
+      },
+      {
+        type: 'loss-of-contrast',
+        config: {
+          reduction: 0.6,
+        },
+      },
+    ],
+  },
+  {
+    id: 'aging-vision-65',
+    name: 'Aging Vision (65+)',
+    description: 'Typical age-related vision changes: mild blur, yellowing, and slight contrast loss',
+    isBuiltIn: true,
+    filters: [
+      {
+        type: 'blurred',
+        config: {
+          radius: 4,
+          iterations: 1,
+        },
+      },
+      {
+        type: 'yellowing',
+        config: {
+          intensity: 0.3,
+          temperature: 2800,
+        },
+      },
+      {
+        type: 'loss-of-contrast',
+        config: {
+          reduction: 0.25,
+        },
+      },
+    ],
+  },
+  {
+    id: 'aging-vision-80',
+    name: 'Aging Vision (80+)',
+    description: 'Advanced aging: high blur, yellowing, contrast loss, and central vision degradation',
+    isBuiltIn: true,
+    filters: [
+      {
+        type: 'blurred',
+        config: {
+          radius: 10,
+          iterations: 2,
+        },
+      },
+      {
+        type: 'yellowing',
+        config: {
+          intensity: 0.7,
+          temperature: 2200,
+        },
+      },
+      {
+        type: 'loss-of-contrast',
+        config: {
+          reduction: 0.5,
+        },
+      },
+      {
+        type: 'central-vision-loss',
+        config: {
+          radius: 120,
+          severity: 0.4,
+        },
+      },
+    ],
+  },
+  {
+    id: 'outdoor-viewing',
+    name: 'Outdoor Viewing',
+    description: 'Bright sunlight conditions: intense brightness, washout, and glare',
+    isBuiltIn: true,
+    filters: [
+      {
+        type: 'bright-light',
+        config: {
+          intensity: 0.8,
+          washout: 0.6,
+        },
+      },
+      {
+        type: 'loss-of-contrast',
+        config: {
+          reduction: 0.4,
+        },
+      },
+    ],
+  },
+  {
+    id: 'night-vision',
+    name: 'Night Vision',
+    description: 'Low-light conditions: reduced contrast and mild blur',
+    isBuiltIn: true,
+    filters: [
+      {
+        type: 'loss-of-contrast',
+        config: {
+          reduction: 0.55,
+        },
+      },
+      {
+        type: 'blurred',
+        config: {
+          radius: 3,
+          iterations: 1,
+        },
+      },
+    ],
+  },
+];
 
 /**
  * Scientific references and resources

@@ -5,6 +5,10 @@ import { Button } from "../../../../components/ui/Button/Button";
 import { FilterIcon } from "./FilterIcon";
 import { SeveritySlider } from "./SeveritySlider";
 import { RadiusSlider } from "./RadiusSlider";
+import { PresetSelector } from "./PresetSelector";
+import { PresetManager } from "./PresetManager";
+import { FilterParameterSlider } from "./FilterParameterSlider";
+import { FilterDropdown } from "./FilterDropdown";
 import { useFigmaMessage } from "../../../../hooks/useFigmaMessage";
 import {
   SimulationType,
@@ -13,6 +17,7 @@ import {
   VisualFieldDefectType,
   CentralVisionLossConfig,
   PeripheralVisionLossConfig,
+  FilterPreset,
 } from "../vision-simulator.types";
 import {
   FILTER_METADATA,
@@ -24,6 +29,7 @@ import {
   COLOR_BLIND_FILTERS as ALL_COLOR_BLIND_FILTERS,
   DEFAULT_CENTRAL_VISION_LOSS_CONFIG,
   DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG,
+  DEFAULT_PRESETS,
 } from "../vision-simulator.constants";
 import {
   applyColorBlindness,
@@ -34,6 +40,7 @@ import {
   applyBrightLight,
   applyCentralVisionLoss,
   applyPeripheralVisionLoss,
+  applyFilterPreset,
 } from "../image-utils";
 
 type Tab = "generate" | "simulation";
@@ -57,12 +64,83 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  // Other filter parameters
+  const [blurRadius, setBlurRadius] = useState<number>(8);
+  const [blurIterations, setBlurIterations] = useState<number>(2);
+  const [ghostingOffsetX, setGhostingOffsetX] = useState<number>(10);
+  const [ghostingOffsetY, setGhostingOffsetY] = useState<number>(5);
+  const [ghostingOpacity, setGhostingOpacity] = useState<number>(0.5);
+  const [yellowingIntensity, setYellowingIntensity] = useState<number>(0.6);
+  const [yellowingTemperature, setYellowingTemperature] = useState<number>(2500);
+  const [contrastReduction, setContrastReduction] = useState<number>(0.5);
+  const [brightLightIntensity, setBrightLightIntensity] = useState<number>(0.7);
+  const [brightLightWashout, setBrightLightWashout] = useState<number>(0.4);
+
+  // Preset state
+  const [selectedPreset, setSelectedPreset] = useState<FilterPreset | null>(null);
+  const [customPresets, setCustomPresets] = useState<FilterPreset[]>([]);
+  const [showPresetManager, setShowPresetManager] = useState(false);
+
+  // Parameters panel state
+  const [showParameters, setShowParameters] = useState(false);
 
   // Canvas refs for image processing
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
 
   const { sendMessage } = useFigmaMessage();
+
+  // Combined presets (built-in + custom)
+  const allPresets = [...DEFAULT_PRESETS, ...customPresets];
+
+  // Track the preset ID we want to restore
+  const [pendingPresetId, setPendingPresetId] = useState<string | null>(null);
+
+  // Load custom presets and selected preset from storage on mount (only once)
+  useEffect(() => {
+    sendMessage("VISION_SIMULATOR_LOAD_PRESETS", {});
+    sendMessage("VISION_SIMULATOR_LOAD_SELECTED_PRESET", {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only on mount
+
+  // Listen for loaded presets from code.ts
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const msg = event.data.pluginMessage;
+      if (msg?.type === "VISION_SIMULATOR_PRESETS_LOADED") {
+        console.log("[UI] Loaded presets:", msg.presets);
+        setCustomPresets(msg.presets || []);
+      } else if (msg?.type === "VISION_SIMULATOR_SELECTED_PRESET_LOADED") {
+        console.log("[UI] Loaded selected preset ID:", msg.presetId);
+        if (msg.presetId) {
+          setPendingPresetId(msg.presetId);
+        }
+      } else if (msg?.type === "VISION_SIMULATOR_PRESETS_SAVED") {
+        if (msg.success) {
+          console.log("[UI] ✓ Presets saved successfully to Figma storage:", msg.count, "presets");
+        } else {
+          console.error("[UI] ✗ Failed to save presets:", msg.error);
+        }
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
+  // Restore selected preset when presets are loaded and we have a pending ID
+  useEffect(() => {
+    if (pendingPresetId && allPresets.length > 0) {
+      const preset = allPresets.find(p => p.id === pendingPresetId);
+      if (preset) {
+        console.log("Restoring preset:", preset.name);
+        setSelectedPreset(preset);
+        setPendingPresetId(null);
+      }
+    }
+  }, [pendingPresetId, allPresets]);
 
   /**
    * Check if a filter is a color blindness type (supports severity adjustment)
@@ -255,6 +333,13 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
       } else if (msg?.type === "VISION_SIMULATOR_PROCESS_FILTER") {
         // Process filter and send back filtered image
         await processFilterForGenerate(msg.frameId, msg.filter, msg.imageData);
+      } else if (msg?.type === "VISION_SIMULATOR_EXPORT_TO_CANVAS_RESULT") {
+        setExporting(false);
+        if (msg.success) {
+          setError(null);
+        } else {
+          setError(msg.error || "Failed to export to canvas");
+        }
       }
     };
 
@@ -262,7 +347,7 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
     return () => window.removeEventListener("message", handleMessage);
   }, [processFilterForGenerate]);
 
-  // Notify plugin when Live view tab becomes active/inactive
+  // Notify plugin when Vision Lab tab becomes active/inactive
   useEffect(() => {
     if (activeTab === "simulation") {
       sendMessage("VISION_SIMULATOR_PANEL_MOUNTED", {});
@@ -271,12 +356,28 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
     }
   }, [activeTab, sendMessage]);
 
-  // Apply filter when currentFilter, currentSeverity, or currentRadius changes
+  // Apply filter when currentFilter, currentSeverity, currentRadius, or selectedPreset changes
   useEffect(() => {
     if (originalImageRef.current && activeTab === "simulation") {
       applyFilterToPreview(currentFilter);
     }
-  }, [currentFilter, currentSeverity, currentRadius, activeTab]); // Re-apply when severity or radius changes
+  }, [
+    currentFilter,
+    currentSeverity,
+    currentRadius,
+    selectedPreset,
+    activeTab,
+    blurRadius,
+    blurIterations,
+    ghostingOffsetX,
+    ghostingOffsetY,
+    ghostingOpacity,
+    yellowingIntensity,
+    yellowingTemperature,
+    contrastReduction,
+    brightLightIntensity,
+    brightLightWashout,
+  ]); // Re-apply when any parameter changes
 
   /**
    * Load image data into canvas for preview
@@ -313,7 +414,7 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
   };
 
   /**
-   * Apply the current filter to the preview image
+   * Apply the current filter or preset to the preview image
    */
   const applyFilterToPreview = (filter: SimulationType) => {
     const img = originalImageRef.current;
@@ -331,11 +432,20 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
     // Draw original image
     ctx.drawImage(img, 0, 0);
 
-    // If not 'original', apply filter
-    if (filter !== "original") {
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      let filteredData: Uint8ClampedArray;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let filteredData: Uint8ClampedArray = imageData.data;
 
+    // Check if a preset is selected
+    if (selectedPreset) {
+      // Apply preset (multiple filters in sequence)
+      filteredData = applyFilterPreset(
+        imageData.data,
+        canvas.width,
+        canvas.height,
+        selectedPreset
+      );
+    } else if (filter !== "original") {
+      // Apply single filter
       // Apply the appropriate filter
       if (
         filter === "protanopia" ||
@@ -353,19 +463,29 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
           currentSeverity
         );
       } else if (filter === "blurred") {
-        filteredData = applyBlur(imageData.data, canvas.width, canvas.height);
+        filteredData = applyBlur(imageData.data, canvas.width, canvas.height, {
+          radius: blurRadius,
+          iterations: blurIterations,
+        });
       } else if (filter === "ghosting") {
-        filteredData = applyGhosting(
-          imageData.data,
-          canvas.width,
-          canvas.height
-        );
+        filteredData = applyGhosting(imageData.data, canvas.width, canvas.height, {
+          offset: { x: ghostingOffsetX, y: ghostingOffsetY },
+          opacity: ghostingOpacity,
+        });
       } else if (filter === "yellowing") {
-        filteredData = applyYellowing(imageData.data);
+        filteredData = applyYellowing(imageData.data, {
+          intensity: yellowingIntensity,
+          temperature: yellowingTemperature,
+        });
       } else if (filter === "loss-of-contrast") {
-        filteredData = applyContrastLoss(imageData.data);
+        filteredData = applyContrastLoss(imageData.data, {
+          reduction: contrastReduction,
+        });
       } else if (filter === "bright-light") {
-        filteredData = applyBrightLight(imageData.data);
+        filteredData = applyBrightLight(imageData.data, {
+          intensity: brightLightIntensity,
+          washout: brightLightWashout,
+        });
       } else if (filter === "central-vision-loss") {
         filteredData = applyCentralVisionLoss(
           imageData.data,
@@ -386,11 +506,11 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
             severity: currentSeverity,
           }
         );
-      } else {
-        filteredData = imageData.data;
       }
+    }
 
-      // Update canvas with filtered data
+    // Update canvas with filtered data (only if not original and no errors)
+    if (filter !== "original" || selectedPreset) {
       const newImageData = new ImageData(
         filteredData as any,
         canvas.width,
@@ -419,6 +539,154 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
       },
     });
   };
+
+  /**
+   * Handle preset deletion
+   */
+  const handleDeletePreset = (presetId: string) => {
+    setCustomPresets((prev) => {
+      const updated = prev.filter((p) => p.id !== presetId);
+      // Save to persistent storage via code.ts
+      sendMessage("VISION_SIMULATOR_SAVE_PRESETS", {
+        presets: updated,
+      });
+      return updated;
+    });
+
+    // If the deleted preset was selected, clear selection
+    if (selectedPreset?.id === presetId) {
+      setSelectedPreset(null);
+    }
+  };
+
+  /**
+   * Handle preset import
+   */
+  const handleImportPresets = (importedPresets: FilterPreset[]) => {
+    console.log("[UI] handleImportPresets called with:", importedPresets);
+    console.log("[UI] Current customPresets state:", customPresets);
+
+    // Add imported presets to custom presets
+    // Only modify ID if it already exists to avoid duplicates
+    const existingIds = new Set(customPresets.map(p => p.id));
+    console.log("[UI] Existing preset IDs:", Array.from(existingIds));
+
+    const newPresets = importedPresets.map((preset) => {
+      let finalId = preset.id;
+
+      // If preset ID already exists, append timestamp to make it unique
+      if (existingIds.has(preset.id)) {
+        finalId = `${preset.id}-${Date.now()}`;
+        console.log(`[UI] Preset ID ${preset.id} already exists, using ${finalId}`);
+      }
+
+      return {
+        ...preset,
+        id: finalId,
+        isBuiltIn: false,
+        createdAt: preset.createdAt || Date.now(),
+        updatedAt: Date.now(),
+      };
+    });
+
+    console.log("[UI] New presets to add:", newPresets);
+
+    setCustomPresets((prev) => {
+      console.log("[UI] setCustomPresets updater - prev:", prev);
+      const updated = [...prev, ...newPresets];
+      console.log("[UI] setCustomPresets updater - updated:", updated);
+      console.log("[UI] About to send SAVE message with:", updated.length, "presets");
+
+      // Save to persistent storage via code.ts
+      sendMessage("VISION_SIMULATOR_SAVE_PRESETS", {
+        presets: updated,
+      });
+
+      return updated;
+    });
+  };
+
+  /**
+   * Handle single preset export
+   */
+  const handleExportPreset = (preset: FilterPreset) => {
+    const dataStr = JSON.stringify([preset], null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${preset.name.toLowerCase().replace(/\s+/g, '-')}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  /**
+   * Export current preview to Figma canvas
+   */
+  const handleExportToCanvas = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !previewImage) return;
+
+    setExporting(true);
+    setError(null);
+
+    try {
+      // Convert canvas to blob
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Failed to create blob'));
+        }, 'image/png');
+      });
+
+      // Convert blob to Uint8Array
+      const arrayBuffer = await blob.arrayBuffer();
+      const imageData = new Uint8Array(arrayBuffer);
+
+      // Determine the label for the frame
+      let label = '';
+      if (selectedPreset) {
+        label = selectedPreset.name;
+      } else if (currentFilter !== 'original') {
+        label = FILTER_METADATA[currentFilter].name;
+      }
+
+      // Send message to create frame and apply image
+      sendMessage('VISION_SIMULATOR_EXPORT_TO_CANVAS', {
+        imageData,
+        width: canvas.width,
+        height: canvas.height,
+        label,
+      });
+    } catch (err) {
+      console.error('Failed to export to canvas:', err);
+      setError('Failed to export to canvas');
+      setExporting(false);
+    }
+  };
+
+  // Prepare filter options for dropdown
+  const filterOptions = [
+    { value: 'original' as SimulationType, label: 'Original', groupLabel: 'None', showIcon: false },
+    ...COLOR_BLIND_FILTERS.map(filter => ({
+      value: filter,
+      label: FILTER_METADATA[filter].name,
+      groupLabel: 'Color Blind',
+      showIcon: true,
+    })),
+    ...VISUAL_FIELD_FILTERS.map(filter => ({
+      value: filter,
+      label: FILTER_METADATA[filter].name,
+      groupLabel: 'Visual Field Defects',
+      showIcon: true,
+    })),
+    ...OTHER_FILTERS.map(filter => ({
+      value: filter,
+      label: FILTER_METADATA[filter].name,
+      groupLabel: 'Other',
+      showIcon: true,
+    })),
+  ];
 
   return (
     <div className="vision-simulator-panel">
@@ -450,7 +718,7 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
           }`}
           onClick={() => setActiveTab("simulation")}
         >
-          Live view
+          Vision Lab
         </button>
       </div>
 
@@ -698,100 +966,259 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
         {/* Simulation Tab */}
         {activeTab === "simulation" && (
           <div className="vision-simulator-panel__simulation">
-            {/* Controls */}
-            <div className="vision-simulator-panel__controls">
-              {/* Zoom Dropdown */}
-              <div className="vision-simulator-panel__control">
-                <label className="vision-simulator-panel__control-label">
-                  Zoom
-                </label>
-                <select
-                  className="vision-simulator-panel__select"
-                  value={zoom}
-                  onChange={(e) => setZoom(Number(e.target.value))}
-                >
-                  {ZOOM_LEVELS.map((level) => (
-                    <option key={level} value={level}>
-                      {level * 100}%
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Preset Selector */}
+            <PresetSelector
+              presets={allPresets}
+              selectedPreset={selectedPreset}
+              onSelectPreset={(preset) => {
+                console.log("Preset selected:", preset?.name || "none");
+                setSelectedPreset(preset);
+                // Save selected preset ID to storage
+                sendMessage("VISION_SIMULATOR_SAVE_SELECTED_PRESET", {
+                  presetId: preset?.id || null,
+                });
+                // When a preset is selected, reset to "original" single filter
+                if (preset) {
+                  setCurrentFilter("original");
+                }
+              }}
+              onManagePresets={() => setShowPresetManager(true)}
+            />
 
-              {/* Simulation Dropdown */}
-              <div className="vision-simulator-panel__control">
-                <label className="vision-simulator-panel__control-label">
-                  Simulation
-                </label>
-                <select
-                  className="vision-simulator-panel__select"
-                  value={currentFilter}
-                  onChange={(e) =>
-                    setCurrentFilter(e.target.value as SimulationType)
-                  }
-                >
-                  <option value="original">Original</option>
-                  <optgroup label="Color Blind">
-                    {COLOR_BLIND_FILTERS.map((filter) => (
-                      <option key={filter} value={filter}>
-                        {FILTER_METADATA[filter].name}
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Visual Field Defects">
-                    {VISUAL_FIELD_FILTERS.map((filter) => (
-                      <option key={filter} value={filter}>
-                        {FILTER_METADATA[filter].name}
-                      </option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Other">
-                    {OTHER_FILTERS.map((filter) => (
-                      <option key={filter} value={filter}>
-                        {FILTER_METADATA[filter].name}
-                      </option>
-                    ))}
-                  </optgroup>
-                </select>
-              </div>
-            </div>
+            {/* Controls - Only show if no preset is selected */}
+            {!selectedPreset && (
+              <div className="vision-simulator-panel__controls-row">
+                {/* Simulation Dropdown */}
+                <div className="vision-simulator-panel__control vision-simulator-panel__control--simulation">
+                  <label className="vision-simulator-panel__control-label">
+                    Simulation
+                  </label>
+                  <FilterDropdown
+                    value={currentFilter}
+                    onChange={(value) => {
+                      setCurrentFilter(value);
+                      // Set appropriate default severity based on filter type
+                      if (value === 'protanomaly' || value === 'deuteranomaly' || value === 'tritanomaly') {
+                        // Partial color blindness defaults to 60%
+                        setCurrentSeverity(0.6);
+                      } else if (isColorBlindnessFilter(value) || isVisualFieldDefect(value)) {
+                        // Complete color blindness and visual field defects default to 100%
+                        setCurrentSeverity(1.0);
+                      }
+                      // Reset parameters panel visibility when changing filter
+                      setShowParameters(false);
+                    }}
+                    options={filterOptions}
+                  />
+                </div>
 
-            {/* Severity Slider - only show for color blindness filters */}
-            {isColorBlindnessFilter(currentFilter) && (
-              <SeveritySlider
-                value={currentSeverity}
-                onChange={setCurrentSeverity}
-                label="Severity"
-                showPercentage={true}
-              />
+                {/* Parameters Button */}
+                <button
+                  className="vision-simulator-panel__params-btn"
+                  onClick={() => setShowParameters(!showParameters)}
+                  disabled={currentFilter === "original"}
+                  title="Change parameters"
+                >
+                  <Icon name="parameters" size={16} />
+                </button>
+              </div>
             )}
 
-            {/* Visual Field Defect Controls - only show for field defect filters */}
-            {isVisualFieldDefect(currentFilter) && (
-              <>
-                <RadiusSlider
-                  value={currentRadius}
-                  onChange={setCurrentRadius}
-                  label={
-                    currentFilter === "central-vision-loss"
-                      ? "Affected Area Radius"
-                      : "Clear Center Radius"
-                  }
-                  min={50}
-                  max={300}
-                  showValue={true}
-                />
-                <SeveritySlider
-                  value={currentSeverity}
-                  onChange={setCurrentSeverity}
-                  label="Severity"
-                  showPercentage={true}
-                />
-              </>
+            {/* Parameters Panel - Collapsible */}
+            {!selectedPreset && showParameters && currentFilter !== "original" && (
+              <div className="vision-simulator-panel__parameters">
+                {/* Severity Slider - only show for color blindness filters */}
+                {isColorBlindnessFilter(currentFilter) && (
+                  <SeveritySlider
+                    value={currentSeverity}
+                    onChange={setCurrentSeverity}
+                    label="Severity"
+                    showPercentage={true}
+                  />
+                )}
+
+                {/* Visual Field Defect Controls */}
+                {isVisualFieldDefect(currentFilter) && (
+                  <>
+                    <RadiusSlider
+                      value={currentRadius}
+                      onChange={setCurrentRadius}
+                      label={
+                        currentFilter === "central-vision-loss"
+                          ? "Affected Area Radius"
+                          : "Clear Center Radius"
+                      }
+                      min={50}
+                      max={300}
+                      showValue={true}
+                    />
+                    <SeveritySlider
+                      value={currentSeverity}
+                      onChange={setCurrentSeverity}
+                      label="Severity"
+                      showPercentage={true}
+                    />
+                  </>
+                )}
+
+                {/* Blurred Filter Controls */}
+                {currentFilter === "blurred" && (
+                  <>
+                    <FilterParameterSlider
+                      label="Blur Radius"
+                      value={blurRadius}
+                      onChange={setBlurRadius}
+                      min={1}
+                      max={30}
+                      step={1}
+                      unit="px"
+                      description="Blur strength (higher = more blur)"
+                    />
+                    <FilterParameterSlider
+                      label="Iterations"
+                      value={blurIterations}
+                      onChange={setBlurIterations}
+                      min={1}
+                      max={5}
+                      step={1}
+                      description="Number of blur passes (higher = smoother)"
+                    />
+                  </>
+                )}
+
+                {/* Ghosting Filter Controls */}
+                {currentFilter === "ghosting" && (
+                  <>
+                    <FilterParameterSlider
+                      label="Horizontal Offset"
+                      value={ghostingOffsetX}
+                      onChange={setGhostingOffsetX}
+                      min={0}
+                      max={30}
+                      step={1}
+                      unit="px"
+                      description="Ghost image horizontal displacement"
+                    />
+                    <FilterParameterSlider
+                      label="Vertical Offset"
+                      value={ghostingOffsetY}
+                      onChange={setGhostingOffsetY}
+                      min={0}
+                      max={30}
+                      step={1}
+                      unit="px"
+                      description="Ghost image vertical displacement"
+                    />
+                    <FilterParameterSlider
+                      label="Ghost Opacity"
+                      value={ghostingOpacity}
+                      onChange={setGhostingOpacity}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      description="Ghost image transparency"
+                    />
+                  </>
+                )}
+
+                {/* Yellowing Filter Controls */}
+                {currentFilter === "yellowing" && (
+                  <>
+                    <FilterParameterSlider
+                      label="Intensity"
+                      value={yellowingIntensity}
+                      onChange={setYellowingIntensity}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      description="Yellow tint strength"
+                    />
+                    <FilterParameterSlider
+                      label="Temperature"
+                      value={yellowingTemperature}
+                      onChange={setYellowingTemperature}
+                      min={1000}
+                      max={4000}
+                      step={100}
+                      unit="K"
+                      description="Color temperature (warmer = more yellow)"
+                    />
+                  </>
+                )}
+
+                {/* Loss of Contrast Filter Controls */}
+                {currentFilter === "loss-of-contrast" && (
+                  <FilterParameterSlider
+                    label="Contrast Reduction"
+                    value={contrastReduction}
+                    onChange={setContrastReduction}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    description="Amount of contrast loss (higher = less contrast)"
+                  />
+                )}
+
+                {/* Bright Light Filter Controls */}
+                {currentFilter === "bright-light" && (
+                  <>
+                    <FilterParameterSlider
+                      label="Brightness Intensity"
+                      value={brightLightIntensity}
+                      onChange={setBrightLightIntensity}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      description="Brightness increase amount"
+                    />
+                    <FilterParameterSlider
+                      label="Color Washout"
+                      value={brightLightWashout}
+                      onChange={setBrightLightWashout}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      description="Color desaturation amount"
+                    />
+                  </>
+                )}
+              </div>
             )}
 
             {/* Preview Area */}
             <div className="vision-simulator-panel__preview">
+              {/* Zoom Controls */}
+              {previewImage && (
+                <div className="vision-simulator-panel__zoom-controls">
+                  <button
+                    className="vision-simulator-panel__zoom-btn"
+                    onClick={() => setZoom(Math.max(0.25, zoom - 0.25))}
+                    disabled={zoom <= 0.25}
+                    title="Zoom out"
+                  >
+                    −
+                  </button>
+                  <span className="vision-simulator-panel__zoom-value">
+                    {Math.round(zoom * 100)}%
+                  </span>
+                  <button
+                    className="vision-simulator-panel__zoom-btn"
+                    onClick={() => setZoom(Math.min(4, zoom + 0.25))}
+                    disabled={zoom >= 4}
+                    title="Zoom in"
+                  >
+                    +
+                  </button>
+                  <button
+                    className="vision-simulator-panel__zoom-fit-btn"
+                    onClick={() => setZoom(1)}
+                    title="Fit to view (100%)"
+                  >
+                    <Icon name="frame" size={14} />
+                  </button>
+                </div>
+              )}
+
               {!previewImage && !loading && (
                 <div className="vision-simulator-panel__preview-empty">
                   <p>Select a node to view simulation</p>
@@ -821,12 +1248,35 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
                 <div className="vision-simulator-panel__error">{error}</div>
               )}
             </div>
+
+            {/* Export to Canvas Button - Show when a filter or preset is active */}
+            {previewImage && (currentFilter !== 'original' || selectedPreset !== null) && (
+              <Button
+                variant="primary"
+                size="medium"
+                onClick={handleExportToCanvas}
+                disabled={exporting}
+              >
+                {exporting ? 'Adding to Figma...' : 'Add current view to Figma'}
+              </Button>
+            )}
           </div>
         )}
       </div>
 
       {/* Hidden canvas for image processing */}
       <canvas ref={canvasRef} style={{ display: "none" }} />
+
+      {/* Preset Manager Modal */}
+      {showPresetManager && (
+        <PresetManager
+          presets={allPresets}
+          onClose={() => setShowPresetManager(false)}
+          onDeletePreset={handleDeletePreset}
+          onImportPresets={handleImportPresets}
+          onExportPreset={handleExportPreset}
+        />
+      )}
     </div>
   );
 };

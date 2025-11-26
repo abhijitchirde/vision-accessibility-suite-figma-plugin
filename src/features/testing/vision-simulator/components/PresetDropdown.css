@@ -1,0 +1,121 @@
+.preset-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.preset-dropdown__button {
+  width: 100%;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background-color: var(--figma-color-bg);
+  border: 1px solid var(--figma-color-border);
+  border-radius: 2px;
+  color: var(--figma-color-text);
+  font-size: 11px;
+  line-height: 1.2;
+  cursor: pointer;
+  box-sizing: border-box;
+  text-align: left;
+  gap: 8px;
+  font-family: inherit;
+}
+
+.preset-dropdown__button:hover {
+  border-color: var(--figma-color-border-brand);
+}
+
+.preset-dropdown__button:focus {
+  outline: none;
+  border-color: var(--figma-color-border-brand);
+  box-shadow: 0 0 0 2px var(--figma-color-bg-brand-tertiary);
+}
+
+.preset-dropdown__button-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preset-dropdown__chevron {
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.preset-dropdown__button[aria-expanded="true"] .preset-dropdown__chevron {
+  transform: rotate(180deg);
+}
+
+.preset-dropdown__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: var(--figma-color-bg);
+  border: 1px solid var(--figma-color-border);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  padding: 4px 0;
+}
+
+.preset-dropdown__divider {
+  height: 1px;
+  margin: 4px 0;
+  background-color: var(--figma-color-border);
+}
+
+.preset-dropdown__option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--figma-color-text);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  text-align: left;
+  font-family: inherit;
+}
+
+.preset-dropdown__option:hover {
+  background-color: var(--figma-color-bg-hover);
+}
+
+.preset-dropdown__option--selected {
+  background-color: var(--figma-color-bg-selected);
+  font-weight: 500;
+}
+
+.preset-dropdown__option-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Scrollbar styling for menu */
+.preset-dropdown__menu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.preset-dropdown__menu::-webkit-scrollbar-track {
+  background: var(--figma-color-bg-secondary);
+}
+
+.preset-dropdown__menu::-webkit-scrollbar-thumb {
+  background: var(--figma-color-border);
+  border-radius: 4px;
+}
+
+.preset-dropdown__menu::-webkit-scrollbar-thumb:hover {
+  background: var(--figma-color-border-brand);
+}

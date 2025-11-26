@@ -4,7 +4,7 @@ import './FilterIcon.css';
 
 interface FilterIconProps {
   filterId: string;
-  size?: 'small' | 'medium';
+  size?: 'tiny' | 'small' | 'medium';
 }
 
 /**
@@ -74,7 +74,7 @@ export const FilterIcon: React.FC<FilterIconProps> = ({ filterId, size = 'small'
     return null;
   }
 
-  const iconSize = size === 'small' ? 24 : 32;
+  const iconSize = size === 'tiny' ? 16 : size === 'small' ? 24 : 32;
 
   // Render color bars for color-blind filters
   if (iconData.type === 'color-bars') {
