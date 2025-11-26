@@ -45,6 +45,15 @@ const TOOLS: Tool[] = [
     category: 'testing',
     enabled: true,
   },
+  // Annotation Tools
+  {
+    id: 'alt-text',
+    name: 'Alt-Text',
+    description: 'Add alternative text to images',
+    icon: 'image',
+    category: 'annotation',
+    enabled: true,
+  },
 ];
 
 interface MainViewProps {
@@ -53,6 +62,7 @@ interface MainViewProps {
 
 export const MainView: React.FC<MainViewProps> = ({ onToolSelect }) => {
   const testingTools = TOOLS.filter((t) => t.category === 'testing' && t.enabled);
+  const annotationTools = TOOLS.filter((t) => t.category === 'annotation' && t.enabled);
 
   return (
     <div className="main-view">
@@ -72,6 +82,25 @@ export const MainView: React.FC<MainViewProps> = ({ onToolSelect }) => {
           ))}
         </div>
       </section>
+
+      {/* Annotation Tools Section */}
+      {annotationTools.length > 0 && (
+        <section className="main-view__section">
+          <h2 className="main-view__section-title">Annotation tools</h2>
+          <div className="main-view__tools">
+            {annotationTools.map((tool) => (
+              <Card
+                key={tool.id}
+                icon={tool.icon}
+                iconColor="var(--figma-color-text-brand)"
+                title={tool.name}
+                description={tool.description}
+                onClick={() => onToolSelect(tool.id)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 };

@@ -1,0 +1,204 @@
+.alt-text-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--figma-color-bg);
+  color: var(--figma-color-text);
+}
+
+.alt-text-panel__header {
+  display: flex;
+  align-items: center;
+  gap: var(--figma-space-sm);
+  padding: var(--figma-space-md) var(--figma-space-lg);
+  border-bottom: 1px solid var(--figma-color-border);
+}
+
+.alt-text-panel__header h2 {
+  margin: 0;
+  font-size: var(--figma-font-size-lg);
+  font-weight: 600;
+}
+
+.alt-text-panel__loading,
+.alt-text-panel__error,
+.alt-text-panel__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--figma-space-xxl);
+  text-align: center;
+  color: var(--figma-color-text-tertiary);
+  gap: var(--figma-space-md);
+}
+
+.alt-text-panel__empty .help-text {
+  font-size: var(--figma-font-size-sm);
+  color: var(--figma-color-text-disabled);
+}
+
+/* Stats Section */
+.alt-text-panel__stats {
+  padding: var(--figma-space-lg);
+  border-bottom: 1px solid var(--figma-color-border);
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background-color: var(--figma-color-bg-secondary);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: var(--figma-space-md);
+}
+
+.progress-bar__fill {
+  height: 100%;
+  background-color: #10b981;
+  transition: width 0.3s ease;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--figma-space-sm);
+  margin-bottom: var(--figma-space-sm);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.stat__value {
+  font-size: var(--figma-font-size-xl);
+  font-weight: 600;
+  color: var(--figma-color-text);
+}
+
+.stat__label {
+  font-size: var(--figma-font-size-xs);
+  color: var(--figma-color-text-secondary);
+}
+
+.completion-text {
+  text-align: center;
+  font-size: var(--figma-font-size-sm);
+  color: var(--figma-color-text-secondary);
+  font-weight: 500;
+}
+
+/* Instructions */
+.alt-text-panel__instructions {
+  padding: var(--figma-space-md) var(--figma-space-lg);
+  border-bottom: 1px solid var(--figma-color-border);
+}
+
+.alt-text-panel__instructions > p {
+  margin: 0 0 var(--figma-space-md) 0;
+  font-size: var(--figma-font-size-sm);
+  color: var(--figma-color-text-secondary);
+}
+
+.filter-buttons {
+  display: flex;
+  gap: var(--figma-space-xs);
+}
+
+.filter-button {
+  flex: 1;
+  padding: var(--figma-space-xs) var(--figma-space-sm);
+  background-color: var(--figma-color-bg-secondary);
+  border: 1px solid var(--figma-color-border);
+  border-radius: var(--figma-radius-sm);
+  font-size: var(--figma-font-size-xs);
+  color: var(--figma-color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-button:hover {
+  background-color: var(--figma-color-bg-hover);
+}
+
+.filter-button.active {
+  background-color: var(--figma-color-bg-brand);
+  color: var(--figma-color-text-onbrand);
+  border-color: var(--figma-color-bg-brand);
+}
+
+/* Image Nodes List */
+.alt-text-panel__list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--figma-space-sm);
+}
+
+.image-node-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--figma-space-md);
+  padding: var(--figma-space-md);
+  border-radius: var(--figma-radius-md);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.image-node-item:hover {
+  background-color: var(--figma-color-bg-hover);
+  border-color: var(--figma-color-border);
+}
+
+.image-node-item__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.image-node-item__name {
+  font-size: var(--figma-font-size-sm);
+  font-weight: 500;
+  color: var(--figma-color-text);
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.image-node-item__details {
+  font-size: var(--figma-font-size-xs);
+  color: var(--figma-color-text-tertiary);
+  margin-bottom: var(--figma-space-xs);
+}
+
+.image-node-item__alt-text {
+  margin-top: var(--figma-space-xs);
+}
+
+.decorative-label {
+  font-size: var(--figma-font-size-xs);
+  color: var(--figma-color-text-secondary);
+  font-style: italic;
+}
+
+.alt-text-preview {
+  font-size: var(--figma-font-size-xs);
+  color: var(--figma-color-text);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.image-node-item__status {
+  flex-shrink: 0;
+}
+
+.alt-text-panel__empty-filter {
+  padding: var(--figma-space-xxl);
+  text-align: center;
+  color: var(--figma-color-text-tertiary);
+}

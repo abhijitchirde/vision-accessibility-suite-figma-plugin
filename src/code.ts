@@ -2,8 +2,10 @@ import { ContrastChecker } from "./features/testing/contrast/contrast-checker";
 import { TouchTargetsChecker } from "./features/testing/touch-targets/touch-targets-checker";
 import { TypographyChecker } from "./features/testing/typography/typography-checker";
 import { VisionSimulator } from "./features/testing/vision-simulator/vision-simulator";
+import { AltTextManager } from "./features/annotation/alt-text/alt-text-manager";
 import { SelectionService } from "./services/selection.service";
 import { StorageService } from "./services/storage.service";
+import { AnnotationService } from "./services/annotation.service";
 
 // Load all pages for document change monitoring
 // This is required before registering documentchange handlers
@@ -15,10 +17,12 @@ figma.showUI(__html__, { width: 400, height: 800 });
 // Initialize services
 const storageService = new StorageService();
 const selectionService = new SelectionService();
+const annotationService = new AnnotationService();
 const contrastChecker = new ContrastChecker(selectionService);
 const touchTargetsChecker = new TouchTargetsChecker();
 const typographyChecker = new TypographyChecker();
 const visionSimulator = new VisionSimulator();
+const altTextManager = new AltTextManager(storageService, annotationService);
 
 // Track Typography panel state for auto-check
 let typographyPanelActive = false;
@@ -668,6 +672,136 @@ figma.ui.onmessage = async (msg) => {
               error: error.message || "Failed to export to canvas",
             });
           }
+        }
+        break;
+
+      case "LOAD_ALT_TEXT_IMAGES":
+        // Load all image nodes on the page with their alt text data
+        try {
+          const imageNodesData = await altTextManager.getAllImageNodesWithAltText();
+          const stats = await altTextManager.getStats();
+          figma.ui.postMessage({
+            type: "ALT_TEXT_IMAGE_NODES",
+            success: true,
+            data: {
+              nodes: imageNodesData,
+              stats: stats,
+            },
+          });
+        } catch (error) {
+          console.error("Error loading alt text images:", error);
+          figma.ui.postMessage({
+            type: "ALT_TEXT_IMAGE_NODES",
+            success: false,
+            error: error.message || "Failed to load image nodes",
+          });
+        }
+        break;
+
+      case "GET_ALT_TEXT_DATA":
+        // Get alt text data for a specific node
+        try {
+          const nodeId = msg.data?.nodeId || msg.nodeId;
+          const node = await figma.getNodeByIdAsync(nodeId) as SceneNode;
+          const altTextData = await altTextManager.getAltTextForNode(nodeId);
+          figma.ui.postMessage({
+            type: "ALT_TEXT_DATA",
+            success: true,
+            data: altTextData,
+            nodeName: node?.name || "",
+          });
+        } catch (error) {
+          console.error("Error getting alt text data:", error);
+          figma.ui.postMessage({
+            type: "ALT_TEXT_DATA",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "VALIDATE_ALT_TEXT":
+        // Validate alt text
+        try {
+          const altText = msg.data?.altText || msg.altText || "";
+          const isDecorative = msg.data?.isDecorative || msg.isDecorative || false;
+          const validation = altTextManager.validateAltText(altText, isDecorative);
+          figma.ui.postMessage({
+            type: "ALT_TEXT_VALIDATED",
+            success: true,
+            validation: validation,
+          });
+        } catch (error) {
+          console.error("Error validating alt text:", error);
+          figma.ui.postMessage({
+            type: "ALT_TEXT_VALIDATED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "SAVE_ALT_TEXT":
+        // Save alt text for a node
+        try {
+          const nodeId = msg.data?.nodeId || msg.nodeId;
+          const altText = msg.data?.altText || msg.altText || "";
+          const isDecorative = msg.data?.isDecorative || msg.isDecorative || false;
+
+          const savedData = await altTextManager.setAltText(nodeId, altText, isDecorative);
+
+          if (savedData) {
+            figma.ui.postMessage({
+              type: "ALT_TEXT_SAVED",
+              success: true,
+              data: savedData,
+            });
+            // Notify UI to refresh the list
+            figma.ui.postMessage({
+              type: "ALT_TEXT_UPDATED",
+              success: true,
+            });
+            figma.notify(isDecorative ? "Marked as decorative" : "Alt text saved");
+          } else {
+            throw new Error("Failed to save alt text");
+          }
+        } catch (error) {
+          console.error("Error saving alt text:", error);
+          figma.ui.postMessage({
+            type: "ALT_TEXT_SAVED",
+            success: false,
+            error: error.message || "Failed to save alt text",
+          });
+        }
+        break;
+
+      case "REMOVE_ALT_TEXT":
+        // Remove alt text from a node
+        try {
+          const nodeId = msg.data?.nodeId || msg.nodeId;
+          const removed = await altTextManager.removeAltText(nodeId);
+
+          if (removed) {
+            figma.ui.postMessage({
+              type: "ALT_TEXT_REMOVED",
+              success: true,
+              nodeId: nodeId,
+            });
+            figma.ui.postMessage({
+              type: "ALT_TEXT_UPDATED",
+              success: true,
+            });
+            figma.notify("Alt text removed");
+          } else {
+            throw new Error("Failed to remove alt text");
+          }
+        } catch (error) {
+          console.error("Error removing alt text:", error);
+          figma.ui.postMessage({
+            type: "ALT_TEXT_REMOVED",
+            success: false,
+            error: error.message,
+          });
         }
         break;
 
