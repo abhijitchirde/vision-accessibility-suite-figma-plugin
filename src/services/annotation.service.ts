@@ -13,6 +13,7 @@ export interface AnnotationConfig {
   targetNodeId: string;
   label: string;
   text?: string;
+  altText?: string;
   color?: string;
   icon?: string;
   badgePosition?: { x: number; y: number };
@@ -20,7 +21,7 @@ export interface AnnotationConfig {
 
 export interface AnnotationData {
   badgeId: string;
-  arrowId: string;
+  lineId: string;
   targetNodeId: string;
   groupId: string;
 }
@@ -63,7 +64,7 @@ export class AnnotationService {
   }
 
   /**
-   * Create a complete annotation (badge + arrow) for a target node
+   * Create a complete annotation (badge + line) for a target node
    */
   async createAnnotation(config: AnnotationConfig): Promise<AnnotationData | null> {
     try {
@@ -75,25 +76,29 @@ export class AnnotationService {
 
       const container = this.getAnnotationsContainer();
 
-      // Create group for this annotation (badge + arrow)
-      const annotationGroup = figma.group([], container);
+      // Create badge first (with absolute positioning)
+      const badge = await this.createBadge(config, targetNode);
+
+      // Create line connecting badge to target
+      const line = this.createLine(targetNode, badge);
+
+      // Group them together - this preserves absolute positions
+      const annotationGroup = figma.group([badge, line], container);
       annotationGroup.name = `${AnnotationService.ANNOTATION_PREFIX}-${config.label}`;
-
-      // Create badge
-      const badge = this.createBadge(config, targetNode);
-      annotationGroup.appendChild(badge);
-
-      // Create arrow
-      const arrow = this.createArrow(targetNode, badge);
-      annotationGroup.appendChild(arrow);
 
       // Store metadata linking annotation to target
       annotationGroup.setPluginData('targetNodeId', config.targetNodeId);
       annotationGroup.setPluginData('annotationType', 'alt-text');
 
+      console.log('Created annotation:', {
+        badge: { id: badge.id, x: badge.x, y: badge.y, width: badge.width, height: badge.height },
+        line: { id: line.id },
+        group: { id: annotationGroup.id, x: annotationGroup.x, y: annotationGroup.y }
+      });
+
       return {
         badgeId: badge.id,
-        arrowId: arrow.id,
+        lineId: line.id,
         targetNodeId: config.targetNodeId,
         groupId: annotationGroup.id,
       };
@@ -106,154 +111,146 @@ export class AnnotationService {
   /**
    * Create a badge (rectangle with text)
    */
-  private createBadge(config: AnnotationConfig, targetNode: SceneNode): FrameNode {
-    const badge = figma.createFrame();
-    badge.name = `${config.label}-badge`;
+  private async createBadge(config: AnnotationConfig, targetNode: SceneNode): Promise<FrameNode> {
+    try {
+      const badge = figma.createFrame();
+      badge.name = `${config.label}-badge`;
 
-    // Badge styling
-    const bgColor = this.parseColor(config.color || '#4F46E5'); // Indigo by default
-    badge.fills = [
-      {
-        type: 'SOLID',
-        color: bgColor,
-      },
-    ];
-    badge.cornerRadius = 6;
-    badge.paddingLeft = 8;
-    badge.paddingRight = 8;
-    badge.paddingTop = 6;
-    badge.paddingBottom = 6;
-    badge.layoutMode = 'HORIZONTAL';
-    badge.itemSpacing = 6;
-    badge.counterAxisSizingMode = 'AUTO';
-    badge.primaryAxisSizingMode = 'AUTO';
+      // Badge styling
+      const bgColor = this.parseColor(config.color || '#4F46E5'); // Indigo by default
+      badge.fills = [
+        {
+          type: 'SOLID',
+          color: bgColor,
+        },
+      ];
+      badge.cornerRadius = 4;
+      badge.paddingLeft = 8;
+      badge.paddingRight = 8;
+      badge.paddingTop = 6;
+      badge.paddingBottom = 6;
+      badge.layoutMode = 'VERTICAL'; // Changed to vertical for column layout
+      badge.itemSpacing = 2;
+      badge.counterAxisSizingMode = 'AUTO';
+      badge.primaryAxisSizingMode = 'AUTO';
+      badge.primaryAxisAlignItems = 'MIN'; // Left align
 
-    // Create label text
-    const labelText = figma.createText();
-    labelText.fontName = { family: 'Inter', style: 'Medium' };
-    labelText.fontSize = 12;
-    labelText.characters = config.label;
-    labelText.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }]; // White text
-    badge.appendChild(labelText);
+      console.log('Badge created, loading fonts...');
 
-    // If additional text is provided, add it
-    if (config.text) {
-      const detailText = figma.createText();
-      detailText.fontName = { family: 'Inter', style: 'Regular' };
-      detailText.fontSize = 11;
-      detailText.characters = config.text;
-      detailText.fills = [{ type: 'SOLID', color: { r: 0.9, g: 0.9, b: 0.9 } }];
-      badge.appendChild(detailText);
+      // Load fonts (use Bold instead of SemiBold for better availability)
+      try {
+        await figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
+      } catch (e) {
+        // Fallback to Medium if Bold not available
+        await figma.loadFontAsync({ family: 'Inter', style: 'Medium' });
+      }
+
+      // Create label text (smaller, bold/medium)
+      const labelText = figma.createText();
+      try {
+        labelText.fontName = { family: 'Inter', style: 'Bold' };
+      } catch (e) {
+        labelText.fontName = { family: 'Inter', style: 'Medium' };
+      }
+      labelText.fontSize = 10;
+      labelText.characters = config.label;
+      labelText.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }]; // White text
+      labelText.textAlignHorizontal = 'LEFT';
+      labelText.letterSpacing = { value: 0.5, unit: 'PIXELS' };
+      badge.appendChild(labelText);
+
+      console.log('Label text added:', config.label);
+
+      // If alt text is provided, add it as a second line
+      if (config.altText) {
+        await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
+        const altTextNode = figma.createText();
+        altTextNode.fontName = { family: 'Inter', style: 'Regular' };
+        altTextNode.fontSize = 9;
+        // Truncate alt text if too long
+        const truncatedAltText = config.altText.length > 40
+          ? config.altText.substring(0, 37) + '...'
+          : config.altText;
+        altTextNode.characters = truncatedAltText;
+        altTextNode.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.95, b: 0.95 } }];
+        altTextNode.textAlignHorizontal = 'LEFT';
+        badge.appendChild(altTextNode);
+        console.log('Alt text added:', truncatedAltText);
+      }
+
+      // Position badge (absolute coordinates)
+      if (config.badgePosition) {
+        badge.x = config.badgePosition.x;
+        badge.y = config.badgePosition.y;
+      } else {
+        // Default position: top-right of target node with offset (doubled for longer line)
+        const targetBounds = this.getAbsoluteBounds(targetNode);
+        console.log('Target bounds:', targetBounds);
+        badge.x = targetBounds.x + targetBounds.width + 40; // Doubled from 20 to 40
+        badge.y = targetBounds.y - 10;
+        console.log('Badge positioned at:', badge.x, badge.y);
+      }
+
+      return badge;
+    } catch (error) {
+      console.error('Error creating badge:', error);
+      throw error;
     }
-
-    // Position badge
-    if (config.badgePosition) {
-      badge.x = config.badgePosition.x;
-      badge.y = config.badgePosition.y;
-    } else {
-      // Default position: top-right of target node with offset
-      const targetBounds = this.getAbsoluteBounds(targetNode);
-      badge.x = targetBounds.x + targetBounds.width + 20;
-      badge.y = targetBounds.y - 10;
-    }
-
-    return badge;
   }
 
   /**
-   * Create an arrow connecting badge to target element
+   * Create a line connecting badge to target element
    */
-  private createArrow(targetNode: SceneNode, badge: FrameNode): VectorNode {
+  private createLine(targetNode: SceneNode, badge: FrameNode): LineNode {
     const targetBounds = this.getAbsoluteBounds(targetNode);
-    const badgeBounds = this.getAbsoluteBounds(badge);
-
-    // Calculate connection points
-    const targetPoint = {
-      x: targetBounds.x + targetBounds.width / 2,
-      y: targetBounds.y + targetBounds.height / 2,
+    const badgeBounds = {
+      x: badge.x,
+      y: badge.y,
+      width: badge.width,
+      height: badge.height,
     };
 
-    const badgePoint = {
-      x: badgeBounds.x,
-      y: badgeBounds.y + badgeBounds.height / 2,
-    };
+    // Calculate connection points for horizontal line
+    // Connect from left edge of badge to right edge of target at same Y
+    const lineY = badgeBounds.y + badgeBounds.height / 2;
+    const targetRightX = targetBounds.x + targetBounds.width;
+    const badgeLeftX = badgeBounds.x;
 
-    // Create line vector
-    const arrow = figma.createVector();
-    arrow.name = 'annotation-arrow';
+    // Create horizontal line
+    const line = figma.createLine();
+    line.name = 'annotation-line';
 
-    // Create vector network for arrow line
-    const vectorPaths: VectorPaths = [
-      {
-        windingRule: 'NONZERO',
-        data: `M ${badgePoint.x} ${badgePoint.y} L ${targetPoint.x} ${targetPoint.y}`,
-      },
-    ];
-    arrow.vectorPaths = vectorPaths;
+    // Set line position and length
+    line.x = targetRightX;
+    line.y = lineY;
+    line.resize(badgeLeftX - targetRightX, 0);
 
-    // Arrow styling
-    arrow.strokes = [
+    // Line styling - dashed
+    line.strokes = [
       {
         type: 'SOLID',
         color: { r: 0.31, g: 0.27, b: 0.9 }, // Indigo
       },
     ];
-    arrow.strokeWeight = 2;
-    arrow.strokeCap = 'ROUND';
-    arrow.opacity = 0.6;
+    line.strokeWeight = 1.5;
+    line.strokeCap = 'ROUND';
+    line.dashPattern = [4, 4]; // Dashed pattern
+    line.opacity = 0.7;
 
-    // Add arrowhead (simple triangle at target end)
-    // Note: For simplicity, we're using a line. A proper arrowhead would require a more complex vector path.
+    console.log('Line created connecting target and badge');
 
-    return arrow;
+    return line;
   }
 
   /**
-   * Update arrow position when badge or target moves
+   * Update line position when badge or target moves
+   * Note: Lines don't auto-update, so this would need to be called manually
+   * Currently not implemented as annotations are considered static
    */
-  async updateArrow(annotationGroupId: string): Promise<boolean> {
-    try {
-      const group = await figma.getNodeByIdAsync(annotationGroupId) as GroupNode;
-      if (!group || group.type !== 'GROUP') return false;
-
-      const targetNodeId = group.getPluginData('targetNodeId');
-      const targetNode = await figma.getNodeByIdAsync(targetNodeId) as SceneNode;
-      if (!targetNode) return false;
-
-      // Find badge and arrow in group
-      const badge = group.findOne((n) => n.name.includes('badge')) as FrameNode;
-      const arrow = group.findOne((n) => n.name === 'annotation-arrow') as VectorNode;
-
-      if (!badge || !arrow) return false;
-
-      // Recalculate arrow path
-      const targetBounds = this.getAbsoluteBounds(targetNode);
-      const badgeBounds = this.getAbsoluteBounds(badge);
-
-      const targetPoint = {
-        x: targetBounds.x + targetBounds.width / 2,
-        y: targetBounds.y + targetBounds.height / 2,
-      };
-
-      const badgePoint = {
-        x: badgeBounds.x,
-        y: badgeBounds.y + badgeBounds.height / 2,
-      };
-
-      // Update arrow vector path
-      const vectorPaths: VectorPaths = [
-        {
-          windingRule: 'NONZERO',
-          data: `M ${badgePoint.x} ${badgePoint.y} L ${targetPoint.x} ${targetPoint.y}`,
-        },
-      ];
-      arrow.vectorPaths = vectorPaths;
-
-      return true;
-    } catch (error) {
-      console.error('Failed to update arrow:', error);
-      return false;
-    }
+  async updateLine(annotationGroupId: string): Promise<boolean> {
+    // Not implemented - annotations are static
+    console.log('Line update not implemented - annotations are static');
+    return true;
   }
 
   /**
@@ -300,13 +297,13 @@ export class AnnotationService {
     container.findAll((node) => {
       if (node.type === 'GROUP' && node.name.startsWith(AnnotationService.ANNOTATION_PREFIX)) {
         const badge = node.findOne((n) => n.name.includes('badge'));
-        const arrow = node.findOne((n) => n.name === 'annotation-arrow');
+        const line = node.findOne((n) => n.name === 'annotation-line');
         const targetNodeId = node.getPluginData('targetNodeId');
 
-        if (badge && arrow && targetNodeId) {
+        if (badge && line && targetNodeId) {
           annotations.push({
             badgeId: badge.id,
-            arrowId: arrow.id,
+            lineId: line.id,
             targetNodeId,
             groupId: node.id,
           });

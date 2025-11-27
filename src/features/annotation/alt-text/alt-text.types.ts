@@ -12,6 +12,7 @@ export interface AltTextData {
   validationWarnings: string[];
   lastModified: string;
   annotationId?: string; // ID of the canvas annotation
+  annotationMissing?: boolean; // True if annotation was deleted from canvas
 }
 
 export type AltTextStatus = 'complete' | 'incomplete' | 'decorative' | 'needs-review';

@@ -41,6 +41,75 @@ let typographyCheckOptions = {
 // Track Vision Simulator panel state for auto-preview
 let visionSimulatorPanelActive = false;
 
+// Track Alt-Text Manager panel state for annotation checks
+let altTextPanelActive = false;
+
+// Function to check for deleted annotations when selection changes
+async function checkForDeletedAnnotations() {
+  if (!altTextPanelActive) return;
+
+  // Get all image nodes with alt text data and check annotations
+  const imageNodes = await altTextManager.getAllImageNodesWithAltText();
+
+  // Check if any annotations are missing
+  const hasDeletedAnnotations = imageNodes.some(
+    (node) => node.altTextData?.annotationMissing === true
+  );
+
+  // If we found deleted annotations, notify the UI to refresh
+  if (hasDeletedAnnotations) {
+    figma.ui.postMessage({
+      type: "ALT_TEXT_UPDATED",
+      success: true,
+    });
+  }
+}
+
+// Function to sync canvas selection to plugin UI
+async function syncCanvasSelectionToUI() {
+  if (!altTextPanelActive) return;
+
+  const selection = figma.currentPage.selection;
+
+  // If nothing is selected, clear selection in UI
+  if (selection.length === 0) {
+    figma.ui.postMessage({
+      type: "ALT_TEXT_NODE_DESELECTED",
+    });
+    return;
+  }
+
+  const selectedNode = selection[0];
+
+  // Check if selected node is an annotation group
+  if (selectedNode.type === 'GROUP' && selectedNode.name.startsWith('a11y-annotation')) {
+    const targetNodeId = selectedNode.getPluginData('targetNodeId');
+    if (targetNodeId) {
+      // User selected an annotation, sync to its target node
+      figma.ui.postMessage({
+        type: "ALT_TEXT_NODE_SELECTED",
+        nodeId: targetNodeId,
+      });
+      return;
+    }
+  }
+
+  // Check if selected node is an image node (has image fill)
+  if ('fills' in selectedNode && Array.isArray(selectedNode.fills)) {
+    const hasImageFill = selectedNode.fills.some(
+      (fill) => fill.type === 'IMAGE' && fill.visible !== false
+    );
+
+    if (hasImageFill) {
+      // User selected an image node, sync to UI
+      figma.ui.postMessage({
+        type: "ALT_TEXT_NODE_SELECTED",
+        nodeId: selectedNode.id,
+      });
+    }
+  }
+}
+
 // Function to auto-load vision simulator preview for current selection
 async function autoLoadVisionSimulatorPreview() {
   if (!visionSimulatorPanelActive) return;
@@ -209,13 +278,27 @@ function debouncedCheckPage() {
   }, 500); // Wait 500ms after last change before checking
 }
 
-// Document change listener for typography monitoring
+// Document change listener for typography monitoring and annotation deletion detection
 figma.on("documentchange", (event) => {
-  if (!typographyMonitoring) return;
+  // Handle typography monitoring
+  if (typographyMonitoring) {
+    // Check if any changes involve text nodes - just trigger a recheck on any change
+    // More efficient than checking each change individually
+    debouncedCheckPage();
+  }
 
-  // Check if any changes involve text nodes - just trigger a recheck on any change
-  // More efficient than checking each change individually
-  debouncedCheckPage();
+  // Handle annotation deletion detection
+  if (altTextPanelActive) {
+    // Check if any nodes were deleted
+    const hasDeletedNodes = event.documentChanges.some(
+      (change) => change.type === "DELETE"
+    );
+
+    if (hasDeletedNodes) {
+      // Check for deleted annotations and refresh UI if needed
+      checkForDeletedAnnotations();
+    }
+  }
 });
 
 // Listen for selection changes and automatically update contrast check
@@ -228,6 +311,9 @@ selectionService.onSelectionChange(async () => {
 
   // Auto-load vision simulator preview if panel is active
   await autoLoadVisionSimulatorPreview();
+
+  // Sync canvas selection to alt-text panel UI
+  await syncCanvasSelectionToUI();
 });
 
 // Handle messages from UI
@@ -677,6 +763,8 @@ figma.ui.onmessage = async (msg) => {
 
       case "LOAD_ALT_TEXT_IMAGES":
         // Load all image nodes on the page with their alt text data
+        // Mark panel as active for annotation deletion detection
+        altTextPanelActive = true;
         try {
           const imageNodesData = await altTextManager.getAllImageNodesWithAltText();
           const stats = await altTextManager.getStats();
@@ -696,6 +784,11 @@ figma.ui.onmessage = async (msg) => {
             error: error.message || "Failed to load image nodes",
           });
         }
+        break;
+
+      case "ALT_TEXT_PANEL_CLOSED":
+        // Alt-text panel was closed/unmounted
+        altTextPanelActive = false;
         break;
 
       case "GET_ALT_TEXT_DATA":
@@ -802,6 +895,41 @@ figma.ui.onmessage = async (msg) => {
             success: false,
             error: error.message,
           });
+        }
+        break;
+
+      case "SCROLL_AND_ZOOM_TO_NODE":
+        // Scroll and zoom to a specific node
+        try {
+          const nodeId = msg.data?.nodeId || msg.nodeId;
+          const success = await altTextManager.scrollAndZoomToNode(nodeId);
+
+          if (!success) {
+            figma.notify("Could not find the element");
+          }
+        } catch (error) {
+          console.error("Error scrolling to node:", error);
+        }
+        break;
+
+      case "RESTORE_ANNOTATION":
+        // Restore a deleted annotation
+        try {
+          const nodeId = msg.data?.nodeId || msg.nodeId;
+          const success = await altTextManager.restoreAnnotation(nodeId);
+
+          if (success) {
+            figma.notify("Annotation restored");
+            figma.ui.postMessage({
+              type: "ALT_TEXT_UPDATED",
+              success: true,
+            });
+          } else {
+            figma.notify("Failed to restore annotation");
+          }
+        } catch (error) {
+          console.error("Error restoring annotation:", error);
+          figma.notify("Failed to restore annotation");
         }
         break;
 

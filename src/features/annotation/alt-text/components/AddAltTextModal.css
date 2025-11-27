@@ -13,216 +13,99 @@
 
 .modal-content {
   background-color: var(--figma-color-bg);
-  border-radius: var(--figma-radius-lg);
+  border-radius: 8px;
   width: 90%;
   max-width: 400px;
-  max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: var(--figma-shadow-large);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
 .modal-header {
-  display: flex;
-  align-items: center;
-  gap: var(--figma-space-sm);
-  padding: var(--figma-space-md) var(--figma-space-lg);
+  padding: 16px 20px;
   border-bottom: 1px solid var(--figma-color-border);
 }
 
 .modal-header h3 {
-  flex: 1;
   margin: 0;
-  font-size: var(--figma-font-size-lg);
+  font-size: 16px;
   font-weight: 600;
   color: var(--figma-color-text);
 }
 
-.modal-header__actions {
-  display: flex;
-  gap: var(--figma-space-xs);
-}
-
 .modal-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--figma-space-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--figma-space-md);
-}
-
-.modal-footer {
-  padding: var(--figma-space-md) var(--figma-space-lg);
-  border-top: 1px solid var(--figma-color-border);
-  display: flex;
-  justify-content: flex-end;
-}
-
-/* Node info */
-.node-info {
-  display: flex;
-  align-items: center;
-  gap: var(--figma-space-sm);
-  padding: var(--figma-space-sm) var(--figma-space-md);
-  background-color: var(--figma-color-bg-secondary);
-  border-radius: var(--figma-radius-md);
-}
-
-.node-name {
-  font-size: var(--figma-font-size-sm);
-  color: var(--figma-color-text);
-  font-weight: 500;
-}
-
-/* Checkbox */
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: var(--figma-space-sm);
-  cursor: pointer;
-  font-size: var(--figma-font-size-sm);
-  color: var(--figma-color-text);
-  user-select: none;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-}
-
-/* Input container */
-.input-container {
-  position: relative;
+  padding: 20px;
 }
 
 .alt-text-input {
   width: 100%;
   min-height: 120px;
-  padding: var(--figma-space-md);
-  padding-bottom: var(--figma-space-xl);
+  padding: 12px;
   border: 1px solid var(--figma-color-border);
-  border-radius: var(--figma-radius-md);
+  border-radius: 6px;
   background-color: var(--figma-color-bg);
   color: var(--figma-color-text);
-  font-family: var(--figma-font-family);
-  font-size: var(--figma-font-size-sm);
+  font-family: inherit;
+  font-size: 13px;
   line-height: 1.5;
   resize: vertical;
   transition: border-color 0.2s ease;
+  margin-bottom: 8px;
 }
 
 .alt-text-input:focus {
   outline: none;
-  border-color: var(--figma-color-border-brand);
-}
-
-.alt-text-input.warning {
-  border-color: #f59e0b;
-}
-
-.alt-text-input.error {
-  border-color: #ef4444;
+  border-color: #4F46E5;
 }
 
 .alt-text-input::placeholder {
   color: var(--figma-color-text-disabled);
+  font-style: italic;
 }
 
 .char-counter {
-  position: absolute;
-  bottom: var(--figma-space-sm);
-  right: var(--figma-space-md);
-}
-
-.char-count {
-  font-size: var(--figma-font-size-xs);
-  color: var(--figma-color-text-tertiary);
+  font-size: 12px;
   font-weight: 500;
+  text-align: right;
 }
 
-.char-count.warning {
-  color: #f59e0b;
+.char-counter.in-range {
+  color: #059669;
 }
 
-.char-count.error {
-  color: #ef4444;
+.char-counter.out-of-range {
+  color: #F59E0B;
 }
 
-/* Validation feedback */
-.validation-feedback {
+.modal-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--figma-color-border);
   display: flex;
-  flex-direction: column;
-  gap: var(--figma-space-xs);
+  justify-content: space-between;
+  align-items: center;
 }
 
-.validation-errors,
-.validation-warnings,
-.validation-suggestions {
+.decorative-checkbox {
   display: flex;
-  flex-direction: column;
-  gap: var(--figma-space-xs);
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
 }
 
-.validation-message {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--figma-space-sm);
-  padding: var(--figma-space-sm) var(--figma-space-md);
-  border-radius: var(--figma-radius-sm);
-  font-size: var(--figma-font-size-xs);
-  line-height: 1.4;
+.decorative-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
 }
 
-.validation-message.error {
-  background-color: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+.decorative-checkbox span {
+  font-size: 13px;
+  color: var(--figma-color-text);
 }
 
-.validation-message.warning {
-  background-color: rgba(245, 158, 11, 0.1);
-  color: #f59e0b;
-}
-
-.validation-message.info {
-  background-color: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
-}
-
-.validation-message span {
-  flex: 1;
-}
-
-/* Help section */
-.help-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--figma-space-sm);
-}
-
-.help-item {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--figma-space-sm);
-}
-
-.help-text {
-  font-size: var(--figma-font-size-xs);
-  color: var(--figma-color-text-secondary);
-  line-height: 1.4;
-  flex: 1;
-}
-
-/* Decorative info */
-.decorative-info {
-  display: flex;
-  gap: var(--figma-space-sm);
-  padding: var(--figma-space-md);
-  background-color: var(--figma-color-bg-secondary);
-  border-radius: var(--figma-radius-md);
-}
-
-.decorative-info .help-text {
-  flex: 1;
+.alt-text-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--figma-color-bg-disabled);
 }

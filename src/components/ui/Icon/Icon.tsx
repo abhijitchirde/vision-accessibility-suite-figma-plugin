@@ -197,6 +197,74 @@ export const Icon: React.FC<IconProps> = ({
     x: <HiX size={size} color={color} />,
     clipboard: <HiOutlineClipboard size={size} color={color} />,
     'clipboard-check': <HiOutlineClipboardCheck size={size} color={color} />,
+    edit: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path
+          d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+    'check-circle': (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path
+          d="M22 11.08V12a10 10 0 1 1-5.93-9.14"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <polyline
+          points="22 4 12 14.01 9 11.01"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+    image: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <rect
+          x="3"
+          y="3"
+          width="18"
+          height="18"
+          rx="2"
+          ry="2"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle
+          cx="8.5"
+          cy="8.5"
+          r="1.5"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <polyline
+          points="21 15 16 10 5 21"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
   };
 
   return icons[name] || null;

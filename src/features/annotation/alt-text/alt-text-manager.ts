@@ -116,13 +116,16 @@ export class AltTextManager {
     const node = await figma.getNodeByIdAsync(nodeId) as SceneNode;
     if (!node) return null;
 
+    // Get existing data to preserve annotation ID
+    const existingData = this.storage.getNodeData<AltTextData>(node, ALT_TEXT_STORAGE_KEY);
+
     // Validate alt text
     const validation = this.validateAltText(altText, isDecorative);
 
     // Determine status
     const status = this.determineStatus(altText, isDecorative, validation);
 
-    // Create alt text data
+    // Create alt text data, preserving annotation ID if it exists
     const altTextData: AltTextData = {
       nodeId,
       nodeName: node.name,
@@ -132,6 +135,7 @@ export class AltTextManager {
       validationErrors: validation.errors,
       validationWarnings: validation.warnings,
       lastModified: new Date().toISOString(),
+      annotationId: existingData?.annotationId, // Preserve existing annotation ID
     };
 
     // Store data
@@ -262,16 +266,14 @@ export class AltTextManager {
     // Create new annotation
     const color = STATUS_COLORS[data.status];
     const label = data.isDecorative
-      ? 'Decorative'
-      : data.status === 'complete'
-      ? '✓ Alt'
-      : '! Alt';
+      ? 'DECORATIVE'
+      : 'ALT';
 
     const annotationData = await this.annotation.createAnnotation({
       targetNodeId: nodeId,
       label,
       color,
-      text: data.isDecorative ? 'Decorative' : undefined,
+      altText: data.isDecorative ? undefined : data.altText,
     });
 
     if (annotationData) {
@@ -340,15 +342,37 @@ export class AltTextManager {
   }
 
   /**
+   * Check if annotation exists on canvas for a given annotation ID
+   */
+  private async checkAnnotationExists(annotationId: string): Promise<boolean> {
+    try {
+      const annotation = await figma.getNodeByIdAsync(annotationId);
+      return annotation !== null;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
    * Get all image nodes with their alt text data
    */
   async getAllImageNodesWithAltText(): Promise<Array<ImageNodeInfo & { altTextData: AltTextData | null }>> {
     const imageNodes = await this.findImageNodes();
     return Promise.all(
-      imageNodes.map(async (node) => ({
-        ...node,
-        altTextData: await this.getAltTextForNode(node.nodeId),
-      }))
+      imageNodes.map(async (node) => {
+        const altTextData = await this.getAltTextForNode(node.nodeId);
+
+        // Check if annotation is missing from canvas
+        if (altTextData && altTextData.annotationId) {
+          const annotationExists = await this.checkAnnotationExists(altTextData.annotationId);
+          altTextData.annotationMissing = !annotationExists;
+        }
+
+        return {
+          ...node,
+          altTextData,
+        };
+      })
     );
   }
 
@@ -357,5 +381,61 @@ export class AltTextManager {
    */
   setAnnotationsVisible(visible: boolean): void {
     this.annotation.setAnnotationsVisible(visible);
+  }
+
+  /**
+   * Scroll and zoom to a specific element on the canvas
+   */
+  async scrollAndZoomToNode(nodeId: string): Promise<boolean> {
+    try {
+      const node = await figma.getNodeByIdAsync(nodeId) as SceneNode;
+      if (!node) {
+        console.error('Node not found:', nodeId);
+        return false;
+      }
+
+      // Scroll to the node and zoom in
+      figma.viewport.scrollAndZoomIntoView([node]);
+
+      // Also select the node to make it more visible
+      figma.currentPage.selection = [node];
+
+      return true;
+    } catch (error) {
+      console.error('Failed to scroll and zoom to node:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Restore a deleted annotation for a node (recreate it on canvas)
+   */
+  async restoreAnnotation(nodeId: string): Promise<boolean> {
+    try {
+      const node = await figma.getNodeByIdAsync(nodeId) as SceneNode;
+      if (!node) {
+        console.error('Node not found:', nodeId);
+        return false;
+      }
+
+      // Get existing alt text data
+      const altTextData = this.storage.getNodeData<AltTextData>(node, ALT_TEXT_STORAGE_KEY);
+      if (!altTextData) {
+        console.error('No alt text data found for node:', nodeId);
+        return false;
+      }
+
+      // Recreate the annotation on canvas
+      await this.updateAnnotation(nodeId, altTextData);
+
+      // Clear the annotationMissing flag
+      altTextData.annotationMissing = false;
+      this.storage.setNodeData(node, ALT_TEXT_STORAGE_KEY, altTextData);
+
+      return true;
+    } catch (error) {
+      console.error('Failed to restore annotation:', error);
+      return false;
+    }
   }
 }
