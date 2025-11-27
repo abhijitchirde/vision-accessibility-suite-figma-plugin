@@ -54,6 +54,14 @@ const TOOLS: Tool[] = [
     category: 'annotation',
     enabled: true,
   },
+  {
+    id: 'focus-order',
+    name: 'Focus Order',
+    description: 'Define keyboard navigation order',
+    icon: 'focus',
+    category: 'annotation',
+    enabled: true,
+  },
 ];
 
 interface MainViewProps {

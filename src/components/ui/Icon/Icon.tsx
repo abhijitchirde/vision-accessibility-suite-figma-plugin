@@ -265,6 +265,170 @@ export const Icon: React.FC<IconProps> = ({
         />
       </svg>
     ),
+    target: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle
+          cx="12"
+          cy="12"
+          r="10"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle
+          cx="12"
+          cy="12"
+          r="6"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle
+          cx="12"
+          cy="12"
+          r="2"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+    text: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <polyline
+          points="4 7 4 4 20 4 20 7"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <line
+          x1="9"
+          y1="20"
+          x2="15"
+          y2="20"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <line
+          x1="12"
+          y1="4"
+          x2="12"
+          y2="20"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+    eye: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path
+          d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle
+          cx="12"
+          cy="12"
+          r="3"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+    'eye-off': (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path
+          d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <line
+          x1="1"
+          y1="1"
+          x2="23"
+          y2="23"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+    plus: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <line
+          x1="12"
+          y1="5"
+          x2="12"
+          y2="19"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <line
+          x1="5"
+          y1="12"
+          x2="19"
+          y2="12"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+    focus: (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle
+          cx="12"
+          cy="12"
+          r="3"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M3 12h2M19 12h2M12 3v2M12 19v2"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M5.64 5.64l1.41 1.41M16.95 16.95l1.41 1.41M5.64 18.36l1.41-1.41M16.95 7.05l1.41-1.41"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
+    'grip-vertical': (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <circle cx="9" cy="5" r="1.5" fill={color} />
+        <circle cx="9" cy="12" r="1.5" fill={color} />
+        <circle cx="9" cy="19" r="1.5" fill={color} />
+        <circle cx="15" cy="5" r="1.5" fill={color} />
+        <circle cx="15" cy="12" r="1.5" fill={color} />
+        <circle cx="15" cy="19" r="1.5" fill={color} />
+      </svg>
+    ),
   };
 
   return icons[name] || null;

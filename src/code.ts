@@ -3,6 +3,7 @@ import { TouchTargetsChecker } from "./features/testing/touch-targets/touch-targ
 import { TypographyChecker } from "./features/testing/typography/typography-checker";
 import { VisionSimulator } from "./features/testing/vision-simulator/vision-simulator";
 import { AltTextManager } from "./features/annotation/alt-text/alt-text-manager";
+import { FocusOrderManager } from "./features/annotation/focus-order/focus-order-manager";
 import { SelectionService } from "./services/selection.service";
 import { StorageService } from "./services/storage.service";
 import { AnnotationService } from "./services/annotation.service";
@@ -23,6 +24,7 @@ const touchTargetsChecker = new TouchTargetsChecker();
 const typographyChecker = new TypographyChecker();
 const visionSimulator = new VisionSimulator();
 const altTextManager = new AltTextManager(storageService, annotationService);
+const focusOrderManager = new FocusOrderManager(storageService, selectionService);
 
 // Track Typography panel state for auto-check
 let typographyPanelActive = false;
@@ -930,6 +932,146 @@ figma.ui.onmessage = async (msg) => {
         } catch (error) {
           console.error("Error restoring annotation:", error);
           figma.notify("Failed to restore annotation");
+        }
+        break;
+
+      case "GET_FOCUS_ORDER":
+        // Get all focus order items for current page
+        try {
+          const items = await focusOrderManager.getFocusOrder();
+          const stats = await focusOrderManager.getStats();
+          figma.ui.postMessage({
+            type: "FOCUS_ORDER_LOADED",
+            success: true,
+            data: {
+              items: items,
+              stats: stats,
+            },
+          });
+        } catch (error) {
+          console.error("Error loading focus order:", error);
+          figma.ui.postMessage({
+            type: "FOCUS_ORDER_LOADED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "ADD_FOCUS_ORDER_ITEM":
+        // Add currently selected node(s) to focus order
+        try {
+          const result = await focusOrderManager.addSelectedToFocusOrder();
+          if (result.success) {
+            figma.notify("Added to focus order");
+            figma.ui.postMessage({
+              type: "FOCUS_ORDER_ITEM_ADDED",
+              success: true,
+              data: {
+                items: result.items,
+              },
+            });
+          } else {
+            figma.notify(result.error || "Failed to add item");
+            figma.ui.postMessage({
+              type: "FOCUS_ORDER_ITEM_ADDED",
+              success: false,
+              error: result.error,
+            });
+          }
+        } catch (error) {
+          console.error("Error adding focus order item:", error);
+          figma.ui.postMessage({
+            type: "FOCUS_ORDER_ITEM_ADDED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "REMOVE_FOCUS_ORDER_ITEM":
+        // Remove an item from focus order
+        try {
+          const nodeIdToRemove = msg.data?.nodeId || msg.nodeId;
+          const result = await focusOrderManager.removeFocusOrderItem(nodeIdToRemove);
+          if (result.success) {
+            figma.notify("Removed from focus order");
+            figma.ui.postMessage({
+              type: "FOCUS_ORDER_ITEM_REMOVED",
+              success: true,
+              data: {
+                items: result.items,
+              },
+            });
+          } else {
+            figma.notify(result.error || "Failed to remove item");
+            figma.ui.postMessage({
+              type: "FOCUS_ORDER_ITEM_REMOVED",
+              success: false,
+              error: result.error,
+            });
+          }
+        } catch (error) {
+          console.error("Error removing focus order item:", error);
+          figma.ui.postMessage({
+            type: "FOCUS_ORDER_ITEM_REMOVED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "REORDER_FOCUS_ITEMS":
+        // Reorder focus items (after drag-and-drop)
+        try {
+          const itemsToReorder = msg.data?.items || msg.items;
+          const result = await focusOrderManager.reorderFocusItems(itemsToReorder);
+          if (result.success) {
+            figma.ui.postMessage({
+              type: "FOCUS_ORDER_REORDERED",
+              success: true,
+              data: {
+                items: result.items,
+              },
+            });
+          } else {
+            figma.notify(result.error || "Failed to reorder items");
+            figma.ui.postMessage({
+              type: "FOCUS_ORDER_REORDERED",
+              success: false,
+              error: result.error,
+            });
+          }
+        } catch (error) {
+          console.error("Error reordering focus items:", error);
+          figma.ui.postMessage({
+            type: "FOCUS_ORDER_REORDERED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "TOGGLE_FOCUS_ANNOTATIONS":
+        // Toggle visibility of focus order annotations
+        try {
+          const visible = msg.data?.visible ?? msg.visible ?? true;
+          await focusOrderManager.toggleAnnotationsVisibility(visible);
+        } catch (error) {
+          console.error("Error toggling focus annotations:", error);
+        }
+        break;
+
+      case "ZOOM_TO_FOCUS_ITEM":
+        // Zoom to a focus order item
+        try {
+          const focusNodeId = msg.data?.nodeId || msg.nodeId;
+          const success = await focusOrderManager.zoomToItem(focusNodeId);
+          if (!success) {
+            figma.notify("Could not find the element");
+          }
+        } catch (error) {
+          console.error("Error zooming to focus item:", error);
         }
         break;
 
