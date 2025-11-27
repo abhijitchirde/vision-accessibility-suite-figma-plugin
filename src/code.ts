@@ -4,6 +4,7 @@ import { TypographyChecker } from "./features/testing/typography/typography-chec
 import { VisionSimulator } from "./features/testing/vision-simulator/vision-simulator";
 import { AltTextManager } from "./features/annotation/alt-text/alt-text-manager";
 import { FocusOrderManager } from "./features/annotation/focus-order/focus-order-manager";
+import { HeadingsManager } from "./features/annotation/headings/headings-manager";
 import { SelectionService } from "./services/selection.service";
 import { StorageService } from "./services/storage.service";
 import { AnnotationService } from "./services/annotation.service";
@@ -25,6 +26,7 @@ const typographyChecker = new TypographyChecker();
 const visionSimulator = new VisionSimulator();
 const altTextManager = new AltTextManager(storageService, annotationService);
 const focusOrderManager = new FocusOrderManager(storageService, selectionService);
+const headingsManager = new HeadingsManager(storageService, selectionService);
 
 // Track Typography panel state for auto-check
 let typographyPanelActive = false;
@@ -1072,6 +1074,191 @@ figma.ui.onmessage = async (msg) => {
           }
         } catch (error) {
           console.error("Error zooming to focus item:", error);
+        }
+        break;
+
+      // ==================== HEADINGS MANAGER ====================
+
+      case "GET_HEADINGS":
+        // Get all headings for current page
+        try {
+          const headings = await headingsManager.getHeadings();
+          figma.ui.postMessage({
+            type: "HEADINGS_LOADED",
+            success: true,
+            data: {
+              items: headings,
+            },
+          });
+        } catch (error) {
+          console.error("Error loading headings:", error);
+          figma.ui.postMessage({
+            type: "HEADINGS_LOADED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "GET_TEXT_NODES":
+        // Get all text nodes for manual selection
+        try {
+          const textNodes = await headingsManager.getTextNodes();
+          figma.ui.postMessage({
+            type: "TEXT_NODES_LOADED",
+            success: true,
+            data: {
+              textNodes: textNodes,
+            },
+          });
+        } catch (error) {
+          console.error("Error loading text nodes:", error);
+          figma.ui.postMessage({
+            type: "TEXT_NODES_LOADED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "ADD_HEADING":
+        // Add heading for currently selected node
+        try {
+          const level = msg.data?.level || msg.level;
+          const result = await headingsManager.addSelectedAsHeading(level);
+          if (result.success) {
+            figma.notify(`Added ${level} heading`);
+            figma.ui.postMessage({
+              type: "HEADING_ADDED",
+              success: true,
+              data: {
+                items: result.items,
+              },
+            });
+          } else {
+            figma.notify(result.error || "Failed to add heading");
+            figma.ui.postMessage({
+              type: "HEADING_ADDED",
+              success: false,
+              error: result.error,
+            });
+          }
+        } catch (error) {
+          console.error("Error adding heading:", error);
+          figma.ui.postMessage({
+            type: "HEADING_ADDED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "REMOVE_HEADING":
+        // Remove a heading
+        try {
+          const nodeIdToRemove = msg.data?.nodeId || msg.nodeId;
+          const result = await headingsManager.removeHeading(nodeIdToRemove);
+          if (result.success) {
+            figma.notify("Heading removed");
+            figma.ui.postMessage({
+              type: "HEADING_REMOVED",
+              success: true,
+              data: {
+                items: result.items,
+              },
+            });
+          } else {
+            figma.notify(result.error || "Failed to remove heading");
+            figma.ui.postMessage({
+              type: "HEADING_REMOVED",
+              success: false,
+              error: result.error,
+            });
+          }
+        } catch (error) {
+          console.error("Error removing heading:", error);
+          figma.ui.postMessage({
+            type: "HEADING_REMOVED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "UPDATE_HEADING_LEVEL":
+        // Update heading level
+        try {
+          const nodeIdToUpdate = msg.data?.nodeId || msg.nodeId;
+          const newLevel = msg.data?.level || msg.level;
+          const result = await headingsManager.updateHeadingLevel(nodeIdToUpdate, newLevel);
+          if (result.success) {
+            figma.notify(`Updated to ${newLevel}`);
+            figma.ui.postMessage({
+              type: "HEADING_LEVEL_UPDATED",
+              success: true,
+              data: {
+                items: result.items,
+              },
+            });
+          } else {
+            figma.notify(result.error || "Failed to update heading level");
+            figma.ui.postMessage({
+              type: "HEADING_LEVEL_UPDATED",
+              success: false,
+              error: result.error,
+            });
+          }
+        } catch (error) {
+          console.error("Error updating heading level:", error);
+          figma.ui.postMessage({
+            type: "HEADING_LEVEL_UPDATED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "TOGGLE_HEADING_ANNOTATIONS":
+        // Toggle visibility of heading annotations
+        try {
+          const visible = msg.data?.visible ?? msg.visible ?? true;
+          await headingsManager.toggleAnnotationsVisibility(visible);
+        } catch (error) {
+          console.error("Error toggling heading annotations:", error);
+        }
+        break;
+
+      case "ZOOM_TO_HEADING":
+        // Zoom to a heading
+        try {
+          const headingNodeId = msg.data?.nodeId || msg.nodeId;
+          const success = await headingsManager.zoomToHeading(headingNodeId);
+          if (!success) {
+            figma.notify("Could not find the heading");
+          }
+        } catch (error) {
+          console.error("Error zooming to heading:", error);
+        }
+        break;
+
+      case "GET_HEADING_STATS":
+        // Get heading statistics
+        try {
+          const stats = await headingsManager.getStats();
+          figma.ui.postMessage({
+            type: "HEADING_STATS_LOADED",
+            success: true,
+            data: {
+              stats: stats,
+            },
+          });
+        } catch (error) {
+          console.error("Error loading heading stats:", error);
+          figma.ui.postMessage({
+            type: "HEADING_STATS_LOADED",
+            success: false,
+            error: error.message,
+          });
         }
         break;
 

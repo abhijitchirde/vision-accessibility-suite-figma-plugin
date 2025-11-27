@@ -62,6 +62,14 @@ const TOOLS: Tool[] = [
     category: 'annotation',
     enabled: true,
   },
+  {
+    id: 'headings',
+    name: 'Headings',
+    description: 'Annotate heading structure (H1-H6)',
+    icon: 'heading',
+    category: 'annotation',
+    enabled: true,
+  },
 ];
 
 interface MainViewProps {
