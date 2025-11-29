@@ -70,6 +70,14 @@ const TOOLS: Tool[] = [
     category: 'annotation',
     enabled: true,
   },
+  {
+    id: 'landmarks',
+    name: 'Landmarks',
+    description: 'Define page landmarks (header, nav, main, footer)',
+    icon: 'map',
+    category: 'annotation',
+    enabled: true,
+  },
 ];
 
 interface MainViewProps {

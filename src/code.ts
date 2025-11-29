@@ -5,6 +5,7 @@ import { VisionSimulator } from "./features/testing/vision-simulator/vision-simu
 import { AltTextManager } from "./features/annotation/alt-text/alt-text-manager";
 import { FocusOrderManager } from "./features/annotation/focus-order/focus-order-manager";
 import { HeadingsManager } from "./features/annotation/headings/headings-manager";
+import { LandmarksManager } from "./features/annotation/landmarks/landmarks-manager";
 import { SelectionService } from "./services/selection.service";
 import { StorageService } from "./services/storage.service";
 import { AnnotationService } from "./services/annotation.service";
@@ -27,6 +28,7 @@ const visionSimulator = new VisionSimulator();
 const altTextManager = new AltTextManager(storageService, annotationService);
 const focusOrderManager = new FocusOrderManager(storageService, selectionService);
 const headingsManager = new HeadingsManager(storageService, selectionService);
+const landmarksManager = new LandmarksManager(storageService, selectionService);
 
 // Track Typography panel state for auto-check
 let typographyPanelActive = false;
@@ -1256,6 +1258,205 @@ figma.ui.onmessage = async (msg) => {
           console.error("Error loading heading stats:", error);
           figma.ui.postMessage({
             type: "HEADING_STATS_LOADED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      // ==================== LANDMARKS MANAGER ====================
+
+      case "GET_LANDMARKS":
+        // Get all landmarks for current page
+        try {
+          const landmarks = await landmarksManager.getLandmarks();
+          figma.ui.postMessage({
+            type: "LANDMARKS_LOADED",
+            success: true,
+            data: {
+              items: landmarks,
+            },
+          });
+        } catch (error) {
+          console.error("Error loading landmarks:", error);
+          figma.ui.postMessage({
+            type: "LANDMARKS_LOADED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "ADD_LANDMARK":
+        // Add landmark for currently selected node
+        try {
+          const role = msg.data?.role || msg.role;
+          const label = msg.data?.label || msg.label;
+          const result = await landmarksManager.addSelectedAsLandmark(role, label);
+          if (result.success) {
+            figma.notify(`Added ${role} landmark`);
+            const updatedLandmarks = await landmarksManager.getLandmarks();
+            figma.ui.postMessage({
+              type: "LANDMARK_ADDED",
+              success: true,
+              data: {
+                items: updatedLandmarks,
+              },
+            });
+          } else {
+            figma.notify(result.error || "Failed to add landmark");
+            figma.ui.postMessage({
+              type: "LANDMARK_ADDED",
+              success: false,
+              error: result.error,
+            });
+          }
+        } catch (error) {
+          console.error("Error adding landmark:", error);
+          figma.ui.postMessage({
+            type: "LANDMARK_ADDED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "REMOVE_LANDMARK":
+        // Remove a landmark
+        try {
+          const landmarkNodeId = msg.data?.nodeId || msg.nodeId;
+          const result = await landmarksManager.removeLandmark(landmarkNodeId);
+          if (result.success) {
+            figma.notify("Landmark removed");
+            figma.ui.postMessage({
+              type: "LANDMARK_REMOVED",
+              success: true,
+              data: {
+                items: result.items,
+              },
+            });
+          } else {
+            figma.notify(result.error || "Failed to remove landmark");
+            figma.ui.postMessage({
+              type: "LANDMARK_REMOVED",
+              success: false,
+              error: result.error,
+            });
+          }
+        } catch (error) {
+          console.error("Error removing landmark:", error);
+          figma.ui.postMessage({
+            type: "LANDMARK_REMOVED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "UPDATE_LANDMARK_ROLE":
+        // Update landmark role
+        try {
+          const landmarkNodeId = msg.data?.nodeId || msg.nodeId;
+          const newRole = msg.data?.role || msg.role;
+          const result = await landmarksManager.updateLandmarkRole(landmarkNodeId, newRole);
+          if (result.success) {
+            figma.notify(`Updated to ${newRole}`);
+            figma.ui.postMessage({
+              type: "LANDMARK_ROLE_UPDATED",
+              success: true,
+              data: {
+                items: result.items,
+              },
+            });
+          } else {
+            figma.notify(result.error || "Failed to update landmark role");
+            figma.ui.postMessage({
+              type: "LANDMARK_ROLE_UPDATED",
+              success: false,
+              error: result.error,
+            });
+          }
+        } catch (error) {
+          console.error("Error updating landmark role:", error);
+          figma.ui.postMessage({
+            type: "LANDMARK_ROLE_UPDATED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "UPDATE_LANDMARK_LABEL":
+        // Update landmark label
+        try {
+          const landmarkNodeId = msg.data?.nodeId || msg.nodeId;
+          const label = msg.data?.label || msg.label;
+          const result = await landmarksManager.updateLandmarkLabel(landmarkNodeId, label);
+          if (result.success) {
+            figma.notify("Landmark label updated");
+            figma.ui.postMessage({
+              type: "LANDMARK_LABEL_UPDATED",
+              success: true,
+              data: {
+                items: result.items,
+              },
+            });
+          } else {
+            figma.notify(result.error || "Failed to update landmark label");
+            figma.ui.postMessage({
+              type: "LANDMARK_LABEL_UPDATED",
+              success: false,
+              error: result.error,
+            });
+          }
+        } catch (error) {
+          console.error("Error updating landmark label:", error);
+          figma.ui.postMessage({
+            type: "LANDMARK_LABEL_UPDATED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "TOGGLE_LANDMARK_ANNOTATIONS":
+        // Toggle visibility of landmark annotations
+        try {
+          const visible = msg.data?.visible ?? msg.visible ?? true;
+          await landmarksManager.toggleAnnotationsVisibility(visible);
+        } catch (error) {
+          console.error("Error toggling landmark annotations:", error);
+        }
+        break;
+
+      case "ZOOM_TO_LANDMARK":
+        // Zoom to a landmark
+        try {
+          const landmarkNodeId = msg.data?.nodeId || msg.nodeId;
+          const success = await landmarksManager.zoomToLandmark(landmarkNodeId);
+          if (!success) {
+            figma.notify("Could not find the landmark");
+          }
+        } catch (error) {
+          console.error("Error zooming to landmark:", error);
+        }
+        break;
+
+      case "GET_LANDMARK_STATS":
+        // Get landmark statistics
+        try {
+          const stats = await landmarksManager.getStats();
+          figma.ui.postMessage({
+            type: "LANDMARK_STATS_LOADED",
+            success: true,
+            data: {
+              stats: stats,
+            },
+          });
+        } catch (error) {
+          console.error("Error loading landmark stats:", error);
+          figma.ui.postMessage({
+            type: "LANDMARK_STATS_LOADED",
             success: false,
             error: error.message,
           });

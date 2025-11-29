@@ -10,10 +10,11 @@ import { VisionSimulatorPanel } from './features/testing/vision-simulator/compon
 import { AltTextPanel } from './features/annotation/alt-text/components/AltTextPanel';
 import { FocusOrderPanel } from './features/annotation/focus-order/components/FocusOrderPanel';
 import { HeadingsPanel } from './features/annotation/headings/components/HeadingsPanel';
+import { LandmarksPanel } from './features/annotation/landmarks/components/LandmarksPanel';
 
 declare function require(path: string): any;
 
-type View = 'main' | 'contrast' | 'touch-targets' | 'typography' | 'vision-simulator' | 'alt-text' | 'focus-order' | 'headings';
+type View = 'main' | 'contrast' | 'touch-targets' | 'typography' | 'vision-simulator' | 'alt-text' | 'focus-order' | 'headings' | 'landmarks';
 
 function App() {
   const [currentView, setCurrentView] = React.useState<View>('main');
@@ -36,6 +37,7 @@ function App() {
       {currentView === 'alt-text' && <AltTextPanel onBack={handleBack} />}
       {currentView === 'focus-order' && <FocusOrderPanel onBack={handleBack} />}
       {currentView === 'headings' && <HeadingsPanel onBack={handleBack} />}
+      {currentView === 'landmarks' && <LandmarksPanel onBack={handleBack} />}
 
       {/* Footer section with credits and mode toggle */}
       <BottomSection />
