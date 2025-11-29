@@ -1,81 +1,89 @@
-import React from 'react';
-import './MainView.css';
-import { Card } from '../../ui/Card/Card';
+import React from "react";
+import "./MainView.css";
+import { Card } from "../../ui/Card/Card";
 
 interface Tool {
   id: string;
   name: string;
   description: string;
   icon: string;
-  category: 'testing' | 'annotation';
+  category: "testing" | "annotation";
   enabled: boolean;
 }
 
 const TOOLS: Tool[] = [
   // Testing Tools
   {
-    id: 'contrast',
-    name: 'Contrast',
-    description: 'Check color contrast ratios',
-    icon: 'contrast',
-    category: 'testing',
+    id: "contrast",
+    name: "Contrast",
+    description: "Check color contrast ratios",
+    icon: "contrast",
+    category: "testing",
     enabled: true,
   },
   {
-    id: 'touch-targets',
-    name: 'Touch Targets',
-    description: 'Validate touch target sizes',
-    icon: 'target',
-    category: 'testing',
+    id: "touch-targets",
+    name: "Touch Targets",
+    description: "Validate touch target sizes",
+    icon: "target",
+    category: "testing",
     enabled: true,
   },
   {
-    id: 'typography',
-    name: 'Typography',
-    description: 'Validate font size, line height, and readability',
-    icon: 'text',
-    category: 'testing',
+    id: "typography",
+    name: "Typography",
+    description: "Validate font size, line height, and readability",
+    icon: "text",
+    category: "testing",
     enabled: true,
   },
   {
-    id: 'vision-simulator',
-    name: 'Vision Simulator',
-    description: 'Simulate color blindness and visual impairments',
-    icon: 'eye',
-    category: 'testing',
+    id: "vision-simulator",
+    name: "Vision Simulator",
+    description: "Simulate color blindness and visual impairments",
+    icon: "eye",
+    category: "testing",
     enabled: true,
   },
   // Annotation Tools
   {
-    id: 'alt-text',
-    name: 'Alt-Text',
-    description: 'Add alternative text to images',
-    icon: 'image',
-    category: 'annotation',
+    id: "alt-text",
+    name: "Alt-Text",
+    description: "Add alternative text to images",
+    icon: "image",
+    category: "annotation",
     enabled: true,
   },
   {
-    id: 'focus-order',
-    name: 'Focus Order',
-    description: 'Define keyboard navigation order',
-    icon: 'focus',
-    category: 'annotation',
+    id: "focus-order",
+    name: "Focus Order",
+    description: "Define keyboard navigation order",
+    icon: "focus",
+    category: "annotation",
     enabled: true,
   },
   {
-    id: 'headings',
-    name: 'Headings',
-    description: 'Annotate heading structure (H1-H6)',
-    icon: 'heading',
-    category: 'annotation',
+    id: "headings",
+    name: "Headings",
+    description: "Annotate heading structure (H1-H6)",
+    icon: "heading",
+    category: "annotation",
     enabled: true,
   },
   {
-    id: 'landmarks',
-    name: 'Landmarks',
-    description: 'Define page landmarks (header, nav, main, footer)',
-    icon: 'map',
-    category: 'annotation',
+    id: "landmarks",
+    name: "Landmarks",
+    description: "Define page landmarks (header, nav, main, footer)",
+    icon: "map",
+    category: "annotation",
+    enabled: true,
+  },
+  {
+    id: "notes",
+    name: "Accessibility Notes",
+    description: "Platform-specific accessibility annotations",
+    icon: "file-text",
+    category: "annotation",
     enabled: true,
   },
 ];
@@ -85,8 +93,12 @@ interface MainViewProps {
 }
 
 export const MainView: React.FC<MainViewProps> = ({ onToolSelect }) => {
-  const testingTools = TOOLS.filter((t) => t.category === 'testing' && t.enabled);
-  const annotationTools = TOOLS.filter((t) => t.category === 'annotation' && t.enabled);
+  const testingTools = TOOLS.filter(
+    (t) => t.category === "testing" && t.enabled
+  );
+  const annotationTools = TOOLS.filter(
+    (t) => t.category === "annotation" && t.enabled
+  );
 
   return (
     <div className="main-view">

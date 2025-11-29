@@ -6,6 +6,7 @@ import { AltTextManager } from "./features/annotation/alt-text/alt-text-manager"
 import { FocusOrderManager } from "./features/annotation/focus-order/focus-order-manager";
 import { HeadingsManager } from "./features/annotation/headings/headings-manager";
 import { LandmarksManager } from "./features/annotation/landmarks/landmarks-manager";
+import { NotesManager } from "./features/annotation/notes/notes-manager";
 import { SelectionService } from "./services/selection.service";
 import { StorageService } from "./services/storage.service";
 import { AnnotationService } from "./services/annotation.service";
@@ -1460,6 +1461,160 @@ figma.ui.onmessage = async (msg) => {
             success: false,
             error: error.message,
           });
+        }
+        break;
+
+      // ========================================
+      // Accessibility Notes
+      // ========================================
+
+      case "GET_ACCESSIBILITY_NOTES":
+        // Get all accessibility notes on the page
+        try {
+          const notes = NotesManager.getAllNotedNodes(figma.currentPage);
+          figma.ui.postMessage({
+            type: "NOTES_LOADED",
+            success: true,
+            data: {
+              notes: notes,
+            },
+          });
+        } catch (error) {
+          console.error("Error loading accessibility notes:", error);
+          figma.ui.postMessage({
+            type: "NOTES_LOADED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "SAVE_ACCESSIBILITY_NOTE":
+        // Save accessibility note to currently selected node
+        try {
+          const selection = figma.currentPage.selection;
+          if (selection.length === 0) {
+            figma.notify("Please select an element first");
+            figma.ui.postMessage({
+              type: "NOTE_SAVED",
+              success: false,
+              error: "No element selected",
+            });
+            break;
+          }
+
+          const selectedNode = selection[0];
+          const { platform, accessibleName, note } = msg.data || msg;
+
+          NotesManager.saveNote(selectedNode, platform, accessibleName, note);
+          figma.notify("Accessibility note added");
+
+          // Refresh the list
+          const notes = NotesManager.getAllNotedNodes(figma.currentPage);
+          figma.ui.postMessage({
+            type: "NOTE_SAVED",
+            success: true,
+            data: {
+              notes: notes,
+            },
+          });
+        } catch (error) {
+          console.error("Error saving accessibility note:", error);
+          figma.notify(error.message || "Failed to save note");
+          figma.ui.postMessage({
+            type: "NOTE_SAVED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "UPDATE_ACCESSIBILITY_NOTE":
+        // Update existing accessibility note
+        try {
+          const noteNodeId = msg.data?.nodeId || msg.nodeId;
+          const node = NotesManager.getNodeById(noteNodeId);
+
+          if (!node) {
+            figma.notify("Node not found");
+            figma.ui.postMessage({
+              type: "NOTE_SAVED",
+              success: false,
+              error: "Node not found",
+            });
+            break;
+          }
+
+          const { platform, accessibleName, note } = msg.data || msg;
+          NotesManager.updateNote(node, platform, accessibleName, note);
+          figma.notify("Accessibility note updated");
+
+          // Refresh the list
+          const notes = NotesManager.getAllNotedNodes(figma.currentPage);
+          figma.ui.postMessage({
+            type: "NOTE_SAVED",
+            success: true,
+            data: {
+              notes: notes,
+            },
+          });
+        } catch (error) {
+          console.error("Error updating accessibility note:", error);
+          figma.notify(error.message || "Failed to update note");
+          figma.ui.postMessage({
+            type: "NOTE_SAVED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "REMOVE_ACCESSIBILITY_NOTE":
+        // Remove accessibility note
+        try {
+          const removeNodeId = msg.data?.nodeId || msg.nodeId;
+          const node = NotesManager.getNodeById(removeNodeId);
+
+          if (!node) {
+            figma.notify("Node not found");
+            figma.ui.postMessage({
+              type: "NOTE_REMOVED",
+              success: false,
+              error: "Node not found",
+            });
+            break;
+          }
+
+          NotesManager.removeNote(node);
+          figma.notify("Accessibility note removed");
+
+          // Refresh the list
+          const notes = NotesManager.getAllNotedNodes(figma.currentPage);
+          figma.ui.postMessage({
+            type: "NOTE_REMOVED",
+            success: true,
+            data: {
+              notes: notes,
+            },
+          });
+        } catch (error) {
+          console.error("Error removing accessibility note:", error);
+          figma.notify(error.message || "Failed to remove note");
+          figma.ui.postMessage({
+            type: "NOTE_REMOVED",
+            success: false,
+            error: error.message,
+          });
+        }
+        break;
+
+      case "ZOOM_TO_NOTE_NODE":
+        // Zoom to a node with accessibility note
+        try {
+          const zoomNodeId = msg.data?.nodeId || msg.nodeId;
+          NotesManager.scrollAndZoomToNode(zoomNodeId);
+        } catch (error) {
+          console.error("Error zooming to node:", error);
         }
         break;
 

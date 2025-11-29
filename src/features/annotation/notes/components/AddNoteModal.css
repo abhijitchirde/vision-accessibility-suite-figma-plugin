@@ -1,0 +1,90 @@
+/**
+ * Add Note Modal Styles (Simplified)
+ */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.modal-content {
+  background-color: var(--figma-color-bg);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--figma-color-border);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--figma-color-text);
+}
+
+.modal-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modal-field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--figma-color-text);
+}
+
+.modal-field input,
+.modal-field textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--figma-color-border);
+  border-radius: 4px;
+  background: var(--figma-color-bg);
+  color: var(--figma-color-text);
+  font-size: 12px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.modal-field input:focus,
+.modal-field textarea:focus {
+  outline: none;
+  border-color: var(--figma-color-border-brand);
+}
+
+.modal-field textarea {
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.4;
+}
+
+.modal-footer {
+  padding: 16px;
+  border-top: 1px solid var(--figma-color-border);
+  display: flex;
+  justify-content: flex-end;
+}
+
