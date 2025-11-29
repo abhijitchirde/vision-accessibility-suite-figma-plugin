@@ -26,7 +26,12 @@ export const PLATFORM_METADATA: Record<PlatformType, {
 }> = {
   web: {
     label: 'Accessible Name',
-    description: 'Platform agnostic voice experiences',
+    description: 'Generic voice experiences',
+    icon: 'globe',
+  },
+  aria: {
+    label: 'ARIA notes',
+    description: 'Web (ARIA attributes)',
     icon: 'globe',
   },
   ios: {
@@ -69,8 +74,8 @@ export const PLATFORM_METADATA: Record<PlatformType, {
 export const PLATFORM_TEMPLATES: Record<PlatformType, PlatformTemplate> = {
   web: {
     platform: 'web',
-    label: 'Web (ARIA)',
-    description: 'Platform agnostic voice experiences',
+    label: 'Accessible Name',
+    description: 'Generic voice experiences',
     icon: 'globe',
     fields: [
       {
@@ -87,6 +92,29 @@ export const PLATFORM_TEMPLATES: Record<PlatformType, PlatformTemplate> = {
         type: 'textarea',
         placeholder: '',
         helpText: 'Enter additional information for Engineering as needed such as role, value, state, or description.',
+      },
+    ],
+  },
+  aria: {
+    platform: 'aria',
+    label: 'ARIA notes',
+    description: 'Web (ARIA attributes)',
+    icon: 'globe',
+    fields: [
+      {
+        id: 'accessibleName',
+        label: 'Accessible Name',
+        type: 'text',
+        placeholder: 'e.g., Submit button',
+        required: true,
+        helpText: 'ARIA accessible name for web (aria-label, aria-labelledby, etc.)',
+      },
+      {
+        id: 'note',
+        label: 'Note',
+        type: 'textarea',
+        placeholder: 'Additional ARIA attributes (role, state, properties)',
+        helpText: 'Enter ARIA-specific information such as role, aria-expanded, aria-hidden, aria-describedby, or other ARIA attributes.',
       },
     ],
   },
@@ -235,6 +263,7 @@ export const PLATFORM_TEMPLATES: Record<PlatformType, PlatformTemplate> = {
  */
 export const PLATFORM_ORDER: PlatformType[] = [
   'web',
+  'aria',
   'ios',
   'android',
   'windows',
@@ -253,6 +282,7 @@ export const DEFAULT_PLATFORM: PlatformType = 'web';
  */
 export const PLATFORM_BADGE_COLORS: Record<PlatformType, string> = {
   web: '#3b82f6',           // Blue
+  aria: '#2563eb',          // Darker Blue
   ios: '#10b981',           // Green
   android: '#a78bfa',       // Purple
   windows: '#06b6d4',       // Cyan
@@ -260,4 +290,6 @@ export const PLATFORM_BADGE_COLORS: Record<PlatformType, string> = {
   tv: '#ec4899',            // Pink
   general: '#6b7280',       // Gray
 };
+
+
 

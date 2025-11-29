@@ -8,7 +8,8 @@
  * Platform types supported for accessibility notes
  */
 export type PlatformType = 
-  | 'web'           // Web (ARIA attributes)
+  | 'web'           // Accessible Name (generic voice experiences)
+  | 'aria'          // ARIA notes (web-specific)
   | 'ios'           // iOS (VoiceOver)
   | 'android'       // Android (TalkBack)
   | 'windows'       // Windows (Narrator)
@@ -70,4 +71,6 @@ export interface NoteStats {
   total: number;
   byPlatform: Record<PlatformType, number>;
 }
+
+
 

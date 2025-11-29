@@ -109,7 +109,7 @@ NotesPanel displays note card with:
 
 ```typescript
 interface AccessibilityNoteData {
-  platform: PlatformType;      // 'web' | 'ios' | 'android' | 'windows' | 'react-native' | 'tv' | 'general'
+  platform: PlatformType;      // 'web' | 'aria' | 'ios' | 'android' | 'windows' | 'react-native' | 'tv' | 'general'
   accessibleName: string;       // Main accessibility label
   note: string;                 // Additional context
   version: number;              // Data schema version (for migrations)
@@ -135,13 +135,13 @@ Each platform has a template defining:
 - **Fields**: Form field configuration
 - **Help Text**: Guidance for each field
 
-Example template for Web:
+Example template for Accessible Name (generic):
 
 ```typescript
 {
   platform: 'web',
-  label: 'Web (ARIA)',
-  description: 'Platform agnostic voice experiences',
+  label: 'Accessible Name',
+  description: 'Generic voice experiences',
   icon: 'globe',
   fields: [
     {
@@ -158,6 +158,34 @@ Example template for Web:
       type: 'textarea',
       placeholder: '',
       helpText: 'Enter additional information for Engineering...',
+    },
+  ],
+}
+```
+
+Example template for ARIA notes (web-specific):
+
+```typescript
+{
+  platform: 'aria',
+  label: 'ARIA notes',
+  description: 'Web (ARIA attributes)',
+  icon: 'globe',
+  fields: [
+    {
+      id: 'accessibleName',
+      label: 'Accessible Name',
+      type: 'text',
+      placeholder: 'e.g., Submit button',
+      required: true,
+      helpText: 'ARIA accessible name for web (aria-label, aria-labelledby, etc.)',
+    },
+    {
+      id: 'note',
+      label: 'Note',
+      type: 'textarea',
+      placeholder: 'Additional ARIA attributes (role, state, properties)',
+      helpText: 'Enter ARIA-specific information such as role, aria-expanded, aria-hidden, aria-describedby, or other ARIA attributes.',
     },
   ],
 }
@@ -237,8 +265,13 @@ static exportNotesToMarkdown(page: PageNode): string {
 
 ## Platform-Specific Guidelines
 
-### Web (ARIA)
-- **Accessible Name**: Maps to `aria-label` or visible text
+### Accessible Name (Generic)
+- **Accessible Name**: Generic voice experiences across all platforms
+- **Note**: Additional context for voice control and screen readers
+- **Use Case**: Platform-agnostic accessible names for voice experiences
+
+### ARIA Notes (Web)
+- **Accessible Name**: Maps to `aria-label` or `aria-labelledby`
 - **Note**: Additional ARIA attributes (role, state, properties)
 - **Reference**: https://www.w3.org/WAI/ARIA/apg/
 
@@ -314,52 +347,61 @@ static exportNotesToMarkdown(page: PageNode): string {
 
 ### Test Cases
 
-1. **Add Note - Web Platform**
+1. **Add Note - Accessible Name (Generic)**
    - Select element
    - Open modal
-   - Select "Web (ARIA)"
+   - Select "Accessible Name"
+   - Enter accessible name: "Submit button"
+   - Enter note: "Used by voice control and screen readers"
+   - Verify note saved
+   - Verify note appears in list with globe icon
+
+2. **Add Note - ARIA Notes (Web)**
+   - Select element
+   - Open modal
+   - Select "ARIA notes"
    - Enter accessible name: "Submit button"
    - Enter note: "role=button, aria-pressed=false"
    - Verify note saved
    - Verify note appears in list with globe icon
 
-2. **Add Note - iOS Platform**
+3. **Add Note - iOS Platform**
    - Select element
    - Add note with platform="iOS"
    - Verify badge shows smartphone icon
    - Verify platform-specific help text displayed
 
-3. **Edit Existing Note**
+4. **Edit Existing Note**
    - Click edit icon on existing note
    - Modal opens with pre-filled data
    - Modify accessible name
    - Save changes
    - Verify updated in list
 
-4. **Remove Note**
+5. **Remove Note**
    - Click remove icon
    - Confirm deletion
    - Verify note removed from list
    - Verify plugin data cleared from node
 
-5. **Multiple Notes on Page**
+6. **Multiple Notes on Page**
    - Add notes to 5 different elements
    - Each with different platforms
    - Verify all appear in list
    - Verify correct platform badges
 
-6. **Empty States**
+7. **Empty States**
    - No selection → Show instruction
    - No notes on page → Show empty state with icon
 
-7. **Zoom to Element**
+8. **Zoom to Element**
    - Click note card
    - Verify Figma zooms to element
    - Verify element selected
 
-8. **Platform Switching**
-   - Add note as Web
-   - Edit to change platform to iOS
+9. **Platform Switching**
+   - Add note as Accessible Name
+   - Edit to change platform to ARIA notes
    - Verify help text updates
    - Verify badge updates
 
@@ -370,7 +412,7 @@ static exportNotesToMarkdown(page: PageNode): string {
 - [ ] Remove note
 - [ ] Zoom to element by clicking card
 - [ ] Switch between "Manage" and "List" tabs
-- [ ] Test all 7 platform types
+- [ ] Test all 8 platform types
 - [ ] Verify required field validation
 - [ ] Test with no selection (should show error)
 - [ ] Test with multiple notes on page
@@ -452,4 +494,6 @@ static exportNotesToMarkdown(page: PageNode): string {
 **Status**: ✅ Complete (Phase 10)
 **Version**: 1.0
 **Last Updated**: 2025-11-29
+
+
 

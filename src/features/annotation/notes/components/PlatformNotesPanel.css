@@ -152,6 +152,17 @@
   gap: 6px;
 }
 
+.platform-note-card__warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--figma-color-bg-warning);
+  margin-bottom: 4px;
+}
+
 .platform-note-card__row {
   display: flex;
   gap: 8px;
@@ -171,6 +182,11 @@
   white-space: pre-wrap;
 }
 
+.platform-note-card__value--missing {
+  color: var(--figma-color-text-tertiary);
+  font-style: italic;
+}
+
 /* Footer */
 .platform-notes-panel__footer {
   position: fixed;
@@ -182,4 +198,6 @@
   border-top: 1px solid var(--figma-color-border);
   z-index: 99;
 }
+
+
 

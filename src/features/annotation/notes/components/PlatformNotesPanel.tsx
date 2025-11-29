@@ -11,7 +11,7 @@ import { Button } from '../../../../components/ui/Button/Button';
 import { useFigmaMessage } from '../../../../hooks/useFigmaMessage';
 import { NoteNodeInfo, PlatformType } from '../notes.types';
 import { PLATFORM_METADATA, PLATFORM_BADGE_COLORS } from '../notes.constants';
-import { AddNoteModal } from './AddNoteModal';
+import { AddEditNotePanel } from './AddEditNotePanel';
 
 interface PlatformNotesPanelProps {
   platform: PlatformType;
@@ -21,8 +21,9 @@ interface PlatformNotesPanelProps {
 export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform, onBack }) => {
   const [notes, setNotes] = useState<NoteNodeInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  const [selectedNodeName, setSelectedNodeName] = useState<string>('');
   const { sendMessage } = useFigmaMessage();
 
   const metadata = PLATFORM_METADATA[platform];
@@ -46,12 +47,15 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform
         }
       }
 
+      // Removed SELECTION_CHECK_RESULT handling - we check on save instead
+
       if (msg?.type === 'NOTE_SAVED' || msg?.type === 'NOTE_REMOVED') {
         if (msg.success) {
+          setShowForm(false);
+          setEditingNodeId(null);
           loadNotes();
-        } else {
-          alert(msg.error || 'Operation failed');
         }
+        // Removed alert for errors - errors are already handled
       }
     };
 
@@ -67,26 +71,31 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform
   };
 
   const handleAddNote = () => {
+    // Reset editing state and show form immediately
     setEditingNodeId(null);
-    setShowModal(true);
+    setShowForm(true);
   };
 
   const handleEditNote = (nodeId: string, event: React.MouseEvent) => {
     event.stopPropagation();
+    console.log('PlatformNotesPanel - handleEditNote - nodeId:', nodeId);
+    // Set the node to edit and show form directly (we know node exists)
     setEditingNodeId(nodeId);
-    setShowModal(true);
+    setShowForm(true);
   };
 
   const handleRemoveNote = (nodeId: string, event: React.MouseEvent) => {
     event.stopPropagation();
+    console.log('PlatformNotesPanel - handleRemoveNote - nodeId:', nodeId);
     if (confirm('Remove this accessibility note?')) {
       sendMessage('REMOVE_ACCESSIBILITY_NOTE', { nodeId });
     }
   };
 
-  const handleModalConfirm = (accessibleName: string, note: string) => {
+  const handleSaveNote = (accessibleName: string, note: string) => {
     if (editingNodeId) {
       // Update existing note
+      console.log('PlatformNotesPanel - UPDATE - nodeId:', editingNodeId);
       sendMessage('UPDATE_ACCESSIBILITY_NOTE', {
         nodeId: editingNodeId,
         platform,
@@ -94,13 +103,21 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform
         note,
       });
     } else {
-      // Add new note
+      // Add new note - selection check happens in plugin code
+      console.log('PlatformNotesPanel - SAVE - no nodeId (new note)');
       sendMessage('SAVE_ACCESSIBILITY_NOTE', {
         platform,
         accessibleName,
         note,
       });
+      // Note: Form stays open if there's an error (no selection)
+      // User can then select a node and click Done again
     }
+  };
+
+  const handleBackFromForm = () => {
+    // Hide form and reset editing state
+    setShowForm(false);
     setEditingNodeId(null);
   };
 
@@ -110,6 +127,26 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform
 
   // Get editing note data
   const editingNote = editingNodeId ? notes.find((n) => n.nodeId === editingNodeId) : null;
+
+  // If showing form, render the form panel instead
+  if (showForm) {
+    // Use a unique key to force re-mount when switching between add/edit
+    const formKey = editingNodeId || 'new';
+    
+    return (
+      <AddEditNotePanel
+        key={formKey}
+        platform={platform}
+        nodeId={editingNodeId || ''}
+        nodeName={editingNote?.nodeName || 'Will be set on save'}
+        onBack={handleBackFromForm}
+        onSave={handleSaveNote}
+        existingAccessibleName={editingNote?.noteData?.accessibleName || ''}
+        existingNote={editingNote?.noteData?.note || ''}
+        isEditing={!!editingNodeId}
+      />
+    );
+  }
 
   return (
     <div className="platform-notes-panel">
@@ -172,10 +209,18 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform
                     </div>
                   </div>
                   <div className="platform-note-card__content">
+                    {/* Warning if accessible name is missing */}
+                    {!noteItem.noteData?.accessibleName && (
+                      <div className="platform-note-card__warning">
+                        <Icon name="alert-circle" size={14} />
+                        <span>Missing accessible name - please add one</span>
+                      </div>
+                    )}
+                    
                     <div className="platform-note-card__row">
                       <span className="platform-note-card__label">Name:</span>
-                      <span className="platform-note-card__value">
-                        {noteItem.noteData?.accessibleName || 'N/A'}
+                      <span className={`platform-note-card__value ${!noteItem.noteData?.accessibleName ? 'platform-note-card__value--missing' : ''}`}>
+                        {noteItem.noteData?.accessibleName || '(Empty - needs accessible name)'}
                       </span>
                     </div>
                     {noteItem.noteData?.note && (
@@ -200,23 +245,9 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform
           </Button>
         </div>
       )}
-
-      {/* Modal */}
-      {showModal && (
-        <AddNoteModal
-          platform={platform}
-          nodeId={editingNodeId || ''}
-          nodeName={editingNote?.nodeName || 'Selected Element'}
-          onClose={() => {
-            setShowModal(false);
-            setEditingNodeId(null);
-          }}
-          onConfirm={handleModalConfirm}
-          existingAccessibleName={editingNote?.noteData?.accessibleName}
-          existingNote={editingNote?.noteData?.note}
-        />
-      )}
     </div>
   );
 };
+
+
 

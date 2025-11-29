@@ -4,7 +4,7 @@
  * Simple modal for adding or editing accessibility notes (platform-specific)
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './AddNoteModal.css';
 import { Button } from '../../../../components/ui/Button/Button';
 import { PlatformType } from '../notes.types';
@@ -31,8 +31,21 @@ export const AddNoteModal: React.FC<AddNoteModalProps> = ({
 }) => {
   const [accessibleName, setAccessibleName] = useState(existingAccessibleName);
   const [note, setNote] = useState(existingNote);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const metadata = PLATFORM_METADATA[platform];
+
+  // Focus the input when modal mounts
+  useEffect(() => {
+    // Small delay to ensure modal is rendered
+    const timer = setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleConfirm = () => {
     onConfirm(accessibleName, note);
@@ -50,11 +63,14 @@ export const AddNoteModal: React.FC<AddNoteModalProps> = ({
           <div className="modal-field">
             <label>Name</label>
             <input
+              ref={inputRef}
               type="text"
               value={accessibleName}
               onChange={(e) => setAccessibleName(e.target.value)}
               placeholder={`e.g., ${metadata.label}`}
-              autoFocus
+              disabled={false}
+              readOnly={false}
+              tabIndex={0}
             />
           </div>
 
@@ -65,6 +81,9 @@ export const AddNoteModal: React.FC<AddNoteModalProps> = ({
               onChange={(e) => setNote(e.target.value)}
               placeholder="Additional notes..."
               rows={4}
+              disabled={false}
+              readOnly={false}
+              tabIndex={0}
             />
           </div>
         </div>

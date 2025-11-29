@@ -44,8 +44,8 @@ export class NotesManager {
 
       const parsed = JSON.parse(data) as AccessibilityNoteData;
 
-      // Validate data structure
-      if (!parsed.platform || !parsed.accessibleName) {
+      // Validate data structure - platform is required, but accessibleName can be empty
+      if (!parsed.platform) {
         return null;
       }
 
@@ -131,6 +131,7 @@ export class NotesManager {
 
     const byPlatform: Record<PlatformType, number> = {
       web: 0,
+      aria: 0,
       ios: 0,
       android: 0,
       windows: 0,
@@ -152,26 +153,78 @@ export class NotesManager {
   }
 
   /**
-   * Get node by ID from current page
+   * Get node by ID from document (async version for cross-page access)
+   * Note: This works across all pages in the document
    */
-  static getNodeById(nodeId: string): SceneNode | null {
+  static async getNodeByIdAsync(nodeId: string): Promise<SceneNode | null> {
     try {
-      const node = figma.getNodeById(nodeId);
-      if (node && 'getPluginData' in node) {
-        return node as SceneNode;
+      if (!nodeId) {
+        console.error('NotesManager.getNodeByIdAsync - No nodeId provided');
+        return null;
       }
-      return null;
+
+      console.log('NotesManager.getNodeByIdAsync - Looking for node:', nodeId);
+      const node = await figma.getNodeByIdAsync(nodeId);
+      
+      if (!node) {
+        console.error(`NotesManager.getNodeByIdAsync - Node with ID ${nodeId} not found in document`);
+        return null;
+      }
+      
+      console.log('NotesManager.getNodeByIdAsync - Found node:', (node as any).name, node.type);
+      
+      if (!('getPluginData' in node)) {
+        console.error(`NotesManager.getNodeByIdAsync - Node ${nodeId} does not support plugin data`);
+        return null;
+      }
+      
+      // Check if node was removed (this property exists on BaseNode)
+      if ('removed' in node && node.removed) {
+        console.error(`NotesManager.getNodeByIdAsync - Node ${nodeId} has been removed`);
+        return null;
+      }
+      
+      console.log('NotesManager.getNodeByIdAsync - Successfully retrieved node:', nodeId);
+      return node as SceneNode;
     } catch (error) {
-      console.error('Error getting node by ID:', error);
+      console.error('NotesManager.getNodeByIdAsync - Error getting node by ID:', nodeId, error);
       return null;
     }
   }
 
   /**
-   * Scroll and zoom to a specific node
+   * Get node by ID from document (synchronous - only works for current page)
+   * @deprecated Use getNodeByIdAsync instead for cross-page access
    */
-  static scrollAndZoomToNode(nodeId: string): void {
-    const node = this.getNodeById(nodeId);
+  static getNodeById(nodeId: string): SceneNode | null {
+    try {
+      if (!nodeId) {
+        console.error('NotesManager.getNodeById - No nodeId provided');
+        return null;
+      }
+
+      const node = figma.getNodeById(nodeId);
+      
+      if (!node) {
+        return null;
+      }
+      
+      if (!('getPluginData' in node)) {
+        return null;
+      }
+      
+      return node as SceneNode;
+    } catch (error) {
+      // If sync version fails, caller should use async version
+      return null;
+    }
+  }
+
+  /**
+   * Scroll and zoom to a specific node (async for cross-page access)
+   */
+  static async scrollAndZoomToNode(nodeId: string): Promise<void> {
+    const node = await this.getNodeByIdAsync(nodeId);
     if (node) {
       figma.currentPage.selection = [node];
       figma.viewport.scrollAndZoomIntoView([node]);
@@ -239,4 +292,6 @@ export class NotesManager {
     return markdown;
   }
 }
+
+
 

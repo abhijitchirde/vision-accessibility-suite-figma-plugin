@@ -27,7 +27,10 @@ const touchTargetsChecker = new TouchTargetsChecker();
 const typographyChecker = new TypographyChecker();
 const visionSimulator = new VisionSimulator();
 const altTextManager = new AltTextManager(storageService, annotationService);
-const focusOrderManager = new FocusOrderManager(storageService, selectionService);
+const focusOrderManager = new FocusOrderManager(
+  storageService,
+  selectionService
+);
 const headingsManager = new HeadingsManager(storageService, selectionService);
 const landmarksManager = new LandmarksManager(storageService, selectionService);
 
@@ -89,8 +92,11 @@ async function syncCanvasSelectionToUI() {
   const selectedNode = selection[0];
 
   // Check if selected node is an annotation group
-  if (selectedNode.type === 'GROUP' && selectedNode.name.startsWith('a11y-annotation')) {
-    const targetNodeId = selectedNode.getPluginData('targetNodeId');
+  if (
+    selectedNode.type === "GROUP" &&
+    selectedNode.name.startsWith("a11y-annotation")
+  ) {
+    const targetNodeId = selectedNode.getPluginData("targetNodeId");
     if (targetNodeId) {
       // User selected an annotation, sync to its target node
       figma.ui.postMessage({
@@ -102,9 +108,9 @@ async function syncCanvasSelectionToUI() {
   }
 
   // Check if selected node is an image node (has image fill)
-  if ('fills' in selectedNode && Array.isArray(selectedNode.fills)) {
+  if ("fills" in selectedNode && Array.isArray(selectedNode.fills)) {
     const hasImageFill = selectedNode.fills.some(
-      (fill) => fill.type === 'IMAGE' && fill.visible !== false
+      (fill) => fill.type === "IMAGE" && fill.visible !== false
     );
 
     if (hasImageFill) {
@@ -519,7 +525,10 @@ figma.ui.onmessage = async (msg) => {
           const presetsData = figma.root.getPluginData(
             "vision-simulator-presets"
           );
-          console.log("[code.ts] Loading presets from storage, raw data:", presetsData);
+          console.log(
+            "[code.ts] Loading presets from storage, raw data:",
+            presetsData
+          );
           const presets = presetsData ? JSON.parse(presetsData) : [];
           console.log("[code.ts] Parsed presets:", presets.length, "presets");
           figma.ui.postMessage({
@@ -541,10 +550,20 @@ figma.ui.onmessage = async (msg) => {
           console.log("[code.ts] Received SAVE_PRESETS message, raw msg:", msg);
           const presetsToSave = msg.data?.presets || []; // FIX: Use msg.data.presets
           console.log("[code.ts] presetsToSave extracted:", presetsToSave);
-          console.log("[code.ts] presetsToSave is array?", Array.isArray(presetsToSave));
+          console.log(
+            "[code.ts] presetsToSave is array?",
+            Array.isArray(presetsToSave)
+          );
           console.log("[code.ts] presetsToSave length:", presetsToSave.length);
-          console.log("[code.ts] Saving presets to storage:", presetsToSave.length, "presets");
-          console.log("[code.ts] Full preset data:", JSON.stringify(presetsToSave, null, 2));
+          console.log(
+            "[code.ts] Saving presets to storage:",
+            presetsToSave.length,
+            "presets"
+          );
+          console.log(
+            "[code.ts] Full preset data:",
+            JSON.stringify(presetsToSave, null, 2)
+          );
 
           figma.root.setPluginData(
             "vision-simulator-presets",
@@ -552,9 +571,17 @@ figma.ui.onmessage = async (msg) => {
           );
 
           // Verify the save by reading it back
-          const verification = figma.root.getPluginData("vision-simulator-presets");
-          console.log("[code.ts] Verification - data saved successfully:", verification ? "YES" : "NO");
-          console.log("[code.ts] Verification - saved data length:", verification?.length || 0);
+          const verification = figma.root.getPluginData(
+            "vision-simulator-presets"
+          );
+          console.log(
+            "[code.ts] Verification - data saved successfully:",
+            verification ? "YES" : "NO"
+          );
+          console.log(
+            "[code.ts] Verification - saved data length:",
+            verification?.length || 0
+          );
 
           // Send confirmation back to UI
           figma.ui.postMessage({
@@ -741,11 +768,13 @@ figma.ui.onmessage = async (msg) => {
 
             // Create image from the data
             const image = figma.createImage(imageData);
-            rect.fills = [{
-              type: 'IMAGE',
-              scaleMode: 'FILL',
-              imageHash: image.hash,
-            }];
+            rect.fills = [
+              {
+                type: "IMAGE",
+                scaleMode: "FILL",
+                imageHash: image.hash,
+              },
+            ];
 
             frame.appendChild(rect);
 
@@ -773,7 +802,8 @@ figma.ui.onmessage = async (msg) => {
         // Mark panel as active for annotation deletion detection
         altTextPanelActive = true;
         try {
-          const imageNodesData = await altTextManager.getAllImageNodesWithAltText();
+          const imageNodesData =
+            await altTextManager.getAllImageNodesWithAltText();
           const stats = await altTextManager.getStats();
           figma.ui.postMessage({
             type: "ALT_TEXT_IMAGE_NODES",
@@ -802,7 +832,7 @@ figma.ui.onmessage = async (msg) => {
         // Get alt text data for a specific node
         try {
           const nodeId = msg.data?.nodeId || msg.nodeId;
-          const node = await figma.getNodeByIdAsync(nodeId) as SceneNode;
+          const node = (await figma.getNodeByIdAsync(nodeId)) as SceneNode;
           const altTextData = await altTextManager.getAltTextForNode(nodeId);
           figma.ui.postMessage({
             type: "ALT_TEXT_DATA",
@@ -824,8 +854,12 @@ figma.ui.onmessage = async (msg) => {
         // Validate alt text
         try {
           const altText = msg.data?.altText || msg.altText || "";
-          const isDecorative = msg.data?.isDecorative || msg.isDecorative || false;
-          const validation = altTextManager.validateAltText(altText, isDecorative);
+          const isDecorative =
+            msg.data?.isDecorative || msg.isDecorative || false;
+          const validation = altTextManager.validateAltText(
+            altText,
+            isDecorative
+          );
           figma.ui.postMessage({
             type: "ALT_TEXT_VALIDATED",
             success: true,
@@ -846,9 +880,14 @@ figma.ui.onmessage = async (msg) => {
         try {
           const nodeId = msg.data?.nodeId || msg.nodeId;
           const altText = msg.data?.altText || msg.altText || "";
-          const isDecorative = msg.data?.isDecorative || msg.isDecorative || false;
+          const isDecorative =
+            msg.data?.isDecorative || msg.isDecorative || false;
 
-          const savedData = await altTextManager.setAltText(nodeId, altText, isDecorative);
+          const savedData = await altTextManager.setAltText(
+            nodeId,
+            altText,
+            isDecorative
+          );
 
           if (savedData) {
             figma.ui.postMessage({
@@ -861,7 +900,9 @@ figma.ui.onmessage = async (msg) => {
               type: "ALT_TEXT_UPDATED",
               success: true,
             });
-            figma.notify(isDecorative ? "Marked as decorative" : "Alt text saved");
+            figma.notify(
+              isDecorative ? "Marked as decorative" : "Alt text saved"
+            );
           } else {
             throw new Error("Failed to save alt text");
           }
@@ -998,7 +1039,9 @@ figma.ui.onmessage = async (msg) => {
         // Remove an item from focus order
         try {
           const nodeIdToRemove = msg.data?.nodeId || msg.nodeId;
-          const result = await focusOrderManager.removeFocusOrderItem(nodeIdToRemove);
+          const result = await focusOrderManager.removeFocusOrderItem(
+            nodeIdToRemove
+          );
           if (result.success) {
             figma.notify("Removed from focus order");
             figma.ui.postMessage({
@@ -1030,7 +1073,9 @@ figma.ui.onmessage = async (msg) => {
         // Reorder focus items (after drag-and-drop)
         try {
           const itemsToReorder = msg.data?.items || msg.items;
-          const result = await focusOrderManager.reorderFocusItems(itemsToReorder);
+          const result = await focusOrderManager.reorderFocusItems(
+            itemsToReorder
+          );
           if (result.success) {
             figma.ui.postMessage({
               type: "FOCUS_ORDER_REORDERED",
@@ -1193,7 +1238,10 @@ figma.ui.onmessage = async (msg) => {
         try {
           const nodeIdToUpdate = msg.data?.nodeId || msg.nodeId;
           const newLevel = msg.data?.level || msg.level;
-          const result = await headingsManager.updateHeadingLevel(nodeIdToUpdate, newLevel);
+          const result = await headingsManager.updateHeadingLevel(
+            nodeIdToUpdate,
+            newLevel
+          );
           if (result.success) {
             figma.notify(`Updated to ${newLevel}`);
             figma.ui.postMessage({
@@ -1293,7 +1341,10 @@ figma.ui.onmessage = async (msg) => {
         try {
           const role = msg.data?.role || msg.role;
           const label = msg.data?.label || msg.label;
-          const result = await landmarksManager.addSelectedAsLandmark(role, label);
+          const result = await landmarksManager.addSelectedAsLandmark(
+            role,
+            label
+          );
           if (result.success) {
             figma.notify(`Added ${role} landmark`);
             const updatedLandmarks = await landmarksManager.getLandmarks();
@@ -1359,7 +1410,10 @@ figma.ui.onmessage = async (msg) => {
         try {
           const landmarkNodeId = msg.data?.nodeId || msg.nodeId;
           const newRole = msg.data?.role || msg.role;
-          const result = await landmarksManager.updateLandmarkRole(landmarkNodeId, newRole);
+          const result = await landmarksManager.updateLandmarkRole(
+            landmarkNodeId,
+            newRole
+          );
           if (result.success) {
             figma.notify(`Updated to ${newRole}`);
             figma.ui.postMessage({
@@ -1392,7 +1446,10 @@ figma.ui.onmessage = async (msg) => {
         try {
           const landmarkNodeId = msg.data?.nodeId || msg.nodeId;
           const label = msg.data?.label || msg.label;
-          const result = await landmarksManager.updateLandmarkLabel(landmarkNodeId, label);
+          const result = await landmarksManager.updateLandmarkLabel(
+            landmarkNodeId,
+            label
+          );
           if (result.success) {
             figma.notify("Landmark label updated");
             figma.ui.postMessage({
@@ -1468,6 +1525,26 @@ figma.ui.onmessage = async (msg) => {
       // Accessibility Notes
       // ========================================
 
+      case "CHECK_SELECTION_FOR_NOTE":
+        // Check if a node is selected before opening the form
+        const selection = figma.currentPage.selection;
+        if (selection.length === 0) {
+          figma.notify("Please select a node to add the note");
+          figma.ui.postMessage({
+            type: "SELECTION_CHECK_RESULT",
+            success: false,
+            hasSelection: false,
+          });
+        } else {
+          figma.ui.postMessage({
+            type: "SELECTION_CHECK_RESULT",
+            success: true,
+            hasSelection: true,
+            nodeName: selection[0].name,
+          });
+        }
+        break;
+
       case "GET_ACCESSIBILITY_NOTES":
         // Get all accessibility notes on the page
         try {
@@ -1494,12 +1571,8 @@ figma.ui.onmessage = async (msg) => {
         try {
           const selection = figma.currentPage.selection;
           if (selection.length === 0) {
-            figma.notify("Please select an element first");
-            figma.ui.postMessage({
-              type: "NOTE_SAVED",
-              success: false,
-              error: "No element selected",
-            });
+            // Just notify, don't send error message (form stays open)
+            figma.notify("Please select a node to add the note");
             break;
           }
 
@@ -1521,101 +1594,133 @@ figma.ui.onmessage = async (msg) => {
         } catch (error) {
           console.error("Error saving accessibility note:", error);
           figma.notify(error.message || "Failed to save note");
-          figma.ui.postMessage({
-            type: "NOTE_SAVED",
-            success: false,
-            error: error.message,
-          });
+          // Don't send error message - form stays open
         }
         break;
 
       case "UPDATE_ACCESSIBILITY_NOTE":
         // Update existing accessibility note
-        try {
-          const noteNodeId = msg.data?.nodeId || msg.nodeId;
-          const node = NotesManager.getNodeById(noteNodeId);
+        (async () => {
+          try {
+            const noteNodeId = msg.data?.nodeId || msg.nodeId;
 
-          if (!node) {
-            figma.notify("Node not found");
+            console.log("UPDATE_ACCESSIBILITY_NOTE - nodeId:", noteNodeId);
+            console.log("UPDATE_ACCESSIBILITY_NOTE - full msg:", msg);
+
+            if (!noteNodeId) {
+              figma.notify("Node ID is missing");
+              figma.ui.postMessage({
+                type: "NOTE_SAVED",
+                success: false,
+                error: "Node ID is missing",
+              });
+              return;
+            }
+
+            const node = await NotesManager.getNodeByIdAsync(noteNodeId);
+
+            if (!node) {
+              console.error("Node not found for ID:", noteNodeId);
+              figma.notify("Node not found");
+              figma.ui.postMessage({
+                type: "NOTE_SAVED",
+                success: false,
+                error: "Node not found",
+              });
+              return;
+            }
+
+            const { platform, accessibleName, note } = msg.data || msg;
+            NotesManager.updateNote(node, platform, accessibleName, note);
+            figma.notify("Accessibility note updated");
+
+            // Refresh the list
+            const notes = NotesManager.getAllNotedNodes(figma.currentPage);
+            figma.ui.postMessage({
+              type: "NOTE_SAVED",
+              success: true,
+              data: {
+                notes: notes,
+              },
+            });
+          } catch (error) {
+            console.error("Error updating accessibility note:", error);
+            figma.notify(error.message || "Failed to update note");
             figma.ui.postMessage({
               type: "NOTE_SAVED",
               success: false,
-              error: "Node not found",
+              error: error.message,
             });
-            break;
           }
-
-          const { platform, accessibleName, note } = msg.data || msg;
-          NotesManager.updateNote(node, platform, accessibleName, note);
-          figma.notify("Accessibility note updated");
-
-          // Refresh the list
-          const notes = NotesManager.getAllNotedNodes(figma.currentPage);
-          figma.ui.postMessage({
-            type: "NOTE_SAVED",
-            success: true,
-            data: {
-              notes: notes,
-            },
-          });
-        } catch (error) {
-          console.error("Error updating accessibility note:", error);
-          figma.notify(error.message || "Failed to update note");
-          figma.ui.postMessage({
-            type: "NOTE_SAVED",
-            success: false,
-            error: error.message,
-          });
-        }
+        })();
         break;
 
       case "REMOVE_ACCESSIBILITY_NOTE":
         // Remove accessibility note
-        try {
-          const removeNodeId = msg.data?.nodeId || msg.nodeId;
-          const node = NotesManager.getNodeById(removeNodeId);
+        (async () => {
+          try {
+            const removeNodeId = msg.data?.nodeId || msg.nodeId;
 
-          if (!node) {
-            figma.notify("Node not found");
+            console.log("REMOVE_ACCESSIBILITY_NOTE - nodeId:", removeNodeId);
+            console.log("REMOVE_ACCESSIBILITY_NOTE - full msg:", msg);
+
+            if (!removeNodeId) {
+              figma.notify("Node ID is missing");
+              figma.ui.postMessage({
+                type: "NOTE_REMOVED",
+                success: false,
+                error: "Node ID is missing",
+              });
+              return;
+            }
+
+            const node = await NotesManager.getNodeByIdAsync(removeNodeId);
+
+            if (!node) {
+              console.error("Node not found for ID:", removeNodeId);
+              figma.notify("Node not found");
+              figma.ui.postMessage({
+                type: "NOTE_REMOVED",
+                success: false,
+                error: "Node not found",
+              });
+              return;
+            }
+
+            NotesManager.removeNote(node);
+            figma.notify("Accessibility note removed");
+
+            // Refresh the list
+            const notes = NotesManager.getAllNotedNodes(figma.currentPage);
+            figma.ui.postMessage({
+              type: "NOTE_REMOVED",
+              success: true,
+              data: {
+                notes: notes,
+              },
+            });
+          } catch (error) {
+            console.error("Error removing accessibility note:", error);
+            figma.notify(error.message || "Failed to remove note");
             figma.ui.postMessage({
               type: "NOTE_REMOVED",
               success: false,
-              error: "Node not found",
+              error: error.message,
             });
-            break;
           }
-
-          NotesManager.removeNote(node);
-          figma.notify("Accessibility note removed");
-
-          // Refresh the list
-          const notes = NotesManager.getAllNotedNodes(figma.currentPage);
-          figma.ui.postMessage({
-            type: "NOTE_REMOVED",
-            success: true,
-            data: {
-              notes: notes,
-            },
-          });
-        } catch (error) {
-          console.error("Error removing accessibility note:", error);
-          figma.notify(error.message || "Failed to remove note");
-          figma.ui.postMessage({
-            type: "NOTE_REMOVED",
-            success: false,
-            error: error.message,
-          });
-        }
+        })();
         break;
 
       case "ZOOM_TO_NOTE_NODE":
         // Zoom to a node with accessibility note
-        try {
-          const zoomNodeId = msg.data?.nodeId || msg.nodeId;
-          NotesManager.scrollAndZoomToNode(zoomNodeId);
-        } catch (error) {
-          console.error("Error zooming to node:", error);
-        }
+        (async () => {
+          try {
+            const zoomNodeId = msg.data?.nodeId || msg.nodeId;
+            await NotesManager.scrollAndZoomToNode(zoomNodeId);
+          } catch (error) {
+            console.error("Error zooming to node:", error);
+          }
+        })();
         break;
 
       case "get-theme":
