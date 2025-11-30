@@ -73,13 +73,16 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
   const [ghostingOffsetY, setGhostingOffsetY] = useState<number>(5);
   const [ghostingOpacity, setGhostingOpacity] = useState<number>(0.5);
   const [yellowingIntensity, setYellowingIntensity] = useState<number>(0.6);
-  const [yellowingTemperature, setYellowingTemperature] = useState<number>(2500);
+  const [yellowingTemperature, setYellowingTemperature] =
+    useState<number>(2500);
   const [contrastReduction, setContrastReduction] = useState<number>(0.5);
   const [brightLightIntensity, setBrightLightIntensity] = useState<number>(0.7);
   const [brightLightWashout, setBrightLightWashout] = useState<number>(0.4);
 
   // Preset state
-  const [selectedPreset, setSelectedPreset] = useState<FilterPreset | null>(null);
+  const [selectedPreset, setSelectedPreset] = useState<FilterPreset | null>(
+    null
+  );
   const [customPresets, setCustomPresets] = useState<FilterPreset[]>([]);
   const [showPresetManager, setShowPresetManager] = useState(false);
 
@@ -89,6 +92,14 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
   // Canvas refs for image processing
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
+
+  // Store original node dimensions (not the exported image dimensions which may be 2x)
+  const [originalNodeWidth, setOriginalNodeWidth] = useState<number | null>(
+    null
+  );
+  const [originalNodeHeight, setOriginalNodeHeight] = useState<number | null>(
+    null
+  );
 
   const { sendMessage } = useFigmaMessage();
 
@@ -119,7 +130,11 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
         }
       } else if (msg?.type === "VISION_SIMULATOR_PRESETS_SAVED") {
         if (msg.success) {
-          console.log("[UI] ✓ Presets saved successfully to Figma storage:", msg.count, "presets");
+          console.log(
+            "[UI] ✓ Presets saved successfully to Figma storage:",
+            msg.count,
+            "presets"
+          );
         } else {
           console.error("[UI] ✗ Failed to save presets:", msg.error);
         }
@@ -133,7 +148,7 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
   // Restore selected preset when presets are loaded and we have a pending ID
   useEffect(() => {
     if (pendingPresetId && allPresets.length > 0) {
-      const preset = allPresets.find(p => p.id === pendingPresetId);
+      const preset = allPresets.find((p) => p.id === pendingPresetId);
       if (preset) {
         console.log("Restoring preset:", preset.name);
         setSelectedPreset(preset);
@@ -312,11 +327,15 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
         } else if (msg.error === null) {
           // No selection, clear preview
           setPreviewImage(null);
+          setOriginalNodeWidth(null);
+          setOriginalNodeHeight(null);
           setError(null);
           setLoading(false);
         } else {
           // Actual error occurred
           setPreviewImage(null);
+          setOriginalNodeWidth(null);
+          setOriginalNodeHeight(null);
           setError(null); // Don't show error in UI
           setLoading(false);
           // Show figma notification instead
@@ -388,6 +407,10 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
     height: number
   ) => {
     try {
+      // Store original node dimensions (these are the actual node dimensions, not the exported image size)
+      setOriginalNodeWidth(width);
+      setOriginalNodeHeight(height);
+
       // Create blob from image data
       const blob = new Blob([imageData as any], { type: "image/png" });
       const url = URL.createObjectURL(blob);
@@ -468,10 +491,15 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
           iterations: blurIterations,
         });
       } else if (filter === "ghosting") {
-        filteredData = applyGhosting(imageData.data, canvas.width, canvas.height, {
-          offset: { x: ghostingOffsetX, y: ghostingOffsetY },
-          opacity: ghostingOpacity,
-        });
+        filteredData = applyGhosting(
+          imageData.data,
+          canvas.width,
+          canvas.height,
+          {
+            offset: { x: ghostingOffsetX, y: ghostingOffsetY },
+            opacity: ghostingOpacity,
+          }
+        );
       } else if (filter === "yellowing") {
         filteredData = applyYellowing(imageData.data, {
           intensity: yellowingIntensity,
@@ -568,7 +596,7 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
 
     // Add imported presets to custom presets
     // Only modify ID if it already exists to avoid duplicates
-    const existingIds = new Set(customPresets.map(p => p.id));
+    const existingIds = new Set(customPresets.map((p) => p.id));
     console.log("[UI] Existing preset IDs:", Array.from(existingIds));
 
     const newPresets = importedPresets.map((preset) => {
@@ -577,7 +605,9 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
       // If preset ID already exists, append timestamp to make it unique
       if (existingIds.has(preset.id)) {
         finalId = `${preset.id}-${Date.now()}`;
-        console.log(`[UI] Preset ID ${preset.id} already exists, using ${finalId}`);
+        console.log(
+          `[UI] Preset ID ${preset.id} already exists, using ${finalId}`
+        );
       }
 
       return {
@@ -595,7 +625,11 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
       console.log("[UI] setCustomPresets updater - prev:", prev);
       const updated = [...prev, ...newPresets];
       console.log("[UI] setCustomPresets updater - updated:", updated);
-      console.log("[UI] About to send SAVE message with:", updated.length, "presets");
+      console.log(
+        "[UI] About to send SAVE message with:",
+        updated.length,
+        "presets"
+      );
 
       // Save to persistent storage via code.ts
       sendMessage("VISION_SIMULATOR_SAVE_PRESETS", {
@@ -611,11 +645,11 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
    */
   const handleExportPreset = (preset: FilterPreset) => {
     const dataStr = JSON.stringify([preset], null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `${preset.name.toLowerCase().replace(/\s+/g, '-')}.json`;
+    link.download = `${preset.name.toLowerCase().replace(/\s+/g, "-")}.json`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -627,6 +661,13 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
     const canvas = canvasRef.current;
     if (!canvas || !previewImage) return;
 
+    // Use original node dimensions instead of canvas dimensions
+    // Canvas dimensions may be 2x due to export scale, but we want the actual node size
+    if (originalNodeWidth === null || originalNodeHeight === null) {
+      setError("Original node dimensions not available");
+      return;
+    }
+
     setExporting(true);
     setError(null);
 
@@ -635,8 +676,8 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((blob) => {
           if (blob) resolve(blob);
-          else reject(new Error('Failed to create blob'));
-        }, 'image/png');
+          else reject(new Error("Failed to create blob"));
+        }, "image/png");
       });
 
       // Convert blob to Uint8Array
@@ -644,46 +685,52 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
       const imageData = new Uint8Array(arrayBuffer);
 
       // Determine the label for the frame
-      let label = '';
+      let label = "";
       if (selectedPreset) {
         label = selectedPreset.name;
-      } else if (currentFilter !== 'original') {
+      } else if (currentFilter !== "original") {
         label = FILTER_METADATA[currentFilter].name;
       }
 
       // Send message to create frame and apply image
-      sendMessage('VISION_SIMULATOR_EXPORT_TO_CANVAS', {
+      // Use original node dimensions, not canvas dimensions (which may be 2x)
+      sendMessage("VISION_SIMULATOR_EXPORT_TO_CANVAS", {
         imageData,
-        width: canvas.width,
-        height: canvas.height,
+        width: originalNodeWidth,
+        height: originalNodeHeight,
         label,
       });
     } catch (err) {
-      console.error('Failed to export to canvas:', err);
-      setError('Failed to export to canvas');
+      console.error("Failed to export to canvas:", err);
+      setError("Failed to export to canvas");
       setExporting(false);
     }
   };
 
   // Prepare filter options for dropdown
   const filterOptions = [
-    { value: 'original' as SimulationType, label: 'Original', groupLabel: 'None', showIcon: false },
-    ...COLOR_BLIND_FILTERS.map(filter => ({
+    {
+      value: "original" as SimulationType,
+      label: "Original",
+      groupLabel: "None",
+      showIcon: false,
+    },
+    ...COLOR_BLIND_FILTERS.map((filter) => ({
       value: filter,
       label: FILTER_METADATA[filter].name,
-      groupLabel: 'Color Blind',
+      groupLabel: "Color Blind",
       showIcon: true,
     })),
-    ...VISUAL_FIELD_FILTERS.map(filter => ({
+    ...VISUAL_FIELD_FILTERS.map((filter) => ({
       value: filter,
       label: FILTER_METADATA[filter].name,
-      groupLabel: 'Visual Field Defects',
+      groupLabel: "Visual Field Defects",
       showIcon: true,
     })),
-    ...OTHER_FILTERS.map(filter => ({
+    ...OTHER_FILTERS.map((filter) => ({
       value: filter,
       label: FILTER_METADATA[filter].name,
-      groupLabel: 'Other',
+      groupLabel: "Other",
       showIcon: true,
     })),
   ];
@@ -927,7 +974,10 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
                   disabled={generatingFilter !== null}
                 >
                   <span className="vision-simulator-panel__filter-label">
-                    <FilterIcon filterId="peripheral-vision-loss" size="small" />
+                    <FilterIcon
+                      filterId="peripheral-vision-loss"
+                      size="small"
+                    />
                     Peripheral Vision Loss
                   </span>
                   <span className="vision-simulator-panel__filter-info">
@@ -998,10 +1048,17 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
                     onChange={(value) => {
                       setCurrentFilter(value);
                       // Set appropriate default severity based on filter type
-                      if (value === 'protanomaly' || value === 'deuteranomaly' || value === 'tritanomaly') {
+                      if (
+                        value === "protanomaly" ||
+                        value === "deuteranomaly" ||
+                        value === "tritanomaly"
+                      ) {
                         // Partial color blindness defaults to 60%
                         setCurrentSeverity(0.6);
-                      } else if (isColorBlindnessFilter(value) || isVisualFieldDefect(value)) {
+                      } else if (
+                        isColorBlindnessFilter(value) ||
+                        isVisualFieldDefect(value)
+                      ) {
                         // Complete color blindness and visual field defects default to 100%
                         setCurrentSeverity(1.0);
                       }
@@ -1025,165 +1082,167 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
             )}
 
             {/* Parameters Panel - Collapsible */}
-            {!selectedPreset && showParameters && currentFilter !== "original" && (
-              <div className="vision-simulator-panel__parameters">
-                {/* Severity Slider - only show for color blindness filters */}
-                {isColorBlindnessFilter(currentFilter) && (
-                  <SeveritySlider
-                    value={currentSeverity}
-                    onChange={setCurrentSeverity}
-                    label="Severity"
-                    showPercentage={true}
-                  />
-                )}
-
-                {/* Visual Field Defect Controls */}
-                {isVisualFieldDefect(currentFilter) && (
-                  <>
-                    <RadiusSlider
-                      value={currentRadius}
-                      onChange={setCurrentRadius}
-                      label={
-                        currentFilter === "central-vision-loss"
-                          ? "Affected Area Radius"
-                          : "Clear Center Radius"
-                      }
-                      min={50}
-                      max={300}
-                      showValue={true}
-                    />
+            {!selectedPreset &&
+              showParameters &&
+              currentFilter !== "original" && (
+                <div className="vision-simulator-panel__parameters">
+                  {/* Severity Slider - only show for color blindness filters */}
+                  {isColorBlindnessFilter(currentFilter) && (
                     <SeveritySlider
                       value={currentSeverity}
                       onChange={setCurrentSeverity}
                       label="Severity"
                       showPercentage={true}
                     />
-                  </>
-                )}
+                  )}
 
-                {/* Blurred Filter Controls */}
-                {currentFilter === "blurred" && (
-                  <>
-                    <FilterParameterSlider
-                      label="Blur Radius"
-                      value={blurRadius}
-                      onChange={setBlurRadius}
-                      min={1}
-                      max={30}
-                      step={1}
-                      unit="px"
-                      description="Blur strength (higher = more blur)"
-                    />
-                    <FilterParameterSlider
-                      label="Iterations"
-                      value={blurIterations}
-                      onChange={setBlurIterations}
-                      min={1}
-                      max={5}
-                      step={1}
-                      description="Number of blur passes (higher = smoother)"
-                    />
-                  </>
-                )}
+                  {/* Visual Field Defect Controls */}
+                  {isVisualFieldDefect(currentFilter) && (
+                    <>
+                      <RadiusSlider
+                        value={currentRadius}
+                        onChange={setCurrentRadius}
+                        label={
+                          currentFilter === "central-vision-loss"
+                            ? "Affected Area Radius"
+                            : "Clear Center Radius"
+                        }
+                        min={50}
+                        max={300}
+                        showValue={true}
+                      />
+                      <SeveritySlider
+                        value={currentSeverity}
+                        onChange={setCurrentSeverity}
+                        label="Severity"
+                        showPercentage={true}
+                      />
+                    </>
+                  )}
 
-                {/* Ghosting Filter Controls */}
-                {currentFilter === "ghosting" && (
-                  <>
+                  {/* Blurred Filter Controls */}
+                  {currentFilter === "blurred" && (
+                    <>
+                      <FilterParameterSlider
+                        label="Blur Radius"
+                        value={blurRadius}
+                        onChange={setBlurRadius}
+                        min={1}
+                        max={30}
+                        step={1}
+                        unit="px"
+                        description="Blur strength (higher = more blur)"
+                      />
+                      <FilterParameterSlider
+                        label="Iterations"
+                        value={blurIterations}
+                        onChange={setBlurIterations}
+                        min={1}
+                        max={5}
+                        step={1}
+                        description="Number of blur passes (higher = smoother)"
+                      />
+                    </>
+                  )}
+
+                  {/* Ghosting Filter Controls */}
+                  {currentFilter === "ghosting" && (
+                    <>
+                      <FilterParameterSlider
+                        label="Horizontal Offset"
+                        value={ghostingOffsetX}
+                        onChange={setGhostingOffsetX}
+                        min={0}
+                        max={30}
+                        step={1}
+                        unit="px"
+                        description="Ghost image horizontal displacement"
+                      />
+                      <FilterParameterSlider
+                        label="Vertical Offset"
+                        value={ghostingOffsetY}
+                        onChange={setGhostingOffsetY}
+                        min={0}
+                        max={30}
+                        step={1}
+                        unit="px"
+                        description="Ghost image vertical displacement"
+                      />
+                      <FilterParameterSlider
+                        label="Ghost Opacity"
+                        value={ghostingOpacity}
+                        onChange={setGhostingOpacity}
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        description="Ghost image transparency"
+                      />
+                    </>
+                  )}
+
+                  {/* Yellowing Filter Controls */}
+                  {currentFilter === "yellowing" && (
+                    <>
+                      <FilterParameterSlider
+                        label="Intensity"
+                        value={yellowingIntensity}
+                        onChange={setYellowingIntensity}
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        description="Yellow tint strength"
+                      />
+                      <FilterParameterSlider
+                        label="Temperature"
+                        value={yellowingTemperature}
+                        onChange={setYellowingTemperature}
+                        min={1000}
+                        max={4000}
+                        step={100}
+                        unit="K"
+                        description="Color temperature (warmer = more yellow)"
+                      />
+                    </>
+                  )}
+
+                  {/* Loss of Contrast Filter Controls */}
+                  {currentFilter === "loss-of-contrast" && (
                     <FilterParameterSlider
-                      label="Horizontal Offset"
-                      value={ghostingOffsetX}
-                      onChange={setGhostingOffsetX}
-                      min={0}
-                      max={30}
-                      step={1}
-                      unit="px"
-                      description="Ghost image horizontal displacement"
-                    />
-                    <FilterParameterSlider
-                      label="Vertical Offset"
-                      value={ghostingOffsetY}
-                      onChange={setGhostingOffsetY}
-                      min={0}
-                      max={30}
-                      step={1}
-                      unit="px"
-                      description="Ghost image vertical displacement"
-                    />
-                    <FilterParameterSlider
-                      label="Ghost Opacity"
-                      value={ghostingOpacity}
-                      onChange={setGhostingOpacity}
+                      label="Contrast Reduction"
+                      value={contrastReduction}
+                      onChange={setContrastReduction}
                       min={0}
                       max={1}
                       step={0.05}
-                      description="Ghost image transparency"
+                      description="Amount of contrast loss (higher = less contrast)"
                     />
-                  </>
-                )}
+                  )}
 
-                {/* Yellowing Filter Controls */}
-                {currentFilter === "yellowing" && (
-                  <>
-                    <FilterParameterSlider
-                      label="Intensity"
-                      value={yellowingIntensity}
-                      onChange={setYellowingIntensity}
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      description="Yellow tint strength"
-                    />
-                    <FilterParameterSlider
-                      label="Temperature"
-                      value={yellowingTemperature}
-                      onChange={setYellowingTemperature}
-                      min={1000}
-                      max={4000}
-                      step={100}
-                      unit="K"
-                      description="Color temperature (warmer = more yellow)"
-                    />
-                  </>
-                )}
-
-                {/* Loss of Contrast Filter Controls */}
-                {currentFilter === "loss-of-contrast" && (
-                  <FilterParameterSlider
-                    label="Contrast Reduction"
-                    value={contrastReduction}
-                    onChange={setContrastReduction}
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    description="Amount of contrast loss (higher = less contrast)"
-                  />
-                )}
-
-                {/* Bright Light Filter Controls */}
-                {currentFilter === "bright-light" && (
-                  <>
-                    <FilterParameterSlider
-                      label="Brightness Intensity"
-                      value={brightLightIntensity}
-                      onChange={setBrightLightIntensity}
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      description="Brightness increase amount"
-                    />
-                    <FilterParameterSlider
-                      label="Color Washout"
-                      value={brightLightWashout}
-                      onChange={setBrightLightWashout}
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      description="Color desaturation amount"
-                    />
-                  </>
-                )}
-              </div>
-            )}
+                  {/* Bright Light Filter Controls */}
+                  {currentFilter === "bright-light" && (
+                    <>
+                      <FilterParameterSlider
+                        label="Brightness Intensity"
+                        value={brightLightIntensity}
+                        onChange={setBrightLightIntensity}
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        description="Brightness increase amount"
+                      />
+                      <FilterParameterSlider
+                        label="Color Washout"
+                        value={brightLightWashout}
+                        onChange={setBrightLightWashout}
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        description="Color desaturation amount"
+                      />
+                    </>
+                  )}
+                </div>
+              )}
 
             {/* Preview Area */}
             <div className="vision-simulator-panel__preview">
@@ -1250,16 +1309,19 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
             </div>
 
             {/* Export to Canvas Button - Show when a filter or preset is active */}
-            {previewImage && (currentFilter !== 'original' || selectedPreset !== null) && (
-              <Button
-                variant="primary"
-                size="medium"
-                onClick={handleExportToCanvas}
-                disabled={exporting}
-              >
-                {exporting ? 'Adding to Figma...' : 'Add current view to Figma'}
-              </Button>
-            )}
+            {previewImage &&
+              (currentFilter !== "original" || selectedPreset !== null) && (
+                <Button
+                  variant="primary"
+                  size="medium"
+                  onClick={handleExportToCanvas}
+                  disabled={exporting}
+                >
+                  {exporting
+                    ? "Adding to Figma..."
+                    : "Add current view to Figma"}
+                </Button>
+              )}
           </div>
         )}
       </div>
