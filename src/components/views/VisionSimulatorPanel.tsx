@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./VisionSimulatorPanel.css";
-import { Icon } from "../../../../components/ui/Icon/Icon";
-import { Button } from "../../../../components/ui/Button/Button";
-import { FilterIcon } from "./FilterIcon";
-import { SeveritySlider } from "./SeveritySlider";
-import { RadiusSlider } from "./RadiusSlider";
-import { PresetSelector } from "./PresetSelector";
-import { PresetManager } from "./PresetManager";
-import { FilterParameterSlider } from "./FilterParameterSlider";
-import { FilterDropdown } from "./FilterDropdown";
-import { useFigmaMessage } from "../../../../hooks/useFigmaMessage";
+import { Icon } from "../ui/Icon/Icon";
+import { Button } from "../ui/Button/Button";
+import { FilterIcon } from "../../features/testing/vision-simulator/components/FilterIcon";
+import { SeveritySlider } from "../../features/testing/vision-simulator/components/SeveritySlider";
+import { RadiusSlider } from "../../features/testing/vision-simulator/components/RadiusSlider";
+import { PresetSelector } from "../../features/testing/vision-simulator/components/PresetSelector";
+import { PresetManager } from "../../features/testing/vision-simulator/components/PresetManager";
+import { FilterParameterSlider } from "../../features/testing/vision-simulator/components/FilterParameterSlider";
+import { FilterDropdown } from "../../features/testing/vision-simulator/components/FilterDropdown";
+import { useFigmaMessage } from "../../hooks/useFigmaMessage";
 import {
   SimulationType,
   VisionSimulatorState,
@@ -18,7 +18,7 @@ import {
   CentralVisionLossConfig,
   PeripheralVisionLossConfig,
   FilterPreset,
-} from "../vision-simulator.types";
+} from "../../features/testing/vision-simulator/vision-simulator.types";
 import {
   FILTER_METADATA,
   COLOR_BLIND_FILTERS,
@@ -30,7 +30,7 @@ import {
   DEFAULT_CENTRAL_VISION_LOSS_CONFIG,
   DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG,
   DEFAULT_PRESETS,
-} from "../vision-simulator.constants";
+} from "../../features/testing/vision-simulator/vision-simulator.constants";
 import {
   applyColorBlindness,
   applyBlur,
@@ -41,13 +41,11 @@ import {
   applyCentralVisionLoss,
   applyPeripheralVisionLoss,
   applyFilterPreset,
-} from "../image-utils";
+} from "../../features/testing/vision-simulator/image-utils";
 
 type Tab = "generate" | "simulation";
 
-export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
-  onBack,
-}) => {
+export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
   // Tab state
   const [activeTab, setActiveTab] = useState<Tab>("generate");
 
@@ -737,14 +735,6 @@ export const VisionSimulatorPanel: React.FC<{ onBack: () => void }> = ({
 
   return (
     <div className="vision-simulator-panel">
-      {/* Header */}
-      <div className="vision-simulator-panel__header">
-        <Button variant="ghost" size="small" onClick={onBack}>
-          <Icon name="chevron-left" size={20} />
-        </Button>
-        <h2 className="vision-simulator-panel__title">Vision Simulator</h2>
-      </div>
-
       {/* Tabs */}
       <div className="vision-simulator-panel__tabs">
         <button

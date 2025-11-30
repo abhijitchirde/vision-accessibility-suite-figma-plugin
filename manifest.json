@@ -1,6 +1,6 @@
 {
-  "name": "Accessibility Genie",
-  "id": "1571412804370318549",
+  "name": "Vision Accessibility Suite",
+  "id": "1576907756588067481",
   "api": "1.0.0",
   "main": "dist/code.js",
   "ui": "dist/ui.html",
