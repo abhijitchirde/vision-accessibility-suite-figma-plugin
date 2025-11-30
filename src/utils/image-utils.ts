@@ -534,7 +534,9 @@ export function applyBrightLight(
  * Apply central vision loss (macular degeneration simulation)
  *
  * Simulates loss of central vision while peripheral vision remains clear.
- * Blurs and darkens the center of the image based on distance from center.
+ * The CENTER is darkened (blind spot), while the PERIPHERAL (visible area) is blurred.
+ * Larger radius = more peripheral blur.
+ * Blur intensity scales with both radius AND severity.
  *
  * @param imageData - Original image data
  * @param width - Image width in pixels
@@ -549,7 +551,62 @@ export function applyCentralVisionLoss(
   config: CentralVisionLossConfig
 ): Uint8ClampedArray {
   const { radius, severity } = config;
-  const result = new Uint8ClampedArray(imageData);
+  
+  // If severity is 0 or radius is very small, return original (no effect)
+  if (severity === 0 || radius < 1) {
+    return new Uint8ClampedArray(imageData);
+  }
+  
+  // Calculate blur intensity based on BOTH radius AND severity
+  // Larger radius = more area affected = more blur on peripheral vision
+  // Higher severity = stronger effect = more blur
+  const imageSize = Math.min(width, height);
+  const normalizedRadius = radius / imageSize; // 0-1 range
+  
+  // Scale blur from 2px (small radius/severity) to 20px (large radius/severity)
+  // Both radius and severity contribute to blur intensity
+  const baseBlurRadius = 2 + normalizedRadius * 18;
+  const blurRadius = Math.round(baseBlurRadius * severity);
+  
+  // If blur radius is too small, minimal blur needed
+  if (blurRadius < 2) {
+    // Apply minimal processing
+    const result = new Uint8ClampedArray(imageData);
+    const centerX = width / 2;
+    const centerY = height / 2;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+        const dx = x - centerX;
+        const dy = y - centerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const centerDarkeningFactor = Math.max(0, 1 - distance / radius) * severity;
+
+        if (centerDarkeningFactor > 0) {
+          const r = imageData[idx];
+          const g = imageData[idx + 1];
+          const b = imageData[idx + 2];
+          const gray = r * 0.299 + g * 0.587 + b * 0.114;
+          const darkenedGray = gray * 0.35;
+          const darkeningAmount = centerDarkeningFactor * 0.9;
+          
+          result[idx] = r * (1 - darkeningAmount) + darkenedGray * darkeningAmount;
+          result[idx + 1] = g * (1 - darkeningAmount) + darkenedGray * darkeningAmount;
+          result[idx + 2] = b * (1 - darkeningAmount) + darkenedGray * darkeningAmount;
+        }
+      }
+    }
+    return result;
+  }
+  
+  // Apply blur to entire image (affects peripheral/visible area)
+  const blurred = applyGaussianBlur(imageData, width, height, blurRadius);
+  const smoothBlurred = applyGaussianBlur(blurred, width, height, blurRadius);
+  
+  // Blend between original and blurred based on severity
+  // Lower severity = more original, higher severity = more blur
+  const result = new Uint8ClampedArray(imageData.length);
   const centerX = width / 2;
   const centerY = height / 2;
 
@@ -562,26 +619,41 @@ export function applyCentralVisionLoss(
       const dy = y - centerY;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      // Calculate blur factor (1 = full blur at center, 0 = no blur at edges)
-      // Uses smooth falloff from center to radius
-      const blurFactor = Math.max(0, 1 - distance / radius) * severity;
+      // Calculate darkening factor for CENTER (blind spot)
+      // 1 = full darkness at center, 0 = no darkness at periphery
+      const centerDarkeningFactor = Math.max(0, 1 - distance / radius) * severity;
 
-      if (blurFactor > 0) {
-        // Apply blur and darkening to simulate scotoma (blind spot)
-        const r = imageData[idx];
-        const g = imageData[idx + 1];
-        const b = imageData[idx + 2];
+      if (centerDarkeningFactor > 0) {
+        // INSIDE affected area - darken
+        const blurredR = smoothBlurred[idx];
+        const blurredG = smoothBlurred[idx + 1];
+        const blurredB = smoothBlurred[idx + 2];
 
-        // Convert to grayscale for blur effect
-        const gray = r * 0.299 + g * 0.587 + b * 0.114;
+        // Convert to grayscale and darken significantly (increased by 30%)
+        const gray = blurredR * 0.299 + blurredG * 0.587 + blurredB * 0.114;
+        const darkenedGray = gray * 0.35;
 
-        // Apply darkening (simulates dead photoreceptors)
-        const darkenedGray = gray * 0.5;
-
-        // Blend between original and darkened gray based on blur factor
-        result[idx] = r * (1 - blurFactor) + darkenedGray * blurFactor;
-        result[idx + 1] = g * (1 - blurFactor) + darkenedGray * blurFactor;
-        result[idx + 2] = b * (1 - blurFactor) + darkenedGray * blurFactor;
+        // Apply strong darkening to center (scotoma/blind spot)
+        const darkeningAmount = centerDarkeningFactor * 0.9;
+        
+        result[idx] = blurredR * (1 - darkeningAmount) + darkenedGray * darkeningAmount;
+        result[idx + 1] = blurredG * (1 - darkeningAmount) + darkenedGray * darkeningAmount;
+        result[idx + 2] = blurredB * (1 - darkeningAmount) + darkenedGray * darkeningAmount;
+        result[idx + 3] = imageData[idx + 3];
+      } else {
+        // OUTSIDE affected area (peripheral visible area) - blend blur based on severity
+        const origR = imageData[idx];
+        const origG = imageData[idx + 1];
+        const origB = imageData[idx + 2];
+        const blurredR = smoothBlurred[idx];
+        const blurredG = smoothBlurred[idx + 1];
+        const blurredB = smoothBlurred[idx + 2];
+        
+        // Blend between original and blurred based on severity
+        result[idx] = origR * (1 - severity) + blurredR * severity;
+        result[idx + 1] = origG * (1 - severity) + blurredG * severity;
+        result[idx + 2] = origB * (1 - severity) + blurredB * severity;
+        result[idx + 3] = imageData[idx + 3];
       }
     }
   }
@@ -593,7 +665,9 @@ export function applyCentralVisionLoss(
  * Apply peripheral vision loss (glaucoma/tunnel vision simulation)
  *
  * Simulates loss of peripheral vision creating a tunnel vision effect.
- * Blurs and darkens the edges while keeping center clear.
+ * The CENTER (tunnel) is blurred (visible but strained), while PERIPHERAL is darkened (lost vision).
+ * Smaller clear radius = more blur on remaining visible center.
+ * Blur intensity scales with both radius AND severity.
  *
  * @param imageData - Original image data
  * @param width - Image width in pixels
@@ -608,17 +682,64 @@ export function applyPeripheralVisionLoss(
   config: PeripheralVisionLossConfig
 ): Uint8ClampedArray {
   const { tunnelRadius, severity } = config;
-  const result = new Uint8ClampedArray(imageData);
+  
+  // If severity is 0, return original (no effect)
+  if (severity === 0) {
+    return new Uint8ClampedArray(imageData);
+  }
+  
   const centerX = width / 2;
   const centerY = height / 2;
-
-  // Calculate max distance from center to corner (for normalization)
   const maxDistance = Math.sqrt(centerX * centerX + centerY * centerY);
 
-  // If tunnel radius is larger than max distance, entire image is clear (no darkening)
+  // If tunnel radius is larger than max distance, entire image is clear (no effects)
   if (tunnelRadius >= maxDistance) {
+    return new Uint8ClampedArray(imageData);
+  }
+
+  // Calculate blur intensity based on BOTH tunnel radius AND severity
+  // SMALLER tunnel radius (more restricted vision) = MORE blur on center visible area
+  // Higher severity = stronger effect = more blur
+  const imageSize = Math.min(width, height);
+  const normalizedRadius = tunnelRadius / imageSize; // 0-1 range
+  
+  // Inverse relationship: smaller radius = more blur (2-20px range)
+  // Both radius and severity contribute to blur intensity
+  const baseBlurRadius = 2 + (1 - normalizedRadius) * 18;
+  const blurRadius = Math.round(baseBlurRadius * severity);
+  
+  // If blur radius is too small, minimal blur needed
+  if (blurRadius < 2) {
+    const result = new Uint8ClampedArray(imageData);
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+        const dx = x - centerX;
+        const dy = y - centerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance > tunnelRadius) {
+          // OUTSIDE tunnel - apply minimal darkening
+          const darkeningFactor =
+            Math.max(0, (distance - tunnelRadius) / (maxDistance - tunnelRadius)) *
+            severity;
+          const darkeningAmount = Math.min(1, darkeningFactor * 1.04);
+          
+          result[idx] = imageData[idx] * (1 - darkeningAmount);
+          result[idx + 1] = imageData[idx + 1] * (1 - darkeningAmount);
+          result[idx + 2] = imageData[idx + 2] * (1 - darkeningAmount);
+        }
+      }
+    }
     return result;
   }
+  
+  // Apply blur to entire image (will affect both center and periphery)
+  const blurred = applyGaussianBlur(imageData, width, height, blurRadius);
+  const smoothBlurred = applyGaussianBlur(blurred, width, height, blurRadius);
+  
+  const result = new Uint8ClampedArray(imageData.length);
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -629,22 +750,39 @@ export function applyPeripheralVisionLoss(
       const dy = y - centerY;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      // Calculate darkening factor (0 at center, 1 at edges)
-      // Starts at tunnelRadius and increases toward edges
-      const darkenFactor =
-        Math.max(0, (distance - tunnelRadius) / (maxDistance - tunnelRadius)) *
-        severity;
+      if (distance <= tunnelRadius) {
+        // INSIDE tunnel (visible center area) - blend blur based on severity
+        const origR = imageData[idx];
+        const origG = imageData[idx + 1];
+        const origB = imageData[idx + 2];
+        const blurredR = smoothBlurred[idx];
+        const blurredG = smoothBlurred[idx + 1];
+        const blurredB = smoothBlurred[idx + 2];
+        
+        // Blend between original and blurred based on severity
+        result[idx] = origR * (1 - severity) + blurredR * severity;
+        result[idx + 1] = origG * (1 - severity) + blurredG * severity;
+        result[idx + 2] = origB * (1 - severity) + blurredB * severity;
+        result[idx + 3] = imageData[idx + 3];
+      } else {
+        // OUTSIDE tunnel (peripheral - lost vision) - blur + darken
+        const darkeningFactor =
+          Math.max(0, (distance - tunnelRadius) / (maxDistance - tunnelRadius)) *
+          severity;
 
-      if (darkenFactor > 0) {
-        // Apply vignette darkening effect
-        const r = imageData[idx];
-        const g = imageData[idx + 1];
-        const b = imageData[idx + 2];
+        // Get blurred pixel values
+        const blurredR = smoothBlurred[idx];
+        const blurredG = smoothBlurred[idx + 1];
+        const blurredB = smoothBlurred[idx + 2];
 
-        // Darken toward black (simulates peripheral vision loss)
-        result[idx] = r * (1 - darkenFactor * 0.8);
-        result[idx + 1] = g * (1 - darkenFactor * 0.8);
-        result[idx + 2] = b * (1 - darkenFactor * 0.8);
+        // Increased darkness: was 0.8, now 1.04 (30% darker)
+        const darkeningAmount = Math.min(1, darkeningFactor * 1.04);
+        
+        // Apply heavy darkening to periphery
+        result[idx] = blurredR * (1 - darkeningAmount);
+        result[idx + 1] = blurredG * (1 - darkeningAmount);
+        result[idx + 2] = blurredB * (1 - darkeningAmount);
+        result[idx + 3] = imageData[idx + 3];
       }
     }
   }

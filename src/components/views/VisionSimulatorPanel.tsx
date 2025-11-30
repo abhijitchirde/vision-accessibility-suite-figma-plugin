@@ -754,7 +754,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
           }`}
           onClick={() => setActiveTab("generate")}
         >
-          Generate simulation
+          Quick simulation
         </button>
         <button
           className={`vision-simulator-panel__tab ${

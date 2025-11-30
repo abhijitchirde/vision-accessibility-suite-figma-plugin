@@ -309,6 +309,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  margin-bottom: 80px; /* Extra space to prevent content from being hidden behind fixed export button */
 }
 
 .vision-simulator-panel__preview-content {
