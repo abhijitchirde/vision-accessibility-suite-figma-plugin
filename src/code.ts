@@ -1525,22 +1525,21 @@ figma.ui.onmessage = async (msg) => {
       // Accessibility Notes
       // ========================================
 
-      case "CHECK_SELECTION_FOR_NOTE":
-        // Check if a node is selected before opening the form
-        const selection = figma.currentPage.selection;
-        if (selection.length === 0) {
-          figma.notify("Please select a node to add the note");
+      case "GET_CURRENT_SELECTION":
+        // Get currently selected node name for form display
+        const currentSelection = figma.currentPage.selection;
+        if (currentSelection.length > 0) {
           figma.ui.postMessage({
-            type: "SELECTION_CHECK_RESULT",
-            success: false,
-            hasSelection: false,
+            type: "CURRENT_SELECTION_RESULT",
+            success: true,
+            nodeName: currentSelection[0].name,
+            hasSelection: true,
           });
         } else {
           figma.ui.postMessage({
-            type: "SELECTION_CHECK_RESULT",
-            success: true,
-            hasSelection: true,
-            nodeName: selection[0].name,
+            type: "CURRENT_SELECTION_RESULT",
+            success: false,
+            hasSelection: false,
           });
         }
         break;

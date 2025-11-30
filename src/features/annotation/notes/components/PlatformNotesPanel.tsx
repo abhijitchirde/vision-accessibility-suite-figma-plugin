@@ -1,29 +1,32 @@
 /**
  * Platform Notes Panel Component
- * 
+ *
  * Generic panel for managing platform-specific accessibility notes
  */
 
-import React, { useState, useEffect } from 'react';
-import './PlatformNotesPanel.css';
-import { Icon } from '../../../../components/ui/Icon/Icon';
-import { Button } from '../../../../components/ui/Button/Button';
-import { useFigmaMessage } from '../../../../hooks/useFigmaMessage';
-import { NoteNodeInfo, PlatformType } from '../notes.types';
-import { PLATFORM_METADATA, PLATFORM_BADGE_COLORS } from '../notes.constants';
-import { AddEditNotePanel } from './AddEditNotePanel';
+import React, { useState, useEffect } from "react";
+import "./PlatformNotesPanel.css";
+import { Icon } from "../../../../components/ui/Icon/Icon";
+import { Button } from "../../../../components/ui/Button/Button";
+import { useFigmaMessage } from "../../../../hooks/useFigmaMessage";
+import { NoteNodeInfo, PlatformType } from "../notes.types";
+import { PLATFORM_METADATA, PLATFORM_BADGE_COLORS } from "../notes.constants";
+import { AddEditNotePanel } from "./AddEditNotePanel";
 
 interface PlatformNotesPanelProps {
   platform: PlatformType;
   onBack: () => void;
 }
 
-export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform, onBack }) => {
+export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({
+  platform,
+  onBack,
+}) => {
   const [notes, setNotes] = useState<NoteNodeInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
-  const [selectedNodeName, setSelectedNodeName] = useState<string>('');
+  const [selectedNodeName, setSelectedNodeName] = useState<string>("");
   const { sendMessage } = useFigmaMessage();
 
   const metadata = PLATFORM_METADATA[platform];
@@ -36,7 +39,7 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform
     const handleMessage = (event: MessageEvent) => {
       const msg = event.data.pluginMessage;
 
-      if (msg?.type === 'NOTES_LOADED') {
+      if (msg?.type === "NOTES_LOADED") {
         setLoading(false);
         if (msg.success) {
           // Filter notes for this platform only
@@ -47,9 +50,15 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform
         }
       }
 
-      // Removed SELECTION_CHECK_RESULT handling - we check on save instead
+      if (msg?.type === "CURRENT_SELECTION_RESULT") {
+        if (msg.hasSelection) {
+          setSelectedNodeName(msg.nodeName || "");
+        } else {
+          setSelectedNodeName("");
+        }
+      }
 
-      if (msg?.type === 'NOTE_SAVED' || msg?.type === 'NOTE_REMOVED') {
+      if (msg?.type === "NOTE_SAVED" || msg?.type === "NOTE_REMOVED") {
         if (msg.success) {
           setShowForm(false);
           setEditingNodeId(null);
@@ -59,26 +68,43 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform
       }
     };
 
-    window.addEventListener('message', handleMessage);
+    window.addEventListener("message", handleMessage);
     return () => {
-      window.removeEventListener('message', handleMessage);
+      window.removeEventListener("message", handleMessage);
     };
   }, [platform]);
 
+  // Update selection name periodically when form is open (for new notes only)
+  useEffect(() => {
+    if (showForm && !editingNodeId) {
+      // Get selection immediately
+      sendMessage("GET_CURRENT_SELECTION");
+
+      // Poll for selection changes every 500ms while form is open
+      const interval = setInterval(() => {
+        sendMessage("GET_CURRENT_SELECTION");
+      }, 500);
+
+      return () => clearInterval(interval);
+    }
+  }, [showForm, editingNodeId, sendMessage]);
+
   const loadNotes = () => {
     setLoading(true);
-    sendMessage('GET_ACCESSIBILITY_NOTES');
+    sendMessage("GET_ACCESSIBILITY_NOTES");
   };
 
   const handleAddNote = () => {
     // Reset editing state and show form immediately
     setEditingNodeId(null);
     setShowForm(true);
+    // Get current selection name for display
+    sendMessage("GET_CURRENT_SELECTION");
   };
 
   const handleEditNote = (nodeId: string, event: React.MouseEvent) => {
     event.stopPropagation();
-    console.log('PlatformNotesPanel - handleEditNote - nodeId:', nodeId);
+    console.log("PlatformNotesPanel - handleEditNote - nodeId:", nodeId);
     // Set the node to edit and show form directly (we know node exists)
     setEditingNodeId(nodeId);
     setShowForm(true);
@@ -86,17 +112,17 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform
 
   const handleRemoveNote = (nodeId: string, event: React.MouseEvent) => {
     event.stopPropagation();
-    console.log('PlatformNotesPanel - handleRemoveNote - nodeId:', nodeId);
-    if (confirm('Remove this accessibility note?')) {
-      sendMessage('REMOVE_ACCESSIBILITY_NOTE', { nodeId });
+    console.log("PlatformNotesPanel - handleRemoveNote - nodeId:", nodeId);
+    if (confirm("Remove this accessibility note?")) {
+      sendMessage("REMOVE_ACCESSIBILITY_NOTE", { nodeId });
     }
   };
 
   const handleSaveNote = (accessibleName: string, note: string) => {
     if (editingNodeId) {
       // Update existing note
-      console.log('PlatformNotesPanel - UPDATE - nodeId:', editingNodeId);
-      sendMessage('UPDATE_ACCESSIBILITY_NOTE', {
+      console.log("PlatformNotesPanel - UPDATE - nodeId:", editingNodeId);
+      sendMessage("UPDATE_ACCESSIBILITY_NOTE", {
         nodeId: editingNodeId,
         platform,
         accessibleName,
@@ -104,8 +130,8 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform
       });
     } else {
       // Add new note - selection check happens in plugin code
-      console.log('PlatformNotesPanel - SAVE - no nodeId (new note)');
-      sendMessage('SAVE_ACCESSIBILITY_NOTE', {
+      console.log("PlatformNotesPanel - SAVE - no nodeId (new note)");
+      sendMessage("SAVE_ACCESSIBILITY_NOTE", {
         platform,
         accessibleName,
         note,
@@ -122,27 +148,33 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform
   };
 
   const handleCardClick = (nodeId: string) => {
-    sendMessage('ZOOM_TO_NOTE_NODE', { nodeId });
+    sendMessage("ZOOM_TO_NOTE_NODE", { nodeId });
   };
 
   // Get editing note data
-  const editingNote = editingNodeId ? notes.find((n) => n.nodeId === editingNodeId) : null;
+  const editingNote = editingNodeId
+    ? notes.find((n) => n.nodeId === editingNodeId)
+    : null;
 
   // If showing form, render the form panel instead
   if (showForm) {
     // Use a unique key to force re-mount when switching between add/edit
-    const formKey = editingNodeId || 'new';
-    
+    const formKey = editingNodeId || "new";
+
+    // For editing, use the note's node name; for new notes, use selected node name
+    const displayNodeName =
+      editingNote?.nodeName || selectedNodeName || "No node selected";
+
     return (
       <AddEditNotePanel
         key={formKey}
         platform={platform}
-        nodeId={editingNodeId || ''}
-        nodeName={editingNote?.nodeName || 'Will be set on save'}
+        nodeId={editingNodeId || ""}
+        nodeName={displayNodeName}
         onBack={handleBackFromForm}
         onSave={handleSaveNote}
-        existingAccessibleName={editingNote?.noteData?.accessibleName || ''}
-        existingNote={editingNote?.noteData?.note || ''}
+        existingAccessibleName={editingNote?.noteData?.accessibleName || ""}
+        existingNote={editingNote?.noteData?.note || ""}
         isEditing={!!editingNodeId}
       />
     );
@@ -167,7 +199,11 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform
         <div className="platform-notes-panel__content">
           {notes.length === 0 ? (
             <div className="platform-notes-panel__empty">
-              <Icon name={metadata.icon} size={48} color="var(--figma-color-text-disabled)" />
+              <Icon
+                name={metadata.icon}
+                size={48}
+                color="var(--figma-color-text-disabled)"
+              />
               <p>No {metadata.label.toLowerCase()} notes yet</p>
               <p className="platform-notes-panel__empty-hint">
                 Select an element and add accessibility notes
@@ -189,7 +225,9 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform
                       >
                         <Icon name={metadata.icon} size={12} />
                       </span>
-                      <span className="platform-note-card__name">{noteItem.nodeName}</span>
+                      <span className="platform-note-card__name">
+                        {noteItem.nodeName}
+                      </span>
                     </div>
                     <div className="platform-note-card__actions">
                       <button
@@ -216,17 +254,26 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform
                         <span>Missing accessible name - please add one</span>
                       </div>
                     )}
-                    
+
                     <div className="platform-note-card__row">
                       <span className="platform-note-card__label">Name:</span>
-                      <span className={`platform-note-card__value ${!noteItem.noteData?.accessibleName ? 'platform-note-card__value--missing' : ''}`}>
-                        {noteItem.noteData?.accessibleName || '(Empty - needs accessible name)'}
+                      <span
+                        className={`platform-note-card__value ${
+                          !noteItem.noteData?.accessibleName
+                            ? "platform-note-card__value--missing"
+                            : ""
+                        }`}
+                      >
+                        {noteItem.noteData?.accessibleName ||
+                          "(Empty - needs accessible name)"}
                       </span>
                     </div>
                     {noteItem.noteData?.note && (
                       <div className="platform-note-card__row">
                         <span className="platform-note-card__label">Note:</span>
-                        <span className="platform-note-card__value">{noteItem.noteData.note}</span>
+                        <span className="platform-note-card__value">
+                          {noteItem.noteData.note}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -248,6 +295,3 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({ platform
     </div>
   );
 };
-
-
-
