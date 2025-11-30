@@ -781,7 +781,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                   disabled={generatingFilter !== null}
                 >
                   <span className="vision-simulator-panel__filter-label">
-                    <FilterIcon filterId="protanopia" size="small" />
+                    <FilterIcon filterId="protanopia" size="tiny" />
                     Protanopia
                   </span>
                   <span className="vision-simulator-panel__filter-info">
@@ -799,7 +799,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                   disabled={generatingFilter !== null}
                 >
                   <span className="vision-simulator-panel__filter-label">
-                    <FilterIcon filterId="protanomaly" size="small" />
+                    <FilterIcon filterId="protanomaly" size="tiny" />
                     Protanomaly
                   </span>
                   <span className="vision-simulator-panel__filter-info">
@@ -829,7 +829,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                   disabled={generatingFilter !== null}
                 >
                   <span className="vision-simulator-panel__filter-label">
-                    <FilterIcon filterId="deuteranopia" size="small" />
+                    <FilterIcon filterId="deuteranopia" size="tiny" />
                     Deuteranopia
                   </span>
                   <span className="vision-simulator-panel__filter-info">
@@ -847,7 +847,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                   disabled={generatingFilter !== null}
                 >
                   <span className="vision-simulator-panel__filter-label">
-                    <FilterIcon filterId="deuteranomaly" size="small" />
+                    <FilterIcon filterId="deuteranomaly" size="tiny" />
                     Deuteranomaly
                   </span>
                   <span className="vision-simulator-panel__filter-info">
@@ -874,7 +874,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                   disabled={generatingFilter !== null}
                 >
                   <span className="vision-simulator-panel__filter-label">
-                    <FilterIcon filterId="tritanopia" size="small" />
+                    <FilterIcon filterId="tritanopia" size="tiny" />
                     Tritanopia
                   </span>
                   <span className="vision-simulator-panel__filter-info">
@@ -892,7 +892,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                   disabled={generatingFilter !== null}
                 >
                   <span className="vision-simulator-panel__filter-label">
-                    <FilterIcon filterId="tritanomaly" size="small" />
+                    <FilterIcon filterId="tritanomaly" size="tiny" />
                     Tritanomaly
                   </span>
                   <span className="vision-simulator-panel__filter-info">
@@ -919,7 +919,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                   disabled={generatingFilter !== null}
                 >
                   <span className="vision-simulator-panel__filter-label">
-                    <FilterIcon filterId="achromatopsia" size="small" />
+                    <FilterIcon filterId="achromatopsia" size="tiny" />
                     Achromatopsia
                   </span>
                   <span className="vision-simulator-panel__filter-info">
@@ -946,7 +946,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                   disabled={generatingFilter !== null}
                 >
                   <span className="vision-simulator-panel__filter-label">
-                    <FilterIcon filterId="central-vision-loss" size="small" />
+                    <FilterIcon filterId="central-vision-loss" size="tiny" />
                     Central Vision Loss
                   </span>
                   <span className="vision-simulator-panel__filter-info">
@@ -964,10 +964,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                   disabled={generatingFilter !== null}
                 >
                   <span className="vision-simulator-panel__filter-label">
-                    <FilterIcon
-                      filterId="peripheral-vision-loss"
-                      size="small"
-                    />
+                    <FilterIcon filterId="peripheral-vision-loss" size="tiny" />
                     Peripheral Vision Loss
                   </span>
                   <span className="vision-simulator-panel__filter-info">
@@ -993,7 +990,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                     disabled={generatingFilter !== null}
                   >
                     <span className="vision-simulator-panel__filter-label">
-                      <FilterIcon filterId={filter} size="small" />
+                      <FilterIcon filterId={filter} size="tiny" />
                       {FILTER_METADATA[filter].name}
                     </span>
                   </button>
@@ -1025,41 +1022,51 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
               onManagePresets={() => setShowPresetManager(true)}
             />
 
-            {/* Controls - Only show if no preset is selected */}
-            {!selectedPreset && (
-              <div className="vision-simulator-panel__controls-row">
-                {/* Simulation Dropdown */}
-                <div className="vision-simulator-panel__control vision-simulator-panel__control--simulation">
-                  <label className="vision-simulator-panel__control-label">
-                    Simulation
-                  </label>
-                  <FilterDropdown
-                    value={currentFilter}
-                    onChange={(value) => {
-                      setCurrentFilter(value);
-                      // Set appropriate default severity based on filter type
-                      if (
-                        value === "protanomaly" ||
-                        value === "deuteranomaly" ||
-                        value === "tritanomaly"
-                      ) {
-                        // Partial color blindness defaults to 60%
-                        setCurrentSeverity(0.6);
-                      } else if (
-                        isColorBlindnessFilter(value) ||
-                        isVisualFieldDefect(value)
-                      ) {
-                        // Complete color blindness and visual field defects default to 100%
-                        setCurrentSeverity(1.0);
-                      }
-                      // Reset parameters panel visibility when changing filter
-                      setShowParameters(false);
-                    }}
-                    options={filterOptions}
-                  />
-                </div>
+            {/* Controls - Always show simulation dropdown */}
+            <div className="vision-simulator-panel__controls-row">
+              {/* Simulation Dropdown */}
+              <div className="vision-simulator-panel__control vision-simulator-panel__control--simulation">
+                <label className="vision-simulator-panel__control-label">
+                  Simulation
+                </label>
+                <FilterDropdown
+                  value={currentFilter}
+                  onChange={(value) => {
+                    // If a preset was selected, reset it when a simulation is chosen
+                    if (selectedPreset) {
+                      setSelectedPreset(null);
+                      // Save cleared preset to storage
+                      sendMessage("VISION_SIMULATOR_SAVE_SELECTED_PRESET", {
+                        presetId: null,
+                      });
+                    }
+                    setCurrentFilter(value);
+                    // Set appropriate default severity based on filter type
+                    if (
+                      value === "protanomaly" ||
+                      value === "deuteranomaly" ||
+                      value === "tritanomaly"
+                    ) {
+                      // Partial color blindness defaults to 60%
+                      setCurrentSeverity(0.6);
+                    } else if (
+                      isColorBlindnessFilter(value) ||
+                      isVisualFieldDefect(value)
+                    ) {
+                      // Complete color blindness and visual field defects default to 100%
+                      setCurrentSeverity(1.0);
+                    }
+                    // Reset parameters panel visibility when changing filter
+                    setShowParameters(false);
+                  }}
+                  options={filterOptions}
+                  placeholder="preset is applied"
+                  showPlaceholder={!!selectedPreset}
+                />
+              </div>
 
-                {/* Parameters Button */}
+              {/* Parameters Button - Only show if no preset is selected */}
+              {!selectedPreset && (
                 <button
                   className="vision-simulator-panel__params-btn"
                   onClick={() => setShowParameters(!showParameters)}
@@ -1068,8 +1075,8 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                 >
                   <Icon name="parameters" size={16} />
                 </button>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Parameters Panel - Collapsible */}
             {!selectedPreset &&

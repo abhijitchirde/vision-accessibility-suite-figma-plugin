@@ -97,7 +97,7 @@
    ============================================ */
 
 body {
-  background-color: var(--figma-color-bg);
+  background-color: var(--figma-color-bg-secondary);
   font-family: var(--figma-font-family);
   margin: 0;
   padding: 0;

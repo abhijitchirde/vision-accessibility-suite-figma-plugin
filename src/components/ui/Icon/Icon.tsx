@@ -1,8 +1,15 @@
-import React from 'react';
-import { SlFrame } from 'react-icons/sl';
-import { IoSettingsOutline } from 'react-icons/io5';
-import { VscSettings } from 'react-icons/vsc';
-import { HiOutlineDownload, HiOutlineUpload, HiOutlineTrash, HiX, HiOutlineClipboard, HiOutlineClipboardCheck } from 'react-icons/hi';
+import React from "react";
+import { SlFrame } from "react-icons/sl";
+import { IoSettingsOutline } from "react-icons/io5";
+import { VscSettings } from "react-icons/vsc";
+import {
+  HiOutlineDownload,
+  HiOutlineUpload,
+  HiOutlineTrash,
+  HiX,
+  HiOutlineClipboard,
+  HiOutlineClipboardCheck,
+} from "react-icons/hi";
 
 interface IconProps {
   name: string;
@@ -13,7 +20,7 @@ interface IconProps {
 export const Icon: React.FC<IconProps> = ({
   name,
   size = 20,
-  color = 'currentColor',
+  color = "currentColor",
 }) => {
   const icons: Record<string, React.ReactElement> = {
     contrast: (
@@ -26,7 +33,7 @@ export const Icon: React.FC<IconProps> = ({
         />
       </svg>
     ),
-    'chevron-right': (
+    "chevron-right": (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <path
           d="M9 18L15 12L9 6"
@@ -37,7 +44,7 @@ export const Icon: React.FC<IconProps> = ({
         />
       </svg>
     ),
-    'chevron-left': (
+    "chevron-left": (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <path
           d="M15 18L9 12L15 6"
@@ -48,7 +55,7 @@ export const Icon: React.FC<IconProps> = ({
         />
       </svg>
     ),
-    'chevron-up': (
+    "chevron-up": (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <path
           d="M18 15L12 9L6 15"
@@ -59,7 +66,7 @@ export const Icon: React.FC<IconProps> = ({
         />
       </svg>
     ),
-    'chevron-down': (
+    "chevron-down": (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <path
           d="M6 9L12 15L18 9"
@@ -92,7 +99,7 @@ export const Icon: React.FC<IconProps> = ({
         />
       </svg>
     ),
-    'refresh-cw': (
+    "refresh-cw": (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <path
           d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"
@@ -124,7 +131,7 @@ export const Icon: React.FC<IconProps> = ({
         />
       </svg>
     ),
-    'alert-triangle': (
+    "alert-triangle": (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <path
           d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
@@ -155,7 +162,7 @@ export const Icon: React.FC<IconProps> = ({
         />
       </svg>
     ),
-    'alert-circle': (
+    "alert-circle": (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <circle
           cx="12"
@@ -196,7 +203,7 @@ export const Icon: React.FC<IconProps> = ({
     trash: <HiOutlineTrash size={size} color={color} />,
     x: <HiX size={size} color={color} />,
     clipboard: <HiOutlineClipboard size={size} color={color} />,
-    'clipboard-check': <HiOutlineClipboardCheck size={size} color={color} />,
+    "clipboard-check": <HiOutlineClipboardCheck size={size} color={color} />,
     edit: (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <path
@@ -215,7 +222,7 @@ export const Icon: React.FC<IconProps> = ({
         />
       </svg>
     ),
-    'check-circle': (
+    "check-circle": (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <path
           d="M22 11.08V12a10 10 0 1 1-5.93-9.14"
@@ -347,7 +354,7 @@ export const Icon: React.FC<IconProps> = ({
         />
       </svg>
     ),
-    'eye-off': (
+    "eye-off": (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <path
           d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
@@ -419,7 +426,7 @@ export const Icon: React.FC<IconProps> = ({
         />
       </svg>
     ),
-    'grip-vertical': (
+    "grip-vertical": (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <circle cx="9" cy="5" r="1.5" fill={color} />
         <circle cx="9" cy="12" r="1.5" fill={color} />

@@ -57,6 +57,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  background-color: var(--figma-color-bg-secondary);
 }
 
 /* Generate Tab */
@@ -64,6 +65,9 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding: 16px;
+  margin: -16px -16px 0 -16px;
+  border-radius: 0;
 }
 
 .vision-simulator-panel__select-all {
@@ -98,7 +102,7 @@
   align-items: flex-start;
   gap: 4px;
   padding: 12px;
-  background-color: var(--figma-color-bg-secondary);
+  background-color: var(--figma-color-bg);
   border: 2px solid var(--figma-color-border);
   border-radius: 6px;
   transition: all 0.2s ease;
@@ -176,6 +180,9 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding: 16px;
+  margin: -16px -16px 0 -16px;
+  border-radius: 0;
 }
 
 .vision-simulator-panel__controls {

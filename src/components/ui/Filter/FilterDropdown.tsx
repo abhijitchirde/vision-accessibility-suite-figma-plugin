@@ -16,6 +16,8 @@ interface FilterDropdownProps {
   onChange: (value: SimulationType) => void;
   options: FilterOption[];
   className?: string;
+  placeholder?: string;
+  showPlaceholder?: boolean;
 }
 
 /**
@@ -26,6 +28,8 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
   onChange,
   options,
   className = "",
+  placeholder,
+  showPlaceholder = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -93,11 +97,17 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
         aria-expanded={isOpen}
       >
         <span className="filter-dropdown__button-content">
-          {selectedOption?.showIcon && (
+          {!showPlaceholder && selectedOption?.showIcon && (
             <FilterIcon filterId={value} size="tiny" />
           )}
-          <span className="filter-dropdown__button-text">
-            {selectedOption?.label || "Select filter..."}
+          <span
+            className={`filter-dropdown__button-text ${
+              showPlaceholder ? "filter-dropdown__button-text--placeholder" : ""
+            }`}
+          >
+            {showPlaceholder
+              ? placeholder || "Select filter..."
+              : selectedOption?.label || "Select filter..."}
           </span>
         </span>
         <svg
