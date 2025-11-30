@@ -2,13 +2,13 @@ import React, { useState, useEffect, useRef } from "react";
 import "./VisionSimulatorPanel.css";
 import { Icon } from "../ui/Icon/Icon";
 import { Button } from "../ui/Button/Button";
-import { FilterIcon } from "../../features/testing/vision-simulator/components/FilterIcon";
-import { SeveritySlider } from "../../features/testing/vision-simulator/components/SeveritySlider";
-import { RadiusSlider } from "../../features/testing/vision-simulator/components/RadiusSlider";
-import { PresetSelector } from "../../features/testing/vision-simulator/components/PresetSelector";
-import { PresetManager } from "../../features/testing/vision-simulator/components/PresetManager";
-import { FilterParameterSlider } from "../../features/testing/vision-simulator/components/FilterParameterSlider";
-import { FilterDropdown } from "../../features/testing/vision-simulator/components/FilterDropdown";
+import { FilterIcon } from "../ui/Filter/FilterIcon";
+import { SeveritySlider } from "../ui/Filter/SeveritySlider";
+import { RadiusSlider } from "../ui/Filter/RadiusSlider";
+import { PresetSelector } from "../ui/Presets/PresetSelector";
+import { PresetManager } from "../ui/Presets/PresetManager";
+import { FilterParameterSlider } from "../ui/Filter/FilterParameterSlider";
+import { FilterDropdown } from "../ui/Filter/FilterDropdown";
 import { useFigmaMessage } from "../../hooks/useFigmaMessage";
 import {
   SimulationType,
@@ -18,7 +18,7 @@ import {
   CentralVisionLossConfig,
   PeripheralVisionLossConfig,
   FilterPreset,
-} from "../../features/testing/vision-simulator/vision-simulator.types";
+} from "../../utils/vision-simulator.types";
 import {
   FILTER_METADATA,
   COLOR_BLIND_FILTERS,
@@ -30,7 +30,7 @@ import {
   DEFAULT_CENTRAL_VISION_LOSS_CONFIG,
   DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG,
   DEFAULT_PRESETS,
-} from "../../features/testing/vision-simulator/vision-simulator.constants";
+} from "../../utils/vision-simulator.constants";
 import {
   applyColorBlindness,
   applyBlur,
@@ -41,7 +41,7 @@ import {
   applyCentralVisionLoss,
   applyPeripheralVisionLoss,
   applyFilterPreset,
-} from "../../features/testing/vision-simulator/image-utils";
+} from "../../utils/image-utils";
 
 type Tab = "generate" | "simulation";
 
@@ -119,20 +119,20 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
     const handleMessage = (event: MessageEvent) => {
       const msg = event.data.pluginMessage;
       if (msg?.type === "VISION_SIMULATOR_PRESETS_LOADED") {
-        console.log("[UI] Loaded presets:", msg.presets);
+        // console.log("[UI] Loaded presets:", msg.presets);
         setCustomPresets(msg.presets || []);
       } else if (msg?.type === "VISION_SIMULATOR_SELECTED_PRESET_LOADED") {
-        console.log("[UI] Loaded selected preset ID:", msg.presetId);
+        // console.log("[UI] Loaded selected preset ID:", msg.presetId);
         if (msg.presetId) {
           setPendingPresetId(msg.presetId);
         }
       } else if (msg?.type === "VISION_SIMULATOR_PRESETS_SAVED") {
         if (msg.success) {
-          console.log(
-            "[UI] ✓ Presets saved successfully to Figma storage:",
-            msg.count,
-            "presets"
-          );
+          // console.log(
+          //   "[UI] ✓ Presets saved successfully to Figma storage:",
+          //   msg.count,
+          //   "presets"
+          // );
         } else {
           console.error("[UI] ✗ Failed to save presets:", msg.error);
         }
@@ -148,7 +148,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
     if (pendingPresetId && allPresets.length > 0) {
       const preset = allPresets.find((p) => p.id === pendingPresetId);
       if (preset) {
-        console.log("Restoring preset:", preset.name);
+        // console.log("Restoring preset:", preset.name);
         setSelectedPreset(preset);
         setPendingPresetId(null);
       }
@@ -589,13 +589,13 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
    * Handle preset import
    */
   const handleImportPresets = (importedPresets: FilterPreset[]) => {
-    console.log("[UI] handleImportPresets called with:", importedPresets);
-    console.log("[UI] Current customPresets state:", customPresets);
+    // console.log("[UI] handleImportPresets called with:", importedPresets);
+    // console.log("[UI] Current customPresets state:", customPresets);
 
     // Add imported presets to custom presets
     // Only modify ID if it already exists to avoid duplicates
     const existingIds = new Set(customPresets.map((p) => p.id));
-    console.log("[UI] Existing preset IDs:", Array.from(existingIds));
+    // console.log("[UI] Existing preset IDs:", Array.from(existingIds));
 
     const newPresets = importedPresets.map((preset) => {
       let finalId = preset.id;
@@ -603,9 +603,9 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
       // If preset ID already exists, append timestamp to make it unique
       if (existingIds.has(preset.id)) {
         finalId = `${preset.id}-${Date.now()}`;
-        console.log(
-          `[UI] Preset ID ${preset.id} already exists, using ${finalId}`
-        );
+        // console.log(
+        //   `[UI] Preset ID ${preset.id} already exists, using ${finalId}`
+        // );
       }
 
       return {
@@ -617,17 +617,17 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
       };
     });
 
-    console.log("[UI] New presets to add:", newPresets);
+    // console.log("[UI] New presets to add:", newPresets);
 
     setCustomPresets((prev) => {
-      console.log("[UI] setCustomPresets updater - prev:", prev);
+      // console.log("[UI] setCustomPresets updater - prev:", prev);
       const updated = [...prev, ...newPresets];
-      console.log("[UI] setCustomPresets updater - updated:", updated);
-      console.log(
-        "[UI] About to send SAVE message with:",
-        updated.length,
-        "presets"
-      );
+      // console.log("[UI] setCustomPresets updater - updated:", updated);
+      // console.log(
+      //   "[UI] About to send SAVE message with:",
+      //   updated.length,
+      //   "presets"
+      // );
 
       // Save to persistent storage via code.ts
       sendMessage("VISION_SIMULATOR_SAVE_PRESETS", {
@@ -1011,7 +1011,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
               presets={allPresets}
               selectedPreset={selectedPreset}
               onSelectPreset={(preset) => {
-                console.log("Preset selected:", preset?.name || "none");
+                // console.log("Preset selected:", preset?.name || "none");
                 setSelectedPreset(preset);
                 // Save selected preset ID to storage
                 sendMessage("VISION_SIMULATOR_SAVE_SELECTED_PRESET", {

@@ -1,8 +1,8 @@
-import React from 'react';
-import './PresetSelector.css';
-import { FilterPreset } from '../vision-simulator.types';
-import { Icon } from '../../../../components/ui/Icon/Icon';
-import { PresetDropdown } from './PresetDropdown';
+import React from "react";
+import "./PresetSelector.css";
+import { FilterPreset } from "../../../utils/vision-simulator.types";
+import { Icon } from "../Icon/Icon";
+import { PresetDropdown } from "./PresetDropdown";
 
 interface PresetSelectorProps {
   presets: FilterPreset[];
@@ -65,7 +65,8 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
             {selectedPreset.description}
           </p>
           <div className="preset-selector__filters">
-            {selectedPreset.filters.length} filter{selectedPreset.filters.length !== 1 ? 's' : ''} applied
+            {selectedPreset.filters.length} filter
+            {selectedPreset.filters.length !== 1 ? "s" : ""} applied
           </div>
         </div>
       )}

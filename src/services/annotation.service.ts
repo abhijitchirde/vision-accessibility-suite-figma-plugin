@@ -27,8 +27,8 @@ export interface AnnotationData {
 }
 
 export class AnnotationService {
-  private static ANNOTATION_LAYER_NAME = '__A11y Annotations__';
-  private static ANNOTATION_PREFIX = 'a11y-annotation';
+  private static ANNOTATION_LAYER_NAME = "__A11y Annotations__";
+  private static ANNOTATION_PREFIX = "a11y-annotation";
 
   /**
    * Get or create the annotations container frame
@@ -39,7 +39,7 @@ export class AnnotationService {
     // Try to find existing annotations layer
     const existing = currentPage.findOne(
       (node) =>
-        node.type === 'FRAME' &&
+        node.type === "FRAME" &&
         node.name === AnnotationService.ANNOTATION_LAYER_NAME
     ) as FrameNode | null;
 
@@ -66,11 +66,15 @@ export class AnnotationService {
   /**
    * Create a complete annotation (badge + line) for a target node
    */
-  async createAnnotation(config: AnnotationConfig): Promise<AnnotationData | null> {
+  async createAnnotation(
+    config: AnnotationConfig
+  ): Promise<AnnotationData | null> {
     try {
-      const targetNode = await figma.getNodeByIdAsync(config.targetNodeId) as SceneNode;
+      const targetNode = (await figma.getNodeByIdAsync(
+        config.targetNodeId
+      )) as SceneNode;
       if (!targetNode) {
-        console.error('Target node not found:', config.targetNodeId);
+        console.error("Target node not found:", config.targetNodeId);
         return null;
       }
 
@@ -87,14 +91,14 @@ export class AnnotationService {
       annotationGroup.name = `${AnnotationService.ANNOTATION_PREFIX}-${config.label}`;
 
       // Store metadata linking annotation to target
-      annotationGroup.setPluginData('targetNodeId', config.targetNodeId);
-      annotationGroup.setPluginData('annotationType', 'alt-text');
+      annotationGroup.setPluginData("targetNodeId", config.targetNodeId);
+      annotationGroup.setPluginData("annotationType", "alt-text");
 
-      console.log('Created annotation:', {
-        badge: { id: badge.id, x: badge.x, y: badge.y, width: badge.width, height: badge.height },
-        line: { id: line.id },
-        group: { id: annotationGroup.id, x: annotationGroup.x, y: annotationGroup.y }
-      });
+      // console.log('Created annotation:', {
+      //   badge: { id: badge.id, x: badge.x, y: badge.y, width: badge.width, height: badge.height },
+      //   line: { id: line.id },
+      //   group: { id: annotationGroup.id, x: annotationGroup.x, y: annotationGroup.y }
+      // });
 
       return {
         badgeId: badge.id,
@@ -103,7 +107,7 @@ export class AnnotationService {
         groupId: annotationGroup.id,
       };
     } catch (error) {
-      console.error('Failed to create annotation:', error);
+      console.error("Failed to create annotation:", error);
       return null;
     }
   }
@@ -111,16 +115,19 @@ export class AnnotationService {
   /**
    * Create a badge (rectangle with text)
    */
-  private async createBadge(config: AnnotationConfig, targetNode: SceneNode): Promise<FrameNode> {
+  private async createBadge(
+    config: AnnotationConfig,
+    targetNode: SceneNode
+  ): Promise<FrameNode> {
     try {
       const badge = figma.createFrame();
       badge.name = `${config.label}-badge`;
 
       // Badge styling
-      const bgColor = this.parseColor(config.color || '#4F46E5'); // Indigo by default
+      const bgColor = this.parseColor(config.color || "#4F46E5"); // Indigo by default
       badge.fills = [
         {
-          type: 'SOLID',
+          type: "SOLID",
           color: bgColor,
         },
       ];
@@ -129,53 +136,56 @@ export class AnnotationService {
       badge.paddingRight = 8;
       badge.paddingTop = 6;
       badge.paddingBottom = 6;
-      badge.layoutMode = 'VERTICAL'; // Changed to vertical for column layout
+      badge.layoutMode = "VERTICAL"; // Changed to vertical for column layout
       badge.itemSpacing = 2;
-      badge.counterAxisSizingMode = 'AUTO';
-      badge.primaryAxisSizingMode = 'AUTO';
-      badge.primaryAxisAlignItems = 'MIN'; // Left align
+      badge.counterAxisSizingMode = "AUTO";
+      badge.primaryAxisSizingMode = "AUTO";
+      badge.primaryAxisAlignItems = "MIN"; // Left align
 
-      console.log('Badge created, loading fonts...');
+      // console.log('Badge created, loading fonts...');
 
       // Load fonts (use Bold instead of SemiBold for better availability)
       try {
-        await figma.loadFontAsync({ family: 'Inter', style: 'Bold' });
+        await figma.loadFontAsync({ family: "Inter", style: "Bold" });
       } catch (e) {
         // Fallback to Medium if Bold not available
-        await figma.loadFontAsync({ family: 'Inter', style: 'Medium' });
+        await figma.loadFontAsync({ family: "Inter", style: "Medium" });
       }
 
       // Create label text (smaller, bold/medium)
       const labelText = figma.createText();
       try {
-        labelText.fontName = { family: 'Inter', style: 'Bold' };
+        labelText.fontName = { family: "Inter", style: "Bold" };
       } catch (e) {
-        labelText.fontName = { family: 'Inter', style: 'Medium' };
+        labelText.fontName = { family: "Inter", style: "Medium" };
       }
       labelText.fontSize = 10;
       labelText.characters = config.label;
-      labelText.fills = [{ type: 'SOLID', color: { r: 1, g: 1, b: 1 } }]; // White text
-      labelText.textAlignHorizontal = 'LEFT';
-      labelText.letterSpacing = { value: 0.5, unit: 'PIXELS' };
+      labelText.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }]; // White text
+      labelText.textAlignHorizontal = "LEFT";
+      labelText.letterSpacing = { value: 0.5, unit: "PIXELS" };
       badge.appendChild(labelText);
 
-      console.log('Label text added:', config.label);
+      // console.log('Label text added:', config.label);
 
       // If alt text is provided, add it as a second line
       if (config.altText) {
-        await figma.loadFontAsync({ family: 'Inter', style: 'Regular' });
+        await figma.loadFontAsync({ family: "Inter", style: "Regular" });
         const altTextNode = figma.createText();
-        altTextNode.fontName = { family: 'Inter', style: 'Regular' };
+        altTextNode.fontName = { family: "Inter", style: "Regular" };
         altTextNode.fontSize = 9;
         // Truncate alt text if too long
-        const truncatedAltText = config.altText.length > 40
-          ? config.altText.substring(0, 37) + '...'
-          : config.altText;
+        const truncatedAltText =
+          config.altText.length > 40
+            ? config.altText.substring(0, 37) + "..."
+            : config.altText;
         altTextNode.characters = truncatedAltText;
-        altTextNode.fills = [{ type: 'SOLID', color: { r: 0.95, g: 0.95, b: 0.95 } }];
-        altTextNode.textAlignHorizontal = 'LEFT';
+        altTextNode.fills = [
+          { type: "SOLID", color: { r: 0.95, g: 0.95, b: 0.95 } },
+        ];
+        altTextNode.textAlignHorizontal = "LEFT";
         badge.appendChild(altTextNode);
-        console.log('Alt text added:', truncatedAltText);
+        // console.log('Alt text added:', truncatedAltText);
       }
 
       // Position badge (absolute coordinates)
@@ -185,15 +195,15 @@ export class AnnotationService {
       } else {
         // Default position: top-right of target node with offset (doubled for longer line)
         const targetBounds = this.getAbsoluteBounds(targetNode);
-        console.log('Target bounds:', targetBounds);
+        // console.log('Target bounds:', targetBounds);
         badge.x = targetBounds.x + targetBounds.width + 40; // Doubled from 20 to 40
         badge.y = targetBounds.y - 10;
-        console.log('Badge positioned at:', badge.x, badge.y);
+        // console.log('Badge positioned at:', badge.x, badge.y);
       }
 
       return badge;
     } catch (error) {
-      console.error('Error creating badge:', error);
+      console.error("Error creating badge:", error);
       throw error;
     }
   }
@@ -218,7 +228,7 @@ export class AnnotationService {
 
     // Create horizontal line
     const line = figma.createLine();
-    line.name = 'annotation-line';
+    line.name = "annotation-line";
 
     // Set line position and length
     line.x = targetRightX;
@@ -228,16 +238,16 @@ export class AnnotationService {
     // Line styling - dashed
     line.strokes = [
       {
-        type: 'SOLID',
+        type: "SOLID",
         color: { r: 0.31, g: 0.27, b: 0.9 }, // Indigo
       },
     ];
     line.strokeWeight = 1.5;
-    line.strokeCap = 'ROUND';
+    line.strokeCap = "ROUND";
     line.dashPattern = [4, 4]; // Dashed pattern
     line.opacity = 0.7;
 
-    console.log('Line created connecting target and badge');
+    // console.log('Line created connecting target and badge');
 
     return line;
   }
@@ -249,7 +259,7 @@ export class AnnotationService {
    */
   async updateLine(annotationGroupId: string): Promise<boolean> {
     // Not implemented - annotations are static
-    console.log('Line update not implemented - annotations are static');
+    // console.log('Line update not implemented - annotations are static');
     return true;
   }
 
@@ -264,7 +274,7 @@ export class AnnotationService {
       group.remove();
       return true;
     } catch (error) {
-      console.error('Failed to delete annotation:', error);
+      console.error("Failed to delete annotation:", error);
       return false;
     }
   }
@@ -277,7 +287,10 @@ export class AnnotationService {
     let deletedCount = 0;
 
     container.findAll((node) => {
-      if (node.type === 'GROUP' && node.getPluginData('targetNodeId') === targetNodeId) {
+      if (
+        node.type === "GROUP" &&
+        node.getPluginData("targetNodeId") === targetNodeId
+      ) {
         node.remove();
         deletedCount++;
       }
@@ -295,10 +308,13 @@ export class AnnotationService {
     const annotations: AnnotationData[] = [];
 
     container.findAll((node) => {
-      if (node.type === 'GROUP' && node.name.startsWith(AnnotationService.ANNOTATION_PREFIX)) {
-        const badge = node.findOne((n) => n.name.includes('badge'));
-        const line = node.findOne((n) => n.name === 'annotation-line');
-        const targetNodeId = node.getPluginData('targetNodeId');
+      if (
+        node.type === "GROUP" &&
+        node.name.startsWith(AnnotationService.ANNOTATION_PREFIX)
+      ) {
+        const badge = node.findOne((n) => n.name.includes("badge"));
+        const line = node.findOne((n) => n.name === "annotation-line");
+        const targetNodeId = node.getPluginData("targetNodeId");
 
         if (badge && line && targetNodeId) {
           annotations.push({
@@ -326,7 +342,12 @@ export class AnnotationService {
   /**
    * Get absolute bounds of a node (handles nested nodes)
    */
-  private getAbsoluteBounds(node: SceneNode): { x: number; y: number; width: number; height: number } {
+  private getAbsoluteBounds(node: SceneNode): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } {
     return {
       x: node.absoluteBoundingBox?.x || 0,
       y: node.absoluteBoundingBox?.y || 0,
@@ -340,7 +361,7 @@ export class AnnotationService {
    */
   private parseColor(color: string): RGB {
     // Simple hex color parser (#RRGGBB)
-    if (color.startsWith('#')) {
+    if (color.startsWith("#")) {
       const hex = color.slice(1);
       const r = parseInt(hex.slice(0, 2), 16) / 255;
       const g = parseInt(hex.slice(2, 4), 16) / 255;

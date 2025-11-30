@@ -1,4 +1,4 @@
-import { VisionSimulator } from "./features/testing/vision-simulator/vision-simulator";
+import { VisionSimulator } from "./utils/vision-simulator";
 import { SelectionService } from "./services/selection.service";
 
 // Load all pages for document change monitoring
@@ -88,12 +88,12 @@ figma.ui.onmessage = async (msg) => {
           const presetsData = figma.root.getPluginData(
             "vision-simulator-presets"
           );
-          console.log(
-            "[code.ts] Loading presets from storage, raw data:",
-            presetsData
-          );
+          // console.log(
+          //   "[code.ts] Loading presets from storage, raw data:",
+          //   presetsData
+          // );
           const presets = presetsData ? JSON.parse(presetsData) : [];
-          console.log("[code.ts] Parsed presets:", presets.length, "presets");
+          // console.log("[code.ts] Parsed presets:", presets.length, "presets");
           figma.ui.postMessage({
             type: "VISION_SIMULATOR_PRESETS_LOADED",
             presets: presets,
@@ -110,23 +110,23 @@ figma.ui.onmessage = async (msg) => {
       case "VISION_SIMULATOR_SAVE_PRESETS":
         // Save custom presets to storage
         try {
-          console.log("[code.ts] Received SAVE_PRESETS message, raw msg:", msg);
+          // console.log("[code.ts] Received SAVE_PRESETS message, raw msg:", msg);
           const presetsToSave = msg.data?.presets || []; // FIX: Use msg.data.presets
-          console.log("[code.ts] presetsToSave extracted:", presetsToSave);
-          console.log(
-            "[code.ts] presetsToSave is array?",
-            Array.isArray(presetsToSave)
-          );
-          console.log("[code.ts] presetsToSave length:", presetsToSave.length);
-          console.log(
-            "[code.ts] Saving presets to storage:",
-            presetsToSave.length,
-            "presets"
-          );
-          console.log(
-            "[code.ts] Full preset data:",
-            JSON.stringify(presetsToSave, null, 2)
-          );
+          // console.log("[code.ts] presetsToSave extracted:", presetsToSave);
+          // console.log(
+          //   "[code.ts] presetsToSave is array?",
+          //   Array.isArray(presetsToSave)
+          // );
+          // console.log("[code.ts] presetsToSave length:", presetsToSave.length);
+          // console.log(
+          //   "[code.ts] Saving presets to storage:",
+          //   presetsToSave.length,
+          //   "presets"
+          // );
+          // console.log(
+          //   "[code.ts] Full preset data:",
+          //   JSON.stringify(presetsToSave, null, 2)
+          // );
 
           figma.root.setPluginData(
             "vision-simulator-presets",
@@ -137,14 +137,14 @@ figma.ui.onmessage = async (msg) => {
           const verification = figma.root.getPluginData(
             "vision-simulator-presets"
           );
-          console.log(
-            "[code.ts] Verification - data saved successfully:",
-            verification ? "YES" : "NO"
-          );
-          console.log(
-            "[code.ts] Verification - saved data length:",
-            verification?.length || 0
-          );
+          // console.log(
+          //   "[code.ts] Verification - data saved successfully:",
+          //   verification ? "YES" : "NO"
+          // );
+          // console.log(
+          //   "[code.ts] Verification - saved data length:",
+          //   verification?.length || 0
+          // );
 
           // Send confirmation back to UI
           figma.ui.postMessage({
@@ -189,7 +189,7 @@ figma.ui.onmessage = async (msg) => {
             "vision-simulator-selected-preset",
             presetId
           );
-          console.log("[code.ts] Saved selected preset ID:", presetId);
+          // console.log("[code.ts] Saved selected preset ID:", presetId);
         } catch (error) {
           console.error("[code.ts] Failed to save selected preset:", error);
         }
@@ -198,9 +198,9 @@ figma.ui.onmessage = async (msg) => {
       case "VISION_SIMULATOR_GENERATE":
         // Generate canvas copy with filter applied
         const nodesToGenerate = visionSimulator.getSelectedNodes();
-        console.log(
-          `VISION_SIMULATOR_GENERATE: Found ${nodesToGenerate.length} selected nodes`
-        );
+        // console.log(
+        //   `VISION_SIMULATOR_GENERATE: Found ${nodesToGenerate.length} selected nodes`
+        // );
 
         if (nodesToGenerate.length === 0) {
           figma.notify(
@@ -215,9 +215,9 @@ figma.ui.onmessage = async (msg) => {
           try {
             const filter = msg.data?.filter || msg.filter;
             const options = msg.data?.options || msg.options || {};
-            console.log(
-              `Generating simulation for filter: ${filter}, node: ${nodesToGenerate[0].name}`
-            );
+            // console.log(
+            //   `Generating simulation for filter: ${filter}, node: ${nodesToGenerate[0].name}`
+            // );
 
             // Generate simulation for first selected node with single filter
             const generatedIds = await visionSimulator.generateSimulations(
@@ -228,19 +228,19 @@ figma.ui.onmessage = async (msg) => {
 
             // Apply filter to the generated frame
             const frameId = generatedIds[0];
-            console.log(`Generated frame ID: ${frameId}`);
+            // console.log(`Generated frame ID: ${frameId}`);
 
             // Export original image
             const originalImage = await visionSimulator.prepareImageForPreview(
               nodesToGenerate[0].id
             );
-            console.log(
-              `Exported original image: ${originalImage ? "success" : "failed"}`
-            );
+            // console.log(
+            //   `Exported original image: ${originalImage ? "success" : "failed"}`
+            // );
 
             if (originalImage) {
               // Send to UI for filter processing
-              console.log(`Sending image to UI for ${filter} processing`);
+              // console.log(`Sending image to UI for ${filter} processing`);
               figma.ui.postMessage({
                 type: "VISION_SIMULATOR_PROCESS_FILTER",
                 frameId,
@@ -375,7 +375,7 @@ figma.ui.onmessage = async (msg) => {
         break;
 
       default:
-        console.log("Unknown message type:", msg.type);
+      // console.log("Unknown message type:", msg.type);
     }
   } catch (error) {
     console.error("Error handling message:", error);

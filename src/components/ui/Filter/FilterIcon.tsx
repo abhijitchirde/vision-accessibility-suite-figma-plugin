@@ -1,41 +1,41 @@
-import React from 'react';
-import { FILTER_ICONS } from '../vision-simulator-icons';
-import './FilterIcon.css';
+import React from "react";
+import { FILTER_ICONS } from "../../../utils/vision-simulator-icons";
+import "./FilterIcon.css";
 
 interface FilterIconProps {
   filterId: string;
-  size?: 'tiny' | 'small' | 'medium';
+  size?: "tiny" | "small" | "medium";
 }
 
 /**
  * Icon SVG components for each filter type
  */
 const IconSymbols: Record<string, React.FC<{ color: string; size: number }>> = {
-  'blur-circle': ({ color, size }) => (
+  "blur-circle": ({ color, size }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <circle cx="12" cy="12" r="8" fill={color} opacity="0.3" />
       <circle cx="12" cy="12" r="6" fill={color} opacity="0.5" />
       <circle cx="12" cy="12" r="4" fill={color} opacity="0.8" />
     </svg>
   ),
-  'double-square': ({ color, size }) => (
+  "double-square": ({ color, size }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <rect x="6" y="6" width="12" height="12" fill={color} opacity="0.4" />
       <rect x="9" y="9" width="12" height="12" fill={color} opacity="0.7" />
     </svg>
   ),
-  'diamond': ({ color, size }) => (
+  diamond: ({ color, size }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path d="M12 4 L20 12 L12 20 L4 12 Z" fill={color} />
     </svg>
   ),
-  'low-contrast-circle': ({ color, size }) => (
+  "low-contrast-circle": ({ color, size }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <circle cx="12" cy="12" r="8" fill="#E0E0E0" />
       <circle cx="12" cy="12" r="6" fill={color} />
     </svg>
   ),
-  'starburst': ({ color, size }) => (
+  starburst: ({ color, size }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <circle cx="12" cy="12" r="4" fill={color} />
       <path d="M12 2 L12 8" stroke={color} strokeWidth="2" />
@@ -48,13 +48,20 @@ const IconSymbols: Record<string, React.FC<{ color: string; size: number }>> = {
       <path d="M9 15 L5 19" stroke={color} strokeWidth="2" />
     </svg>
   ),
-  'center-dot': ({ color, size }) => (
+  "center-dot": ({ color, size }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="10" stroke={color} strokeWidth="2" opacity="0.3" />
+      <circle
+        cx="12"
+        cy="12"
+        r="10"
+        stroke={color}
+        strokeWidth="2"
+        opacity="0.3"
+      />
       <circle cx="12" cy="12" r="5" fill={color} opacity="0.8" />
     </svg>
   ),
-  'tunnel': ({ color, size }) => (
+  tunnel: ({ color, size }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <circle cx="12" cy="12" r="10" fill={color} opacity="0.7" />
       <circle cx="12" cy="12" r="5" fill="white" />
@@ -67,17 +74,20 @@ const IconSymbols: Record<string, React.FC<{ color: string; size: number }>> = {
  * FilterIcon displays either horizontal color bars or icon symbols
  * representing the visual characteristics of each vision impairment condition
  */
-export const FilterIcon: React.FC<FilterIconProps> = ({ filterId, size = 'small' }) => {
+export const FilterIcon: React.FC<FilterIconProps> = ({
+  filterId,
+  size = "small",
+}) => {
   const iconData = FILTER_ICONS[filterId];
 
   if (!iconData) {
     return null;
   }
 
-  const iconSize = size === 'tiny' ? 16 : size === 'small' ? 24 : 32;
+  const iconSize = size === "tiny" ? 16 : size === "small" ? 24 : 32;
 
   // Render color bars for color-blind filters
-  if (iconData.type === 'color-bars') {
+  if (iconData.type === "color-bars") {
     return (
       <div
         className={`filter-icon filter-icon--bars filter-icon--${size}`}

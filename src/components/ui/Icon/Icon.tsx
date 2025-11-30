@@ -15,7 +15,7 @@ export const Icon: React.FC<IconProps> = ({
   size = 20,
   color = 'currentColor',
 }) => {
-  const icons: Record<string, JSX.Element> = {
+  const icons: Record<string, React.ReactElement> = {
     contrast: (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="12" r="9" stroke={color} strokeWidth="2" />

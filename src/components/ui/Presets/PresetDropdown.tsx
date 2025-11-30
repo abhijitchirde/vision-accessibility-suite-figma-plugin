@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import './PresetDropdown.css';
-import { FilterPreset } from '../vision-simulator.types';
+import React, { useState, useRef, useEffect } from "react";
+import "./PresetDropdown.css";
+import { FilterPreset } from "../../../utils/vision-simulator.types";
 
 interface PresetDropdownProps {
   presets: FilterPreset[];
@@ -17,7 +17,7 @@ export const PresetDropdown: React.FC<PresetDropdownProps> = ({
   presets,
   selectedPreset,
   onChange,
-  className = '',
+  className = "",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -29,26 +29,29 @@ export const PresetDropdown: React.FC<PresetDropdownProps> = ({
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen]);
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       setIsOpen(false);
       buttonRef.current?.focus();
-    } else if (e.key === 'ArrowDown' && !isOpen) {
+    } else if (e.key === "ArrowDown" && !isOpen) {
       setIsOpen(true);
     }
   };
@@ -73,7 +76,7 @@ export const PresetDropdown: React.FC<PresetDropdownProps> = ({
         aria-expanded={isOpen}
       >
         <span className="preset-dropdown__button-text">
-          {selectedPreset?.name || 'No preset selected'}
+          {selectedPreset?.name || "No preset selected"}
         </span>
         <svg
           className="preset-dropdown__chevron"
@@ -97,13 +100,15 @@ export const PresetDropdown: React.FC<PresetDropdownProps> = ({
           {/* No preset option */}
           <button
             className={`preset-dropdown__option ${
-              !selectedPreset ? 'preset-dropdown__option--selected' : ''
+              !selectedPreset ? "preset-dropdown__option--selected" : ""
             }`}
             onClick={() => handleOptionClick(null)}
             role="option"
             aria-selected={!selectedPreset}
           >
-            <span className="preset-dropdown__option-text">No preset selected</span>
+            <span className="preset-dropdown__option-text">
+              No preset selected
+            </span>
           </button>
 
           {/* Built-in presets */}
@@ -114,13 +119,17 @@ export const PresetDropdown: React.FC<PresetDropdownProps> = ({
                 <button
                   key={preset.id}
                   className={`preset-dropdown__option ${
-                    selectedPreset?.id === preset.id ? 'preset-dropdown__option--selected' : ''
+                    selectedPreset?.id === preset.id
+                      ? "preset-dropdown__option--selected"
+                      : ""
                   }`}
                   onClick={() => handleOptionClick(preset)}
                   role="option"
                   aria-selected={selectedPreset?.id === preset.id}
                 >
-                  <span className="preset-dropdown__option-text">{preset.name}</span>
+                  <span className="preset-dropdown__option-text">
+                    {preset.name}
+                  </span>
                 </button>
               ))}
             </>
@@ -134,13 +143,17 @@ export const PresetDropdown: React.FC<PresetDropdownProps> = ({
                 <button
                   key={preset.id}
                   className={`preset-dropdown__option ${
-                    selectedPreset?.id === preset.id ? 'preset-dropdown__option--selected' : ''
+                    selectedPreset?.id === preset.id
+                      ? "preset-dropdown__option--selected"
+                      : ""
                   }`}
                   onClick={() => handleOptionClick(preset)}
                   role="option"
                   aria-selected={selectedPreset?.id === preset.id}
                 >
-                  <span className="preset-dropdown__option-text">{preset.name}</span>
+                  <span className="preset-dropdown__option-text">
+                    {preset.name}
+                  </span>
                 </button>
               ))}
             </>

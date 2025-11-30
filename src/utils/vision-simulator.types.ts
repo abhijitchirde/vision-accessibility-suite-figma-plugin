@@ -5,7 +5,7 @@
  * including color blindness and other visual conditions
  */
 
-import { Severity } from '../../../types/common.types';
+import { Severity } from "../types/common.types";
 
 /**
  * Supported color blindness types
@@ -15,41 +15,45 @@ import { Severity } from '../../../types/common.types';
  */
 export type ColorBlindnessType =
   // Complete dichromacy (missing cone types)
-  | 'protanopia'      // Red-blind (missing L-cones) ~1% males
-  | 'deuteranopia'    // Green-blind (missing M-cones) ~1% males
-  | 'tritanopia'      // Blue-blind (missing S-cones) ~0.001% population
-  | 'achromatopsia'   // Total color blindness (no cones) ~0.003% population
+  | "protanopia" // Red-blind (missing L-cones) ~1% males
+  | "deuteranopia" // Green-blind (missing M-cones) ~1% males
+  | "tritanopia" // Blue-blind (missing S-cones) ~0.001% population
+  | "achromatopsia" // Total color blindness (no cones) ~0.003% population
   // Partial color vision deficiencies (anomalous trichromacy - weak cone types)
-  | 'protanomaly'     // Weak red (weak L-cones) ~1% males
-  | 'deuteranomaly'   // Weak green (weak M-cones) **~5-6% males** - most common!
-  | 'tritanomaly';    // Weak blue (weak S-cones) ~0.01% population
+  | "protanomaly" // Weak red (weak L-cones) ~1% males
+  | "deuteranomaly" // Weak green (weak M-cones) **~5-6% males** - most common!
+  | "tritanomaly"; // Weak blue (weak S-cones) ~0.01% population
 
 /**
  * Visual field defect types
  */
 export type VisualFieldDefectType =
-  | 'central-vision-loss'    // Macular degeneration - blur/obscure center
-  | 'peripheral-vision-loss'; // Glaucoma/tunnel vision - blur/darken edges
+  | "central-vision-loss" // Macular degeneration - blur/obscure center
+  | "peripheral-vision-loss"; // Glaucoma/tunnel vision - blur/darken edges
 
 /**
  * Other visual impairment types
  */
 export type OtherVisionType =
-  | 'blurred'         // Blurred vision (cataracts, uncorrected refractive error)
-  | 'ghosting'        // Double vision (diplopia)
-  | 'yellowing'       // Yellow tint (aging lens, cataracts)
-  | 'loss-of-contrast' // Reduced contrast sensitivity
-  | 'bright-light';   // Light sensitivity (photophobia)
+  | "blurred" // Blurred vision (cataracts, uncorrected refractive error)
+  | "ghosting" // Double vision (diplopia)
+  | "yellowing" // Yellow tint (aging lens, cataracts)
+  | "loss-of-contrast" // Reduced contrast sensitivity
+  | "bright-light"; // Light sensitivity (photophobia)
 
 /**
  * All supported simulation types
  */
-export type SimulationType = ColorBlindnessType | VisualFieldDefectType | OtherVisionType | 'original';
+export type SimulationType =
+  | ColorBlindnessType
+  | VisualFieldDefectType
+  | OtherVisionType
+  | "original";
 
 /**
  * Filter category for UI organization
  */
-export type FilterCategory = 'color-blind' | 'visual-field' | 'other';
+export type FilterCategory = "color-blind" | "visual-field" | "other";
 
 /**
  * Filter metadata for UI display
@@ -92,7 +96,7 @@ export type TransformationMatrix = [
 /**
  * Simulation mode
  */
-export type SimulationMode = 'preview' | 'generate';
+export type SimulationMode = "preview" | "generate";
 
 /**
  * Options for generating simulations on canvas
@@ -100,7 +104,7 @@ export type SimulationMode = 'preview' | 'generate';
 export interface GenerateOptions {
   filters: SimulationType[]; // Which filters to apply
   createCopies: boolean; // Create new frames or modify originals
-  position?: 'right' | 'below'; // Where to place generated copies
+  position?: "right" | "below"; // Where to place generated copies
   spacing?: number; // Space between generated copies (default: 50px)
   includeLabel?: boolean; // Add label to generated copies
 }
@@ -111,7 +115,7 @@ export interface GenerateOptions {
 export interface PreviewOptions {
   filter: SimulationType; // Currently selected filter
   zoom: number; // Zoom level (0.25, 0.5, 1, 2, etc.)
-  quality?: 'low' | 'medium' | 'high'; // Preview quality (affects performance)
+  quality?: "low" | "medium" | "high"; // Preview quality (affects performance)
 }
 
 /**
@@ -212,11 +216,11 @@ export interface BrightLightConfig {
  * Filter-specific configuration union for "other" filters
  */
 export type OtherFilterConfig =
-  | { type: 'blur'; config: BlurConfig }
-  | { type: 'ghosting'; config: GhostingConfig }
-  | { type: 'yellowing'; config: YellowingConfig }
-  | { type: 'loss-of-contrast'; config: ContrastLossConfig }
-  | { type: 'bright-light'; config: BrightLightConfig };
+  | { type: "blur"; config: BlurConfig }
+  | { type: "ghosting"; config: GhostingConfig }
+  | { type: "yellowing"; config: YellowingConfig }
+  | { type: "loss-of-contrast"; config: ContrastLossConfig }
+  | { type: "bright-light"; config: BrightLightConfig };
 
 /**
  * Complete filter configuration that can represent any filter type
@@ -224,13 +228,13 @@ export type OtherFilterConfig =
  */
 export type CompleteFilterConfig =
   | { type: ColorBlindnessType; severity: number }
-  | { type: 'central-vision-loss'; config: CentralVisionLossConfig }
-  | { type: 'peripheral-vision-loss'; config: PeripheralVisionLossConfig }
-  | { type: 'blurred'; config: BlurConfig }
-  | { type: 'ghosting'; config: GhostingConfig }
-  | { type: 'yellowing'; config: YellowingConfig }
-  | { type: 'loss-of-contrast'; config: ContrastLossConfig }
-  | { type: 'bright-light'; config: BrightLightConfig };
+  | { type: "central-vision-loss"; config: CentralVisionLossConfig }
+  | { type: "peripheral-vision-loss"; config: PeripheralVisionLossConfig }
+  | { type: "blurred"; config: BlurConfig }
+  | { type: "ghosting"; config: GhostingConfig }
+  | { type: "yellowing"; config: YellowingConfig }
+  | { type: "loss-of-contrast"; config: ContrastLossConfig }
+  | { type: "bright-light"; config: BrightLightConfig };
 
 /**
  * Filter preset - a named collection of filters applied sequentially
