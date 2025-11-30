@@ -7,7 +7,6 @@
 
 import React from "react";
 import "./SeveritySlider.css";
-import { SEVERITY_PRESETS } from "../../../utils/vision-simulator.constants";
 
 export interface SeveritySliderProps {
   /** Current severity value (0-1) */
@@ -45,27 +44,24 @@ export const SeveritySlider: React.FC<SeveritySliderProps> = ({
     onChange(newValue);
   };
 
-  const handlePresetClick = (presetValue: number) => {
-    if (!disabled) {
-      onChange(presetValue);
-    }
-  };
-
   /**
    * Get severity description based on percentage
    */
   const getSeverityDescription = (): string => {
-    if (percentage === 0) return "Normal vision";
-    if (percentage <= 30) return "Mild partial deficiency";
-    if (percentage <= 60) return "Moderate partial deficiency";
-    if (percentage < 100) return "Severe partial deficiency";
-    return "Complete dichromacy";
+    if (percentage === 0) return "(Normal vision)";
+    if (percentage <= 30) return "(Mild partial deficiency)";
+    if (percentage <= 60) return "(Moderate partial deficiency)";
+    if (percentage < 100) return "(Severe partial deficiency)";
+    return "(Complete dichromacy)";
   };
 
   return (
     <div className="severity-slider">
       <div className="severity-slider__header">
         <label className="severity-slider__label">{label}</label>
+        <p className="severity-slider__description">
+          {getSeverityDescription()}
+        </p>
         {showPercentage && (
           <span
             className="severity-slider__percentage"
@@ -97,63 +93,6 @@ export const SeveritySlider: React.FC<SeveritySliderProps> = ({
           <span className="severity-slider__track-label">Complete</span>
         </div>
       </div>
-
-      <div className="severity-slider__presets">
-        <button
-          type="button"
-          className={`severity-slider__preset ${
-            value === SEVERITY_PRESETS.mild
-              ? "severity-slider__preset--active"
-              : ""
-          }`}
-          onClick={() => handlePresetClick(SEVERITY_PRESETS.mild)}
-          disabled={disabled}
-          title="Mild partial deficiency (30%)"
-        >
-          Mild
-        </button>
-        <button
-          type="button"
-          className={`severity-slider__preset ${
-            value === SEVERITY_PRESETS.moderate
-              ? "severity-slider__preset--active"
-              : ""
-          }`}
-          onClick={() => handlePresetClick(SEVERITY_PRESETS.moderate)}
-          disabled={disabled}
-          title="Moderate partial deficiency (60%)"
-        >
-          Moderate
-        </button>
-        <button
-          type="button"
-          className={`severity-slider__preset ${
-            value === SEVERITY_PRESETS.severe
-              ? "severity-slider__preset--active"
-              : ""
-          }`}
-          onClick={() => handlePresetClick(SEVERITY_PRESETS.severe)}
-          disabled={disabled}
-          title="Severe partial deficiency (90%)"
-        >
-          Severe
-        </button>
-        <button
-          type="button"
-          className={`severity-slider__preset ${
-            value === SEVERITY_PRESETS.complete
-              ? "severity-slider__preset--active"
-              : ""
-          }`}
-          onClick={() => handlePresetClick(SEVERITY_PRESETS.complete)}
-          disabled={disabled}
-          title="Complete dichromacy (100%)"
-        >
-          Complete
-        </button>
-      </div>
-
-      <p className="severity-slider__description">{getSeverityDescription()}</p>
     </div>
   );
 };

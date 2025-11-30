@@ -18,7 +18,7 @@ import {
   BrightLightConfig,
   CentralVisionLossConfig,
   PeripheralVisionLossConfig,
-} from './vision-simulator.types';
+} from "./vision-simulator.types";
 import {
   TRANSFORMATION_MATRICES,
   DEFAULT_BLUR_CONFIG,
@@ -27,8 +27,8 @@ import {
   DEFAULT_CONTRAST_LOSS_CONFIG,
   DEFAULT_BRIGHT_LIGHT_CONFIG,
   DEFAULT_ANOMALY_SEVERITY,
-} from './vision-simulator.constants';
-import { ColorBlindnessType } from './vision-simulator.types';
+} from "./vision-simulator.constants";
+import { ColorBlindnessType } from "./vision-simulator.types";
 
 /**
  * Map partial color vision deficiency (anomaly) to its base dichromacy type
@@ -41,17 +41,21 @@ import { ColorBlindnessType } from './vision-simulator.types';
  */
 function getBaseDichromacyType(
   type: ColorBlindnessType
-): 'protanopia' | 'deuteranopia' | 'tritanopia' | 'achromatopsia' {
+): "protanopia" | "deuteranopia" | "tritanopia" | "achromatopsia" {
   switch (type) {
-    case 'protanomaly':
-      return 'protanopia';
-    case 'deuteranomaly':
-      return 'deuteranopia';
-    case 'tritanomaly':
-      return 'tritanopia';
+    case "protanomaly":
+      return "protanopia";
+    case "deuteranomaly":
+      return "deuteranopia";
+    case "tritanomaly":
+      return "tritanopia";
     default:
       // Already a dichromacy type, return as-is
-      return type as 'protanopia' | 'deuteranopia' | 'tritanopia' | 'achromatopsia';
+      return type as
+        | "protanopia"
+        | "deuteranopia"
+        | "tritanopia"
+        | "achromatopsia";
   }
 }
 
@@ -65,9 +69,9 @@ function getBaseDichromacyType(
  */
 function getDefaultSeverity(type: ColorBlindnessType): number {
   switch (type) {
-    case 'protanomaly':
-    case 'deuteranomaly':
-    case 'tritanomaly':
+    case "protanomaly":
+    case "deuteranomaly":
+    case "tritanomaly":
       return DEFAULT_ANOMALY_SEVERITY[type];
     default:
       return 1.0; // Complete dichromacy
@@ -137,7 +141,10 @@ export function interpolateColorMatrix(
  * @param matrix - 3x3 transformation matrix
  * @returns Transformed RGB color
  */
-export function applyColorMatrix(color: RGB, matrix: TransformationMatrix): RGB {
+export function applyColorMatrix(
+  color: RGB,
+  matrix: TransformationMatrix
+): RGB {
   const r = color.r / 255;
   const g = color.g / 255;
   const b = color.b / 255;
@@ -182,7 +189,8 @@ export function applyColorBlindness(
   severity?: number
 ): Uint8ClampedArray {
   // Use provided severity, or get type-appropriate default
-  const effectiveSeverity = severity !== undefined ? severity : getDefaultSeverity(type);
+  const effectiveSeverity =
+    severity !== undefined ? severity : getDefaultSeverity(type);
 
   // Get the base dichromacy type for matrix lookup
   const baseDichromacyType = getBaseDichromacyType(type);
@@ -191,7 +199,9 @@ export function applyColorBlindness(
   // If severity is 1.0 (complete dichromacy), use the base matrix directly for performance
   // Otherwise, interpolate between identity and dichromacy matrix
   const matrix =
-    effectiveSeverity === 1.0 ? baseMatrix : interpolateColorMatrix(effectiveSeverity, baseMatrix);
+    effectiveSeverity === 1.0
+      ? baseMatrix
+      : interpolateColorMatrix(effectiveSeverity, baseMatrix);
 
   const result = new Uint8ClampedArray(imageData.length);
 
@@ -236,7 +246,12 @@ export function applyBlur(
 
   // Apply blur multiple times for stronger effect
   for (let iter = 0; iter < iterations; iter++) {
-    result = applyGaussianBlur(result, width, height, radius) as Uint8ClampedArray;
+    result = applyGaussianBlur(
+      result,
+      width,
+      height,
+      radius
+    ) as Uint8ClampedArray;
   }
 
   return result;
@@ -337,7 +352,7 @@ function createGaussianKernel(size: number, sigma: number): number[] {
 
   for (let i = 0; i < size; i++) {
     const x = i - mean;
-    const weight = Math.exp(-0.5 * (x * x) / (sigma * sigma));
+    const weight = Math.exp((-0.5 * (x * x)) / (sigma * sigma));
     kernel[i] = weight;
     sum += weight;
   }
@@ -375,9 +390,14 @@ export function applyGhosting(
         const ghostIdx = (ghostY * width + ghostX) * 4;
 
         // Blend ghost image with original
-        result[idx] = imageData[idx] * (1 - opacity) + imageData[ghostIdx] * opacity;
-        result[idx + 1] = imageData[idx + 1] * (1 - opacity) + imageData[ghostIdx + 1] * opacity;
-        result[idx + 2] = imageData[idx + 2] * (1 - opacity) + imageData[ghostIdx + 2] * opacity;
+        result[idx] =
+          imageData[idx] * (1 - opacity) + imageData[ghostIdx] * opacity;
+        result[idx + 1] =
+          imageData[idx + 1] * (1 - opacity) +
+          imageData[ghostIdx + 1] * opacity;
+        result[idx + 2] =
+          imageData[idx + 2] * (1 - opacity) +
+          imageData[ghostIdx + 2] * opacity;
       }
     }
   }
@@ -386,7 +406,7 @@ export function applyGhosting(
 }
 
 /**
- * Apply yellowing (aging lens) effect
+ * Apply yellowing (aging lens) effect with color temperature adjustment
  *
  * @param imageData - Image data
  * @param config - Yellowing configuration
@@ -396,18 +416,49 @@ export function applyYellowing(
   imageData: Uint8ClampedArray,
   config: YellowingConfig = DEFAULT_YELLOWING_CONFIG
 ): Uint8ClampedArray {
-  const { intensity } = config;
+  const { intensity, temperature } = config;
   const result = new Uint8ClampedArray(imageData.length);
 
-  for (let i = 0; i < imageData.length; i += 4) {
-    const r = imageData[i];
-    const g = imageData[i + 1];
-    const b = imageData[i + 2];
+  // Color temperature adjustment
+  // Lower temperature (1000-2500K) = warmer/more yellow (like old lens)
+  // Higher temperature (4000-6500K) = cooler/less yellow, more neutral
+  // Normalize temperature to 0-1 range (1000K = very warm, 6500K = neutral)
+  const normalizedTemp = Math.max(0, Math.min(1, (temperature - 1000) / 5500));
 
-    // Add yellow tint (increase red and green, reduce blue)
-    result[i] = Math.min(255, r + intensity * 50);
-    result[i + 1] = Math.min(255, g + intensity * 40);
-    result[i + 2] = Math.max(0, b - intensity * 30);
+  // Calculate temperature-based color shifts
+  // At low temp (0): strong yellow/warm shift
+  // At high temp (1): minimal shift (more neutral)
+  const tempWarmth = 1 - normalizedTemp; // 1 = very warm, 0 = neutral
+
+  // Temperature adjustment factors (more pronounced effect)
+  const tempRedShift = tempWarmth * 0.4; // Increase red for warmth
+  const tempGreenShift = tempWarmth * 0.2; // Increase green for warmth
+  const tempBlueShift = tempWarmth * -0.5; // Decrease blue for warmth
+
+  for (let i = 0; i < imageData.length; i += 4) {
+    let r = imageData[i];
+    let g = imageData[i + 1];
+    let b = imageData[i + 2];
+
+    // Apply color temperature adjustment (scaled by intensity)
+    const tempR = Math.min(255, Math.max(0, r + tempRedShift * 60 * intensity));
+    const tempG = Math.min(
+      255,
+      Math.max(0, g + tempGreenShift * 40 * intensity)
+    );
+    const tempB = Math.min(
+      255,
+      Math.max(0, b + tempBlueShift * 50 * intensity)
+    );
+
+    // Apply additional intensity-based yellowing
+    const yellowR = Math.min(255, tempR + intensity * 30);
+    const yellowG = Math.min(255, tempG + intensity * 25);
+    const yellowB = Math.max(0, tempB - intensity * 20);
+
+    result[i] = Math.round(yellowR);
+    result[i + 1] = Math.round(yellowG);
+    result[i + 2] = Math.round(yellowB);
     result[i + 3] = imageData[i + 3]; // Preserve alpha
   }
 
@@ -580,10 +631,9 @@ export function applyPeripheralVisionLoss(
 
       // Calculate darkening factor (0 at center, 1 at edges)
       // Starts at tunnelRadius and increases toward edges
-      const darkenFactor = Math.max(
-        0,
-        (distance - tunnelRadius) / (maxDistance - tunnelRadius)
-      ) * severity;
+      const darkenFactor =
+        Math.max(0, (distance - tunnelRadius) / (maxDistance - tunnelRadius)) *
+        severity;
 
       if (darkenFactor > 0) {
         // Apply vignette darkening effect
@@ -712,42 +762,74 @@ export function applyFilterPreset(
   imageData: Uint8ClampedArray,
   width: number,
   height: number,
-  preset: import('./vision-simulator.types').FilterPreset
+  preset: import("./vision-simulator.types").FilterPreset
 ): Uint8ClampedArray {
   let result = new Uint8ClampedArray(imageData) as Uint8ClampedArray;
 
   // Apply each filter in sequence
   for (const filterConfig of preset.filters) {
-    if (filterConfig.type === 'protanopia' ||
-        filterConfig.type === 'deuteranopia' ||
-        filterConfig.type === 'tritanopia' ||
-        filterConfig.type === 'achromatopsia' ||
-        filterConfig.type === 'protanomaly' ||
-        filterConfig.type === 'deuteranomaly' ||
-        filterConfig.type === 'tritanomaly') {
+    if (
+      filterConfig.type === "protanopia" ||
+      filterConfig.type === "deuteranopia" ||
+      filterConfig.type === "tritanopia" ||
+      filterConfig.type === "achromatopsia" ||
+      filterConfig.type === "protanomaly" ||
+      filterConfig.type === "deuteranomaly" ||
+      filterConfig.type === "tritanomaly"
+    ) {
       // Color blindness filter
-      result = applyColorBlindness(result, filterConfig.type, filterConfig.severity) as Uint8ClampedArray;
-    } else if (filterConfig.type === 'blurred') {
+      result = applyColorBlindness(
+        result,
+        filterConfig.type,
+        filterConfig.severity
+      ) as Uint8ClampedArray;
+    } else if (filterConfig.type === "blurred") {
       // Blur filter
-      result = applyBlur(result, width, height, filterConfig.config) as Uint8ClampedArray;
-    } else if (filterConfig.type === 'ghosting') {
+      result = applyBlur(
+        result,
+        width,
+        height,
+        filterConfig.config
+      ) as Uint8ClampedArray;
+    } else if (filterConfig.type === "ghosting") {
       // Ghosting filter
-      result = applyGhosting(result, width, height, filterConfig.config) as Uint8ClampedArray;
-    } else if (filterConfig.type === 'yellowing') {
+      result = applyGhosting(
+        result,
+        width,
+        height,
+        filterConfig.config
+      ) as Uint8ClampedArray;
+    } else if (filterConfig.type === "yellowing") {
       // Yellowing filter
       result = applyYellowing(result, filterConfig.config) as Uint8ClampedArray;
-    } else if (filterConfig.type === 'loss-of-contrast') {
+    } else if (filterConfig.type === "loss-of-contrast") {
       // Contrast loss filter
-      result = applyContrastLoss(result, filterConfig.config) as Uint8ClampedArray;
-    } else if (filterConfig.type === 'bright-light') {
+      result = applyContrastLoss(
+        result,
+        filterConfig.config
+      ) as Uint8ClampedArray;
+    } else if (filterConfig.type === "bright-light") {
       // Bright light filter
-      result = applyBrightLight(result, filterConfig.config) as Uint8ClampedArray;
-    } else if (filterConfig.type === 'central-vision-loss') {
+      result = applyBrightLight(
+        result,
+        filterConfig.config
+      ) as Uint8ClampedArray;
+    } else if (filterConfig.type === "central-vision-loss") {
       // Central vision loss filter
-      result = applyCentralVisionLoss(result, width, height, filterConfig.config) as Uint8ClampedArray;
-    } else if (filterConfig.type === 'peripheral-vision-loss') {
+      result = applyCentralVisionLoss(
+        result,
+        width,
+        height,
+        filterConfig.config
+      ) as Uint8ClampedArray;
+    } else if (filterConfig.type === "peripheral-vision-loss") {
       // Peripheral vision loss filter
-      result = applyPeripheralVisionLoss(result, width, height, filterConfig.config) as Uint8ClampedArray;
+      result = applyPeripheralVisionLoss(
+        result,
+        width,
+        height,
+        filterConfig.config
+      ) as Uint8ClampedArray;
     }
   }
 

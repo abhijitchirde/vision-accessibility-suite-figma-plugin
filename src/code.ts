@@ -6,7 +6,7 @@ import { SelectionService } from "./services/selection.service";
 figma.loadAllPagesAsync();
 
 // Show the plugin UI
-figma.showUI(__html__, { width: 400, height: 740 });
+figma.showUI(__html__, { width: 360, height: 770 });
 
 // Initialize services
 const selectionService = new SelectionService();

@@ -150,7 +150,6 @@
 }
 
 .preset-manager__delete-btn:hover {
-  background: var(--figma-color-bg-danger-hover);
   color: var(--figma-color-text-danger);
 }
 
@@ -262,7 +261,7 @@
   border-radius: 4px;
   padding: 12px;
   padding-right: 40px;
-  font-family: 'Courier New', Courier, monospace;
+  font-family: "Courier New", Courier, monospace;
   font-size: 10px;
   line-height: 1.5;
   color: var(--figma-color-text);

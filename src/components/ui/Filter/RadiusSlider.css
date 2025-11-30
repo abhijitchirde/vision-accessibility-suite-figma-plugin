@@ -6,9 +6,9 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 12px;
+  padding: 0 12px;
   background-color: var(--figma-color-bg-secondary);
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 /* Header */
@@ -19,38 +19,30 @@
 }
 
 .radius-slider__label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--figma-color-text);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  color: var(--figma-color-text, #000);
 }
 
 .radius-slider__value {
   font-size: 12px;
-  font-weight: 500;
-  color: var(--figma-color-text-brand);
-  text-transform: none;
-  letter-spacing: normal;
+  font-weight: 600;
+  color: var(--figma-color-text-brand, #0066ff);
+  padding: 2px 8px;
+  background: var(--figma-color-bg, #fff);
+  border-radius: 3px;
 }
 
 /* Slider Input */
 .radius-slider__input {
   width: 100%;
-  height: 4px;
-  background: var(--figma-color-border);
-  border-radius: 2px;
+  height: 6px;
+  background: var(--figma-color-bg, #fff);
+  border-radius: 3px;
   outline: none;
+  -webkit-appearance: none;
   appearance: none;
   cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.radius-slider__input:hover {
-  background: var(--figma-color-border-brand);
 }
 
 .radius-slider__input:disabled {
@@ -58,41 +50,52 @@
   cursor: not-allowed;
 }
 
+.radius-slider__input:disabled::-webkit-slider-thumb {
+  cursor: not-allowed;
+}
+
+.radius-slider__input:disabled::-moz-range-thumb {
+  cursor: not-allowed;
+}
+
 /* Slider Thumb */
 .radius-slider__input::-webkit-slider-thumb {
+  -webkit-appearance: none;
   appearance: none;
   width: 16px;
   height: 16px;
-  background: var(--figma-color-bg-brand);
   border-radius: 50%;
+  background: var(--figma-color-text-brand, #0066ff);
   cursor: pointer;
-  transition: transform 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: transform 0.15s ease;
 }
 
 .radius-slider__input::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
+  transform: scale(1.15);
 }
 
 .radius-slider__input::-webkit-slider-thumb:active {
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 .radius-slider__input::-moz-range-thumb {
   width: 16px;
   height: 16px;
-  background: var(--figma-color-bg-brand);
   border: none;
   border-radius: 50%;
+  background: var(--figma-color-text-brand, #0066ff);
   cursor: pointer;
-  transition: transform 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: transform 0.15s ease;
 }
 
 .radius-slider__input::-moz-range-thumb:hover {
-  transform: scale(1.2);
+  transform: scale(1.15);
 }
 
 .radius-slider__input::-moz-range-thumb:active {
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 /* Presets */

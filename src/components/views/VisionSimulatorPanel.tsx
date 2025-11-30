@@ -10,6 +10,9 @@ import { PresetManager } from "../ui/Presets/PresetManager";
 import { FilterParameterSlider } from "../ui/Filter/FilterParameterSlider";
 import { FilterDropdown } from "../ui/Filter/FilterDropdown";
 import { useFigmaMessage } from "../../hooks/useFigmaMessage";
+import { FaPlus } from "react-icons/fa6";
+import { FaMinus } from "react-icons/fa6";
+import { GoScreenFull } from "react-icons/go";
 import {
   SimulationType,
   VisionSimulatorState,
@@ -57,7 +60,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
   const [currentFilter, setCurrentFilter] =
     useState<SimulationType>("original");
   const [currentSeverity, setCurrentSeverity] = useState<number>(1.0); // Default to complete (100%)
-  const [currentRadius, setCurrentRadius] = useState<number>(100); // Default radius for visual field defects
+  const [currentRadius, setCurrentRadius] = useState<number>(0.3); // Default radius as percentage (30% of image dimension)
   const [zoom, setZoom] = useState<number>(DEFAULT_ZOOM);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -513,22 +516,28 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
           washout: brightLightWashout,
         });
       } else if (filter === "central-vision-loss") {
+        // Calculate pixel radius from percentage: use smaller dimension to ensure proportional effect
+        const imageSize = Math.min(canvas.width, canvas.height);
+        const pixelRadius = currentRadius * imageSize;
         filteredData = applyCentralVisionLoss(
           imageData.data,
           canvas.width,
           canvas.height,
           {
-            radius: currentRadius,
+            radius: pixelRadius,
             severity: currentSeverity,
           }
         );
       } else if (filter === "peripheral-vision-loss") {
+        // Calculate pixel radius from percentage: use smaller dimension to ensure proportional effect
+        const imageSize = Math.min(canvas.width, canvas.height);
+        const pixelRadius = currentRadius * imageSize;
         filteredData = applyPeripheralVisionLoss(
           imageData.data,
           canvas.width,
           canvas.height,
           {
-            tunnelRadius: currentRadius,
+            tunnelRadius: pixelRadius,
             severity: currentSeverity,
           }
         );
@@ -851,7 +860,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                     Deuteranomaly
                   </span>
                   <span className="vision-simulator-panel__filter-info">
-                    Partial • ~5-6% males ⭐
+                    Partial • ~5-6% males
                   </span>
                 </button>
               </div>
@@ -947,7 +956,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                 >
                   <span className="vision-simulator-panel__filter-label">
                     <FilterIcon filterId="central-vision-loss" size="tiny" />
-                    Central Vision Loss
+                    Central Loss
                   </span>
                   <span className="vision-simulator-panel__filter-info">
                     Macular degeneration
@@ -965,7 +974,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                 >
                   <span className="vision-simulator-panel__filter-label">
                     <FilterIcon filterId="peripheral-vision-loss" size="tiny" />
-                    Peripheral Vision Loss
+                    Peripheral Loss
                   </span>
                   <span className="vision-simulator-panel__filter-info">
                     Glaucoma / Tunnel vision
@@ -1056,6 +1065,10 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                       // Complete color blindness and visual field defects default to 100%
                       setCurrentSeverity(1.0);
                     }
+                    // Reset radius to default (30%) when switching to visual field defects
+                    if (isVisualFieldDefect(value)) {
+                      setCurrentRadius(0.3);
+                    }
                     // Reset parameters panel visibility when changing filter
                     setShowParameters(false);
                   }}
@@ -1097,23 +1110,26 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                   {isVisualFieldDefect(currentFilter) && (
                     <>
                       <RadiusSlider
-                        value={currentRadius}
-                        onChange={setCurrentRadius}
+                        value={Math.round(currentRadius * 100)}
+                        onChange={(value) => setCurrentRadius(value / 100)}
                         label={
                           currentFilter === "central-vision-loss"
                             ? "Affected Area Radius"
                             : "Clear Center Radius"
                         }
-                        min={50}
-                        max={300}
+                        min={10}
+                        max={90}
                         showValue={true}
+                        unit="%"
                       />
-                      <SeveritySlider
-                        value={currentSeverity}
-                        onChange={setCurrentSeverity}
-                        label="Severity"
-                        showPercentage={true}
-                      />
+                      <div style={{ marginTop: "16px" }}>
+                        <SeveritySlider
+                          value={currentSeverity}
+                          onChange={setCurrentSeverity}
+                          label="Severity"
+                          showPercentage={true}
+                        />
+                      </div>
                     </>
                   )}
 
@@ -1130,15 +1146,17 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                         unit="px"
                         description="Blur strength (higher = more blur)"
                       />
-                      <FilterParameterSlider
-                        label="Iterations"
-                        value={blurIterations}
-                        onChange={setBlurIterations}
-                        min={1}
-                        max={5}
-                        step={1}
-                        description="Number of blur passes (higher = smoother)"
-                      />
+                      <div style={{ marginTop: "16px" }}>
+                        <FilterParameterSlider
+                          label="Iterations"
+                          value={blurIterations}
+                          onChange={setBlurIterations}
+                          min={1}
+                          max={5}
+                          step={1}
+                          description="Number of blur passes (higher = smoother)"
+                        />
+                      </div>
                     </>
                   )}
 
@@ -1252,7 +1270,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                     disabled={zoom <= 0.25}
                     title="Zoom out"
                   >
-                    −
+                    <FaMinus size={12} />
                   </button>
                   <span className="vision-simulator-panel__zoom-value">
                     {Math.round(zoom * 100)}%
@@ -1263,65 +1281,68 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                     disabled={zoom >= 4}
                     title="Zoom in"
                   >
-                    +
+                    <FaPlus size={12} />
                   </button>
                   <button
                     className="vision-simulator-panel__zoom-fit-btn"
                     onClick={() => setZoom(1)}
                     title="Fit to view (100%)"
                   >
-                    <Icon name="frame" size={14} />
+                    <GoScreenFull size={12} />
                   </button>
                 </div>
               )}
 
-              {!previewImage && !loading && (
-                <div className="vision-simulator-panel__preview-empty">
-                  <p>Select a node to view simulation</p>
-                </div>
-              )}
+              <div className="vision-simulator-panel__preview-content">
+                {!previewImage && !loading && (
+                  <div className="vision-simulator-panel__preview-empty">
+                    <p>Select a node to view simulation</p>
+                  </div>
+                )}
 
-              {loading && (
-                <div className="vision-simulator-panel__preview-loading">
-                  Loading...
-                </div>
-              )}
+                {loading && (
+                  <div className="vision-simulator-panel__preview-loading">
+                    Loading...
+                  </div>
+                )}
 
-              {previewImage && (
-                <div
-                  className="vision-simulator-panel__preview-image-container"
-                  style={{ transform: `scale(${zoom})` }}
-                >
-                  <img
-                    src={previewImage}
-                    alt="Simulated preview"
-                    className="vision-simulator-panel__preview-image"
-                  />
-                </div>
-              )}
+                {previewImage && (
+                  <div
+                    className="vision-simulator-panel__preview-image-container"
+                    style={{ transform: `scale(${zoom})` }}
+                  >
+                    <img
+                      src={previewImage}
+                      alt="Simulated preview"
+                      className="vision-simulator-panel__preview-image"
+                    />
+                  </div>
+                )}
 
-              {error && (
-                <div className="vision-simulator-panel__error">{error}</div>
-              )}
+                {error && (
+                  <div className="vision-simulator-panel__error">{error}</div>
+                )}
+              </div>
             </div>
-
-            {/* Export to Canvas Button - Show when a filter or preset is active */}
-            {previewImage &&
-              (currentFilter !== "original" || selectedPreset !== null) && (
-                <Button
-                  variant="primary"
-                  size="medium"
-                  onClick={handleExportToCanvas}
-                  disabled={exporting}
-                >
-                  {exporting
-                    ? "Adding to Figma..."
-                    : "Add current view to Figma"}
-                </Button>
-              )}
           </div>
         )}
       </div>
+
+      {/* Export to Canvas Button - Fixed at bottom, above bottom section */}
+      {activeTab === "simulation" &&
+        previewImage &&
+        (currentFilter !== "original" || selectedPreset !== null) && (
+          <div className="vision-simulator-panel__export-button-container">
+            <Button
+              variant="primary"
+              size="medium"
+              onClick={handleExportToCanvas}
+              disabled={exporting}
+            >
+              {exporting ? "Adding to Figma..." : "Add current view to Figma"}
+            </Button>
+          </div>
+        )}
 
       {/* Hidden canvas for image processing */}
       <canvas ref={canvasRef} style={{ display: "none" }} />

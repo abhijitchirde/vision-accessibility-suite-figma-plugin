@@ -5,50 +5,47 @@
  * (e.g., central vision loss radius, tunnel vision radius)
  */
 
-import React from 'react';
-import './RadiusSlider.css';
+import React from "react";
+import "./RadiusSlider.css";
 
 export interface RadiusSliderProps {
-  value: number; // Radius in pixels
+  value: number; // Radius value (pixels or percentage)
   onChange: (radius: number) => void;
   label?: string;
   min?: number;
   max?: number;
   disabled?: boolean;
   showValue?: boolean;
+  unit?: string; // Unit to display (default: "px")
 }
 
 export const RadiusSlider: React.FC<RadiusSliderProps> = ({
   value,
   onChange,
-  label = 'Radius',
+  label = "Radius",
   min = 50,
   max = 300,
   disabled = false,
   showValue = true,
+  unit = "px",
 }) => {
   const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     onChange(Number(event.target.value));
   };
 
-  const handlePresetClick = (radius: number) => {
-    onChange(radius);
-  };
-
-  // Preset radius values
-  const presets = [
-    { label: 'Small', value: Math.round(min + (max - min) * 0.25) },
-    { label: 'Medium', value: Math.round(min + (max - min) * 0.5) },
-    { label: 'Large', value: Math.round(min + (max - min) * 0.75) },
-  ];
+  // Determine step based on unit - use 1 for percentages, 10 for pixels
+  const step = unit === "%" ? 1 : 10;
 
   return (
     <div className="radius-slider">
       <div className="radius-slider__header">
-        <label className="radius-slider__label">
-          {label}
-          {showValue && <span className="radius-slider__value">{value}px</span>}
-        </label>
+        <label className="radius-slider__label">{label}</label>
+        {showValue && (
+          <span className="radius-slider__value">
+            {value}
+            {unit}
+          </span>
+        )}
       </div>
 
       <input
@@ -56,7 +53,7 @@ export const RadiusSlider: React.FC<RadiusSliderProps> = ({
         className="radius-slider__input"
         min={min}
         max={max}
-        step={10}
+        step={step}
         value={value}
         onChange={handleSliderChange}
         disabled={disabled}
@@ -64,24 +61,8 @@ export const RadiusSlider: React.FC<RadiusSliderProps> = ({
         aria-valuemin={min}
         aria-valuemax={max}
         aria-valuenow={value}
-        aria-valuetext={`${value} pixels`}
+        aria-valuetext={`${value} ${unit === "%" ? "percent" : "pixels"}`}
       />
-
-      <div className="radius-slider__presets">
-        {presets.map((preset) => (
-          <button
-            key={preset.label}
-            className={`radius-slider__preset ${
-              value === preset.value ? 'radius-slider__preset--active' : ''
-            }`}
-            onClick={() => handlePresetClick(preset.value)}
-            disabled={disabled}
-            type="button"
-          >
-            {preset.label}
-          </button>
-        ))}
-      </div>
     </div>
   );
 };

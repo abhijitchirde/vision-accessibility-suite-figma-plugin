@@ -154,7 +154,7 @@ a:hover {
   justify-content: space-between;
   padding: var(--figma-space-md) var(--figma-space-lg);
   background-color: var(--figma-color-bg);
-  border-top: 1px solid var(--figma-color-border);
+  /* border-top: 1px solid var(--figma-color-border); */
   z-index: 100;
 }
 
