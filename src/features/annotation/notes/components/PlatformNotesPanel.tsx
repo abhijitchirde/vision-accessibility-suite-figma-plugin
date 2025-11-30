@@ -44,7 +44,7 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({
         if (msg.success) {
           // Filter notes for this platform only
           const platformNotes = msg.data.notes.filter(
-            (note: NoteNodeInfo) => note.noteData?.platform === platform
+            (note: NoteNodeInfo) => note.platform === platform
           );
           setNotes(platformNotes);
         }
@@ -114,7 +114,7 @@ export const PlatformNotesPanel: React.FC<PlatformNotesPanelProps> = ({
     event.stopPropagation();
     console.log("PlatformNotesPanel - handleRemoveNote - nodeId:", nodeId);
     if (confirm("Remove this accessibility note?")) {
-      sendMessage("REMOVE_ACCESSIBILITY_NOTE", { nodeId });
+      sendMessage("REMOVE_ACCESSIBILITY_NOTE", { nodeId, platform });
     }
   };
 

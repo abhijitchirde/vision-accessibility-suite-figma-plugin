@@ -1655,12 +1655,14 @@ figma.ui.onmessage = async (msg) => {
         break;
 
       case "REMOVE_ACCESSIBILITY_NOTE":
-        // Remove accessibility note
+        // Remove accessibility note for a specific platform
         (async () => {
           try {
             const removeNodeId = msg.data?.nodeId || msg.nodeId;
+            const platform = msg.data?.platform || msg.platform;
 
             console.log("REMOVE_ACCESSIBILITY_NOTE - nodeId:", removeNodeId);
+            console.log("REMOVE_ACCESSIBILITY_NOTE - platform:", platform);
             console.log("REMOVE_ACCESSIBILITY_NOTE - full msg:", msg);
 
             if (!removeNodeId) {
@@ -1669,6 +1671,16 @@ figma.ui.onmessage = async (msg) => {
                 type: "NOTE_REMOVED",
                 success: false,
                 error: "Node ID is missing",
+              });
+              return;
+            }
+
+            if (!platform) {
+              figma.notify("Platform is missing");
+              figma.ui.postMessage({
+                type: "NOTE_REMOVED",
+                success: false,
+                error: "Platform is missing",
               });
               return;
             }
@@ -1686,7 +1698,7 @@ figma.ui.onmessage = async (msg) => {
               return;
             }
 
-            NotesManager.removeNote(node);
+            NotesManager.removePlatformNote(node, platform);
             figma.notify("Accessibility note removed");
 
             // Refresh the list

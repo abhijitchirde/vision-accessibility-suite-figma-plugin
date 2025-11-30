@@ -18,25 +18,33 @@ export type PlatformType =
   | 'general';      // General notes (platform-agnostic)
 
 /**
- * Accessibility note data stored in plugin data
+ * Single platform-specific note
  */
-export interface AccessibilityNoteData {
-  platform: PlatformType;
+export interface PlatformNote {
   accessibleName: string;  // Main accessibility label/name
   note: string;            // Additional notes/description
-  version: number;         // Data schema version (for future migrations)
   createdAt: number;       // Timestamp
   updatedAt: number;       // Timestamp
 }
 
 /**
- * Node information with accessibility note
+ * Accessibility note data stored in plugin data
+ * Supports multiple platform-specific notes per node
+ */
+export interface AccessibilityNoteData {
+  notes: Partial<Record<PlatformType, PlatformNote>>;  // One note per platform
+  version: number;         // Data schema version (for future migrations)
+}
+
+/**
+ * Node information with accessibility note (for a specific platform)
  */
 export interface NoteNodeInfo {
   nodeId: string;
   nodeName: string;
   nodeType: string;
-  noteData: AccessibilityNoteData | null;
+  platform: PlatformType;      // Which platform this note is for
+  noteData: PlatformNote | null;  // The platform-specific note data
 }
 
 /**

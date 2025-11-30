@@ -4,52 +4,55 @@
  * Core logic for managing accessibility notes on Figma nodes
  */
 
-import { AccessibilityNoteData, NoteNodeInfo, PlatformType, NoteStats } from './notes.types';
+import { AccessibilityNoteData, PlatformNote, NoteNodeInfo, PlatformType, NoteStats } from './notes.types';
 import { NOTES_STORAGE_KEY, NOTES_DATA_VERSION } from './notes.constants';
 
 /**
  * Notes Manager Class
  * 
  * Handles creation, retrieval, updating, and deletion of accessibility notes
+ * Supports multiple platform-specific notes per node
  */
 export class NotesManager {
   /**
-   * Save accessibility note to a node
+   * Get all accessibility notes data from a node
+   * Handles migration from old format (single platform) to new format (multiple platforms)
    */
-  static saveNote(
-    node: SceneNode,
-    platform: PlatformType,
-    accessibleName: string,
-    note: string
-  ): void {
-    const noteData: AccessibilityNoteData = {
-      platform,
-      accessibleName,
-      note,
-      version: NOTES_DATA_VERSION,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-
-    node.setPluginData(NOTES_STORAGE_KEY, JSON.stringify(noteData));
-  }
-
-  /**
-   * Get accessibility note from a node
-   */
-  static getNote(node: SceneNode): AccessibilityNoteData | null {
+  static getAllNotesData(node: SceneNode): AccessibilityNoteData | null {
     try {
       const data = node.getPluginData(NOTES_STORAGE_KEY);
       if (!data) return null;
 
-      const parsed = JSON.parse(data) as AccessibilityNoteData;
+      const parsed = JSON.parse(data) as any;
 
-      // Validate data structure - platform is required, but accessibleName can be empty
-      if (!parsed.platform) {
+      // Check if this is old format (has platform field at root level)
+      if (parsed.platform && !parsed.notes) {
+        // Migrate old format to new format
+        const migratedData: AccessibilityNoteData = {
+          notes: {
+            [parsed.platform]: {
+              accessibleName: parsed.accessibleName || '',
+              note: parsed.note || '',
+              createdAt: parsed.createdAt || Date.now(),
+              updatedAt: parsed.updatedAt || Date.now(),
+            }
+          },
+          version: NOTES_DATA_VERSION,
+        };
+        
+        // Save migrated data
+        node.setPluginData(NOTES_STORAGE_KEY, JSON.stringify(migratedData));
+        console.log('Migrated old note format to new format for node:', node.id);
+        
+        return migratedData;
+      }
+
+      // Validate new data structure
+      if (!parsed.notes || typeof parsed.notes !== 'object') {
         return null;
       }
 
-      return parsed;
+      return parsed as AccessibilityNoteData;
     } catch (error) {
       console.error('Error parsing note data:', error);
       return null;
@@ -57,7 +60,51 @@ export class NotesManager {
   }
 
   /**
-   * Update existing accessibility note
+   * Get accessibility note for a specific platform from a node
+   */
+  static getPlatformNote(node: SceneNode, platform: PlatformType): PlatformNote | null {
+    const allNotes = this.getAllNotesData(node);
+    if (!allNotes) return null;
+    
+    return allNotes.notes[platform] || null;
+  }
+
+  /**
+   * Save or update accessibility note for a specific platform
+   */
+  static saveNote(
+    node: SceneNode,
+    platform: PlatformType,
+    accessibleName: string,
+    note: string
+  ): void {
+    // Get existing notes data or create new structure
+    let notesData = this.getAllNotesData(node);
+    
+    if (!notesData) {
+      notesData = {
+        notes: {},
+        version: NOTES_DATA_VERSION,
+      };
+    }
+
+    // Get existing platform note to preserve createdAt
+    const existingPlatformNote = notesData.notes[platform];
+
+    // Update or create the platform-specific note
+    notesData.notes[platform] = {
+      accessibleName,
+      note,
+      createdAt: existingPlatformNote?.createdAt || Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    // Save back to node
+    node.setPluginData(NOTES_STORAGE_KEY, JSON.stringify(notesData));
+  }
+
+  /**
+   * Update existing accessibility note for a specific platform
    */
   static updateNote(
     node: SceneNode,
@@ -65,50 +112,82 @@ export class NotesManager {
     accessibleName: string,
     note: string
   ): void {
-    const existingNote = this.getNote(node);
-
-    const noteData: AccessibilityNoteData = {
-      platform,
-      accessibleName,
-      note,
-      version: NOTES_DATA_VERSION,
-      createdAt: existingNote?.createdAt || Date.now(),
-      updatedAt: Date.now(),
-    };
-
-    node.setPluginData(NOTES_STORAGE_KEY, JSON.stringify(noteData));
+    // Update is the same as save - it will preserve createdAt if note exists
+    this.saveNote(node, platform, accessibleName, note);
   }
 
   /**
-   * Remove accessibility note from a node
+   * Remove accessibility note for a specific platform from a node
+   */
+  static removePlatformNote(node: SceneNode, platform: PlatformType): void {
+    const notesData = this.getAllNotesData(node);
+    if (!notesData) return;
+
+    // Remove the platform-specific note
+    delete notesData.notes[platform];
+
+    // If no notes left, remove all plugin data
+    if (Object.keys(notesData.notes).length === 0) {
+      node.setPluginData(NOTES_STORAGE_KEY, '');
+    } else {
+      // Otherwise save the updated data
+      node.setPluginData(NOTES_STORAGE_KEY, JSON.stringify(notesData));
+    }
+  }
+
+  /**
+   * Remove all accessibility notes from a node
    */
   static removeNote(node: SceneNode): void {
     node.setPluginData(NOTES_STORAGE_KEY, '');
   }
 
   /**
-   * Check if node has accessibility note
+   * Check if node has any accessibility notes
    */
   static hasNote(node: SceneNode): boolean {
-    return this.getNote(node) !== null;
+    const notesData = this.getAllNotesData(node);
+    return notesData !== null && Object.keys(notesData.notes).length > 0;
+  }
+
+  /**
+   * Check if node has a note for a specific platform
+   */
+  static hasPlatformNote(node: SceneNode, platform: PlatformType): boolean {
+    return this.getPlatformNote(node, platform) !== null;
+  }
+
+  /**
+   * Get all platforms that have notes on this node
+   */
+  static getNotePlatforms(node: SceneNode): PlatformType[] {
+    const notesData = this.getAllNotesData(node);
+    if (!notesData) return [];
+    
+    return Object.keys(notesData.notes) as PlatformType[];
   }
 
   /**
    * Get all nodes with accessibility notes on current page
+   * Returns one entry per platform-note combination
    */
   static getAllNotedNodes(page: PageNode): NoteNodeInfo[] {
     const notedNodes: NoteNodeInfo[] = [];
 
     const traverse = (node: BaseNode) => {
       if ('getPluginData' in node) {
-        const noteData = this.getNote(node as SceneNode);
-        if (noteData) {
-          notedNodes.push({
-            nodeId: node.id,
-            nodeName: node.name,
-            nodeType: node.type,
-            noteData,
-          });
+        const allNotesData = this.getAllNotesData(node as SceneNode);
+        if (allNotesData && allNotesData.notes) {
+          // Create one entry for each platform that has a note
+          for (const [platform, platformNote] of Object.entries(allNotesData.notes)) {
+            notedNodes.push({
+              nodeId: node.id,
+              nodeName: node.name,
+              nodeType: node.type,
+              platform: platform as PlatformType,
+              noteData: platformNote as PlatformNote,
+            });
+          }
         }
       }
 
@@ -141,8 +220,8 @@ export class NotesManager {
     };
 
     for (const note of allNotes) {
-      if (note.noteData) {
-        byPlatform[note.noteData.platform]++;
+      if (note.platform) {
+        byPlatform[note.platform]++;
       }
     }
 
@@ -249,7 +328,7 @@ export class NotesManager {
     const rows = notes.map((note) => [
       note.nodeName,
       note.nodeType,
-      note.noteData?.platform || '',
+      note.platform || '',
       note.noteData?.accessibleName || '',
       note.noteData?.note || '',
     ]);
@@ -279,9 +358,9 @@ export class NotesManager {
     markdown += `\n## Notes\n\n`;
 
     for (const note of notes) {
-      markdown += `### ${note.nodeName}\n\n`;
+      markdown += `### ${note.nodeName} (${note.platform})\n\n`;
       markdown += `- **Type**: ${note.nodeType}\n`;
-      markdown += `- **Platform**: ${note.noteData?.platform}\n`;
+      markdown += `- **Platform**: ${note.platform}\n`;
       markdown += `- **Accessible Name**: ${note.noteData?.accessibleName}\n`;
       if (note.noteData?.note) {
         markdown += `- **Note**: ${note.noteData.note}\n`;
