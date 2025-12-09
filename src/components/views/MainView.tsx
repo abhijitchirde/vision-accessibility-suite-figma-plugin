@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import "./VisionSimulatorPanel.css";
+import "./MainView.css";
 import { Icon } from "../ui/Icon/Icon";
 import { Button } from "../ui/Button/Button";
 import { FilterIcon } from "../ui/Filter/FilterIcon";
@@ -48,7 +48,7 @@ import {
 
 type Tab = "generate" | "simulation";
 
-export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
+export const MainView: React.FC<{}> = ({}) => {
   // Tab state
   const [activeTab, setActiveTab] = useState<Tab>("generate");
 
@@ -743,13 +743,13 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
   ];
 
   return (
-    <div className="vision-simulator-panel">
+    <div className="main-view">
       {/* Tabs */}
-      <div className="vision-simulator-panel__tabs">
+      <div className="main-view__tabs">
         <button
-          className={`vision-simulator-panel__tab ${
+          className={`main-view__tab ${
             activeTab === "generate"
-              ? "vision-simulator-panel__tab--active"
+              ? "main-view__tab--active"
               : ""
           }`}
           onClick={() => setActiveTab("generate")}
@@ -757,9 +757,9 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
           Quick simulation
         </button>
         <button
-          className={`vision-simulator-panel__tab ${
+          className={`main-view__tab ${
             activeTab === "simulation"
-              ? "vision-simulator-panel__tab--active"
+              ? "main-view__tab--active"
               : ""
           }`}
           onClick={() => setActiveTab("simulation")}
@@ -769,49 +769,49 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
       </div>
 
       {/* Tab Content */}
-      <div className="vision-simulator-panel__content">
+      <div className="main-view__content">
         {/* Generate Tab */}
         {activeTab === "generate" && (
-          <div className="vision-simulator-panel__generate">
+          <div className="main-view__generate">
             {/* Red Deficiency Section */}
-            <div className="vision-simulator-panel__section">
-              <h3 className="vision-simulator-panel__section-title">
+            <div className="main-view__section">
+              <h3 className="main-view__section-title">
                 Red deficiency (Protan)
               </h3>
-              <div className="vision-simulator-panel__filters">
+              <div className="main-view__filters">
                 <button
                   key="protanopia"
-                  className={`vision-simulator-panel__filter-card ${
+                  className={`main-view__filter-card ${
                     generatingFilter === "protanopia"
-                      ? "vision-simulator-panel__filter-card--generating"
+                      ? "main-view__filter-card--generating"
                       : ""
                   }`}
                   onClick={() => handleFilterClick("protanopia")}
                   disabled={generatingFilter !== null}
                 >
-                  <span className="vision-simulator-panel__filter-label">
+                  <span className="main-view__filter-label">
                     <FilterIcon filterId="protanopia" size="tiny" />
                     Protanopia
                   </span>
-                  <span className="vision-simulator-panel__filter-info">
+                  <span className="main-view__filter-info">
                     Complete • ~1% males
                   </span>
                 </button>
                 <button
                   key="protanomaly"
-                  className={`vision-simulator-panel__filter-card ${
+                  className={`main-view__filter-card ${
                     generatingFilter === "protanomaly"
-                      ? "vision-simulator-panel__filter-card--generating"
+                      ? "main-view__filter-card--generating"
                       : ""
                   }`}
                   onClick={() => handleFilterClick("protanomaly")}
                   disabled={generatingFilter !== null}
                 >
-                  <span className="vision-simulator-panel__filter-label">
+                  <span className="main-view__filter-label">
                     <FilterIcon filterId="protanomaly" size="tiny" />
                     Protanomaly
                   </span>
-                  <span className="vision-simulator-panel__filter-info">
+                  <span className="main-view__filter-info">
                     Partial • ~1% males
                   </span>
                 </button>
@@ -819,47 +819,47 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
             </div>
 
             {/* Green Deficiency Section - MOST COMMON */}
-            <div className="vision-simulator-panel__section">
-              <h3 className="vision-simulator-panel__section-title">
+            <div className="main-view__section">
+              <h3 className="main-view__section-title">
                 Green deficiency (Deutan)
-                <span className="vision-simulator-panel__badge">
+                <span className="main-view__badge">
                   Most common
                 </span>
               </h3>
-              <div className="vision-simulator-panel__filters">
+              <div className="main-view__filters">
                 <button
                   key="deuteranopia"
-                  className={`vision-simulator-panel__filter-card ${
+                  className={`main-view__filter-card ${
                     generatingFilter === "deuteranopia"
-                      ? "vision-simulator-panel__filter-card--generating"
+                      ? "main-view__filter-card--generating"
                       : ""
                   }`}
                   onClick={() => handleFilterClick("deuteranopia")}
                   disabled={generatingFilter !== null}
                 >
-                  <span className="vision-simulator-panel__filter-label">
+                  <span className="main-view__filter-label">
                     <FilterIcon filterId="deuteranopia" size="tiny" />
                     Deuteranopia
                   </span>
-                  <span className="vision-simulator-panel__filter-info">
+                  <span className="main-view__filter-info">
                     Complete • ~1% males
                   </span>
                 </button>
                 <button
                   key="deuteranomaly"
-                  className={`vision-simulator-panel__filter-card ${
+                  className={`main-view__filter-card ${
                     generatingFilter === "deuteranomaly"
-                      ? "vision-simulator-panel__filter-card--generating"
+                      ? "main-view__filter-card--generating"
                       : ""
                   }`}
                   onClick={() => handleFilterClick("deuteranomaly")}
                   disabled={generatingFilter !== null}
                 >
-                  <span className="vision-simulator-panel__filter-label">
+                  <span className="main-view__filter-label">
                     <FilterIcon filterId="deuteranomaly" size="tiny" />
                     Deuteranomaly
                   </span>
-                  <span className="vision-simulator-panel__filter-info">
+                  <span className="main-view__filter-info">
                     Partial • ~5-6% males
                   </span>
                 </button>
@@ -867,44 +867,44 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
             </div>
 
             {/* Blue Deficiency Section */}
-            <div className="vision-simulator-panel__section">
-              <h3 className="vision-simulator-panel__section-title">
+            <div className="main-view__section">
+              <h3 className="main-view__section-title">
                 Blue deficiency (Tritan)
               </h3>
-              <div className="vision-simulator-panel__filters">
+              <div className="main-view__filters">
                 <button
                   key="tritanopia"
-                  className={`vision-simulator-panel__filter-card ${
+                  className={`main-view__filter-card ${
                     generatingFilter === "tritanopia"
-                      ? "vision-simulator-panel__filter-card--generating"
+                      ? "main-view__filter-card--generating"
                       : ""
                   }`}
                   onClick={() => handleFilterClick("tritanopia")}
                   disabled={generatingFilter !== null}
                 >
-                  <span className="vision-simulator-panel__filter-label">
+                  <span className="main-view__filter-label">
                     <FilterIcon filterId="tritanopia" size="tiny" />
                     Tritanopia
                   </span>
-                  <span className="vision-simulator-panel__filter-info">
+                  <span className="main-view__filter-info">
                     Complete • ~0.001%
                   </span>
                 </button>
                 <button
                   key="tritanomaly"
-                  className={`vision-simulator-panel__filter-card ${
+                  className={`main-view__filter-card ${
                     generatingFilter === "tritanomaly"
-                      ? "vision-simulator-panel__filter-card--generating"
+                      ? "main-view__filter-card--generating"
                       : ""
                   }`}
                   onClick={() => handleFilterClick("tritanomaly")}
                   disabled={generatingFilter !== null}
                 >
-                  <span className="vision-simulator-panel__filter-label">
+                  <span className="main-view__filter-label">
                     <FilterIcon filterId="tritanomaly" size="tiny" />
                     Tritanomaly
                   </span>
-                  <span className="vision-simulator-panel__filter-info">
+                  <span className="main-view__filter-info">
                     Partial • ~0.01%
                   </span>
                 </button>
@@ -912,26 +912,26 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
             </div>
 
             {/* Total Color Blindness Section */}
-            <div className="vision-simulator-panel__section">
-              <h3 className="vision-simulator-panel__section-title">
+            <div className="main-view__section">
+              <h3 className="main-view__section-title">
                 Total color blindness
               </h3>
-              <div className="vision-simulator-panel__filters">
+              <div className="main-view__filters">
                 <button
                   key="achromatopsia"
-                  className={`vision-simulator-panel__filter-card ${
+                  className={`main-view__filter-card ${
                     generatingFilter === "achromatopsia"
-                      ? "vision-simulator-panel__filter-card--generating"
+                      ? "main-view__filter-card--generating"
                       : ""
                   }`}
                   onClick={() => handleFilterClick("achromatopsia")}
                   disabled={generatingFilter !== null}
                 >
-                  <span className="vision-simulator-panel__filter-label">
+                  <span className="main-view__filter-label">
                     <FilterIcon filterId="achromatopsia" size="tiny" />
                     Achromatopsia
                   </span>
-                  <span className="vision-simulator-panel__filter-info">
+                  <span className="main-view__filter-info">
                     Grayscale • ~0.003%
                   </span>
                 </button>
@@ -939,44 +939,44 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
             </div>
 
             {/* Visual Field Defects Section */}
-            <div className="vision-simulator-panel__section">
-              <h3 className="vision-simulator-panel__section-title">
+            <div className="main-view__section">
+              <h3 className="main-view__section-title">
                 Visual field defects
               </h3>
-              <div className="vision-simulator-panel__filters">
+              <div className="main-view__filters">
                 <button
                   key="central-vision-loss"
-                  className={`vision-simulator-panel__filter-card ${
+                  className={`main-view__filter-card ${
                     generatingFilter === "central-vision-loss"
-                      ? "vision-simulator-panel__filter-card--generating"
+                      ? "main-view__filter-card--generating"
                       : ""
                   }`}
                   onClick={() => handleFilterClick("central-vision-loss")}
                   disabled={generatingFilter !== null}
                 >
-                  <span className="vision-simulator-panel__filter-label">
+                  <span className="main-view__filter-label">
                     <FilterIcon filterId="central-vision-loss" size="tiny" />
                     Central Loss
                   </span>
-                  <span className="vision-simulator-panel__filter-info">
+                  <span className="main-view__filter-info">
                     Macular degeneration
                   </span>
                 </button>
                 <button
                   key="peripheral-vision-loss"
-                  className={`vision-simulator-panel__filter-card ${
+                  className={`main-view__filter-card ${
                     generatingFilter === "peripheral-vision-loss"
-                      ? "vision-simulator-panel__filter-card--generating"
+                      ? "main-view__filter-card--generating"
                       : ""
                   }`}
                   onClick={() => handleFilterClick("peripheral-vision-loss")}
                   disabled={generatingFilter !== null}
                 >
-                  <span className="vision-simulator-panel__filter-label">
+                  <span className="main-view__filter-label">
                     <FilterIcon filterId="peripheral-vision-loss" size="tiny" />
                     Peripheral Loss
                   </span>
-                  <span className="vision-simulator-panel__filter-info">
+                  <span className="main-view__filter-info">
                     Glaucoma / Tunnel vision
                   </span>
                 </button>
@@ -984,21 +984,21 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
             </div>
 
             {/* Other Section */}
-            <div className="vision-simulator-panel__section">
-              <h3 className="vision-simulator-panel__section-title">Other</h3>
-              <div className="vision-simulator-panel__filters">
+            <div className="main-view__section">
+              <h3 className="main-view__section-title">Other</h3>
+              <div className="main-view__filters">
                 {OTHER_FILTERS.map((filter) => (
                   <button
                     key={filter}
-                    className={`vision-simulator-panel__filter-card vision-simulator-panel__filter-card--compact ${
+                    className={`main-view__filter-card main-view__filter-card--compact ${
                       generatingFilter === filter
-                        ? "vision-simulator-panel__filter-card--generating"
+                        ? "main-view__filter-card--generating"
                         : ""
                     }`}
                     onClick={() => handleFilterClick(filter)}
                     disabled={generatingFilter !== null}
                   >
-                    <span className="vision-simulator-panel__filter-label">
+                    <span className="main-view__filter-label">
                       <FilterIcon filterId={filter} size="tiny" />
                       {FILTER_METADATA[filter].name}
                     </span>
@@ -1011,7 +1011,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
 
         {/* Simulation Tab */}
         {activeTab === "simulation" && (
-          <div className="vision-simulator-panel__simulation">
+          <div className="main-view__simulation">
             {/* Preset Selector */}
             <PresetSelector
               presets={allPresets}
@@ -1032,10 +1032,10 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
             />
 
             {/* Controls - Always show simulation dropdown */}
-            <div className="vision-simulator-panel__controls-row">
+            <div className="main-view__controls-row">
               {/* Simulation Dropdown */}
-              <div className="vision-simulator-panel__control vision-simulator-panel__control--simulation">
-                <label className="vision-simulator-panel__control-label">
+              <div className="main-view__control main-view__control--simulation">
+                <label className="main-view__control-label">
                   Simulation
                 </label>
                 <FilterDropdown
@@ -1081,7 +1081,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
               {/* Parameters Button - Only show if no preset is selected */}
               {!selectedPreset && (
                 <button
-                  className="vision-simulator-panel__params-btn"
+                  className="main-view__params-btn"
                   onClick={() => setShowParameters(!showParameters)}
                   disabled={currentFilter === "original"}
                   title="Change parameters"
@@ -1095,7 +1095,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
             {!selectedPreset &&
               showParameters &&
               currentFilter !== "original" && (
-                <div className="vision-simulator-panel__parameters">
+                <div className="main-view__parameters">
                   {/* Severity Slider - only show for color blindness filters */}
                   {isColorBlindnessFilter(currentFilter) && (
                     <SeveritySlider
@@ -1260,23 +1260,23 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
               )}
 
             {/* Preview Area */}
-            <div className="vision-simulator-panel__preview">
+            <div className="main-view__preview">
               {/* Zoom Controls */}
               {previewImage && (
-                <div className="vision-simulator-panel__zoom-controls">
+                <div className="main-view__zoom-controls">
                   <button
-                    className="vision-simulator-panel__zoom-btn"
+                    className="main-view__zoom-btn"
                     onClick={() => setZoom(Math.max(0.25, zoom - 0.25))}
                     disabled={zoom <= 0.25}
                     title="Zoom out"
                   >
                     <FaMinus size={12} />
                   </button>
-                  <span className="vision-simulator-panel__zoom-value">
+                  <span className="main-view__zoom-value">
                     {Math.round(zoom * 100)}%
                   </span>
                   <button
-                    className="vision-simulator-panel__zoom-btn"
+                    className="main-view__zoom-btn"
                     onClick={() => setZoom(Math.min(4, zoom + 0.25))}
                     disabled={zoom >= 4}
                     title="Zoom in"
@@ -1284,7 +1284,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                     <FaPlus size={12} />
                   </button>
                   <button
-                    className="vision-simulator-panel__zoom-fit-btn"
+                    className="main-view__zoom-fit-btn"
                     onClick={() => setZoom(1)}
                     title="Fit to view (100%)"
                   >
@@ -1293,34 +1293,34 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
                 </div>
               )}
 
-              <div className="vision-simulator-panel__preview-content">
+              <div className="main-view__preview-content">
                 {!previewImage && !loading && (
-                  <div className="vision-simulator-panel__preview-empty">
+                  <div className="main-view__preview-empty">
                     <p>Select a node to view simulation</p>
                   </div>
                 )}
 
                 {loading && (
-                  <div className="vision-simulator-panel__preview-loading">
+                  <div className="main-view__preview-loading">
                     Loading...
                   </div>
                 )}
 
                 {previewImage && (
                   <div
-                    className="vision-simulator-panel__preview-image-container"
+                    className="main-view__preview-image-container"
                     style={{ transform: `scale(${zoom})` }}
                   >
                     <img
                       src={previewImage}
                       alt="Simulated preview"
-                      className="vision-simulator-panel__preview-image"
+                      className="main-view__preview-image"
                     />
                   </div>
                 )}
 
                 {error && (
-                  <div className="vision-simulator-panel__error">{error}</div>
+                  <div className="main-view__error">{error}</div>
                 )}
               </div>
             </div>
@@ -1332,7 +1332,7 @@ export const VisionSimulatorPanel: React.FC<{}> = ({}) => {
       {activeTab === "simulation" &&
         previewImage &&
         (currentFilter !== "original" || selectedPreset !== null) && (
-          <div className="vision-simulator-panel__export-button-container">
+          <div className="main-view__export-button-container">
             <Button
               variant="primary"
               size="medium"

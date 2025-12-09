@@ -2,14 +2,14 @@ import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import "./ui.css";
 import BottomSection from "./components/ui/BottomSection";
-import { VisionSimulatorPanel } from "./components/views/VisionSimulatorPanel";
+import { MainView } from "./components/views/MainView";
 
 declare function require(path: string): any;
 
 function App() {
   return (
     <main>
-      <VisionSimulatorPanel />
+      <MainView />
 
       {/* Footer section with credits and mode toggle */}
       <BottomSection />
