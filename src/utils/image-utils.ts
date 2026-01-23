@@ -556,7 +556,7 @@ export function applyCentralVisionLoss(
   if (severity === 0 || radius < 1) {
     return new Uint8ClampedArray(imageData);
   }
-  
+
   // Calculate blur intensity based on BOTH radius AND severity
   // Larger radius = more area affected = more blur on peripheral vision
   // Higher severity = stronger effect = more blur
@@ -574,6 +574,7 @@ export function applyCentralVisionLoss(
     const result = new Uint8ClampedArray(imageData);
     const centerX = width / 2;
     const centerY = height / 2;
+    const totalEffectRadius = radius * 1.8;
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -581,20 +582,28 @@ export function applyCentralVisionLoss(
         const dx = x - centerX;
         const dy = y - centerY;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        const centerDarkeningFactor = Math.max(0, 1 - distance / radius) * severity;
 
-        if (centerDarkeningFactor > 0) {
+        if (distance <= totalEffectRadius) {
           const r = imageData[idx];
           const g = imageData[idx + 1];
           const b = imageData[idx + 2];
-          const gray = r * 0.299 + g * 0.587 + b * 0.114;
-          const darkenedGray = gray * 0.35;
-          const darkeningAmount = centerDarkeningFactor * 0.9;
-          
-          result[idx] = r * (1 - darkeningAmount) + darkenedGray * darkeningAmount;
-          result[idx + 1] = g * (1 - darkeningAmount) + darkenedGray * darkeningAmount;
-          result[idx + 2] = b * (1 - darkeningAmount) + darkenedGray * darkeningAmount;
+
+          // Single continuous gradient
+          const normalizedDist = distance / totalEffectRadius;
+          const darknessCurve = 1 - Math.pow(normalizedDist, 1.5);
+          const darkeningAmount = darknessCurve * severity;
+
+          // Color-preserving darkening - 5% brightness for stronger darkness
+          const darkFactor = 0.05;
+          const darkenedR = r * darkFactor;
+          const darkenedG = g * darkFactor;
+          const darkenedB = b * darkFactor;
+
+          result[idx] = r * (1 - darkeningAmount) + darkenedR * darkeningAmount;
+          result[idx + 1] = g * (1 - darkeningAmount) + darkenedG * darkeningAmount;
+          result[idx + 2] = b * (1 - darkeningAmount) + darkenedB * darkeningAmount;
         }
+        // Outside effect zone: pixels remain unchanged (already copied from imageData)
       }
     }
     return result;
@@ -610,6 +619,9 @@ export function applyCentralVisionLoss(
   const centerX = width / 2;
   const centerY = height / 2;
 
+  // Total effect radius including fade - the gradient extends smoothly from center to this point
+  const totalEffectRadius = radius * 1.8;
+
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
@@ -619,37 +631,41 @@ export function applyCentralVisionLoss(
       const dy = y - centerY;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      // Calculate darkening factor for CENTER (blind spot)
-      // 1 = full darkness at center, 0 = no darkness at periphery
-      const centerDarkeningFactor = Math.max(0, 1 - distance / radius) * severity;
+      // Get pixel values
+      const origR = imageData[idx];
+      const origG = imageData[idx + 1];
+      const origB = imageData[idx + 2];
+      const blurredR = smoothBlurred[idx];
+      const blurredG = smoothBlurred[idx + 1];
+      const blurredB = smoothBlurred[idx + 2];
 
-      if (centerDarkeningFactor > 0) {
-        // INSIDE affected area - darken
-        const blurredR = smoothBlurred[idx];
-        const blurredG = smoothBlurred[idx + 1];
-        const blurredB = smoothBlurred[idx + 2];
+      if (distance <= totalEffectRadius) {
+        // Single continuous gradient from center (dark) to edge (normal)
+        // normalizedDist: 0 at center, 1 at totalEffectRadius
+        const normalizedDist = distance / totalEffectRadius;
 
-        // Convert to grayscale and darken significantly (increased by 30%)
-        const gray = blurredR * 0.299 + blurredG * 0.587 + blurredB * 0.114;
-        const darkenedGray = gray * 0.35;
+        // Use sigmoid-like curve for smooth S-shaped transition
+        // Dark in center, holds darkness longer, then smooth fade to normal
+        const darknessCurve = 1 - Math.pow(normalizedDist, 1.5);
 
-        // Apply strong darkening to center (scotoma/blind spot)
-        const darkeningAmount = centerDarkeningFactor * 0.9;
-        
-        result[idx] = blurredR * (1 - darkeningAmount) + darkenedGray * darkeningAmount;
-        result[idx + 1] = blurredG * (1 - darkeningAmount) + darkenedGray * darkeningAmount;
-        result[idx + 2] = blurredB * (1 - darkeningAmount) + darkenedGray * darkeningAmount;
+        // Calculate darkening amount based on curve and severity
+        const darkeningAmount = darknessCurve * severity;
+
+        // Very dark at center (5% brightness for stronger darkness), fading to normal
+        // Use color-preserving darkening instead of pure grayscale for less gray look
+        const darkFactor = 0.05;
+
+        // Blend: darkened color in center, gradually becomes blurred image
+        const darkenedR = blurredR * darkFactor;
+        const darkenedG = blurredG * darkFactor;
+        const darkenedB = blurredB * darkFactor;
+
+        result[idx] = blurredR * (1 - darkeningAmount) + darkenedR * darkeningAmount;
+        result[idx + 1] = blurredG * (1 - darkeningAmount) + darkenedG * darkeningAmount;
+        result[idx + 2] = blurredB * (1 - darkeningAmount) + darkenedB * darkeningAmount;
         result[idx + 3] = imageData[idx + 3];
       } else {
-        // OUTSIDE affected area (peripheral visible area) - blend blur based on severity
-        const origR = imageData[idx];
-        const origG = imageData[idx + 1];
-        const origB = imageData[idx + 2];
-        const blurredR = smoothBlurred[idx];
-        const blurredG = smoothBlurred[idx + 1];
-        const blurredB = smoothBlurred[idx + 2];
-        
-        // Blend between original and blurred based on severity
+        // OUTSIDE effect zone - normal peripheral vision with blur based on severity
         result[idx] = origR * (1 - severity) + blurredR * severity;
         result[idx + 1] = origG * (1 - severity) + blurredG * severity;
         result[idx + 2] = origB * (1 - severity) + blurredB * severity;

@@ -249,11 +249,18 @@ export const MainView: React.FC<{}> = ({}) => {
           } else if (filter === "bright-light") {
             filteredData = applyBrightLight(imgData.data);
           } else if (filter === "central-vision-loss") {
+            // Calculate proportional radius based on image dimensions
+            // This ensures the effect scales properly with different image sizes
+            const imageSize = Math.min(tempCanvas.width, tempCanvas.height);
+            const proportionalRadius = DEFAULT_CENTRAL_VISION_LOSS_CONFIG.radius / 500 * imageSize;
             filteredData = applyCentralVisionLoss(
               imgData.data,
               tempCanvas.width,
               tempCanvas.height,
-              DEFAULT_CENTRAL_VISION_LOSS_CONFIG
+              {
+                radius: proportionalRadius,
+                severity: DEFAULT_CENTRAL_VISION_LOSS_CONFIG.severity,
+              }
             );
           } else if (filter === "peripheral-vision-loss") {
             filteredData = applyPeripheralVisionLoss(
