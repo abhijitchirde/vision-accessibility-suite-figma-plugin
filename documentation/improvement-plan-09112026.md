@@ -7,6 +7,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 **Started:** 2026-11-09 · **Branch:** `sandbox`
 
+**Sources:** a code review on 2026-11-09, plus the "Known Limitations" and "Future Enhancements" sections of [implementation.md](implementation.md). Items that came from implementation.md are marked *(impl.md)*.
+
 ---
 
 ## Progress
@@ -15,11 +17,12 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | --- | --- | --- |
 | 1. Correctness bugs | 8 | 0 |
 | 2. Simulation accuracy | 4 | 0 |
-| 3. Performance | 6 | 0 |
+| 3. Performance | 8 | 0 |
 | 4. Storage | 3 | 0 |
 | 5. Code health | 9 | 0 |
 | 6. UX & plugin accessibility | 6 | 0 |
-| 7. New features | 6 | 0 |
+| 7. New features | 12 | 0 |
+| 8. Documentation accuracy | 9 | 0 |
 
 ---
 
@@ -57,6 +60,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 - [ ] 🟠 **3.5 Draw straight into a visible `<canvas>`.** This avoids re-encoding a PNG with `toDataURL()` on every slider tick.
 - [ ] 🟠 **3.6 Remove `figma.loadAllPagesAsync()`.** No `documentchange` handler needs it, it isn't awaited, and it's slow in large files.
   - [code.ts:6](../src/code.ts#L6)
+- [ ] 🟢 **3.7 Cache exported images by node ID** so switching back to a node doesn't export it again. Clear a node's entry when the node changes. *(impl.md)*
+- [ ] 🟢 **3.8 Explore WebGL shaders** for the color matrix and blur. Worth doing only if 3.1–3.4 aren't fast enough. *(impl.md)*
 
 ## Phase 4 — Storage
 
@@ -102,6 +107,28 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 - [ ] 🟢 **7.4 Contrast check under each simulation:** flag text that fails WCAG contrast once a simulation is applied.
 - [ ] 🟢 **7.5 Support multiple selected nodes** (currently only `selection[0]` is used).
 - [ ] 🟢 **7.6 Parameters for Quick simulation:** let it use the last-used Vision Lab settings, or a chosen preset.
+- [ ] 🟠 **7.7 Presets in Quick simulation.** Presets currently work only in Vision Lab, so multi-filter frames can only reach the canvas through "Add current view to Figma". *(impl.md: Limitation 8, Future #2)*
+- [ ] 🟠 **7.8 Preset builder in the UI.** Add, remove and reorder the filters in a preset, with sliders for each filter and a live preview. Today a custom preset means editing JSON and importing it. This is the full version of 7.3. *(impl.md: Limitations 5–7, Future #1)*
+- [ ] 🟢 **7.9 Download the filtered image as a PNG** from Vision Lab, with the filter name in the file name. *(impl.md: Future #4)*
+- [ ] 🟢 **7.10 More conditions:** diabetic retinopathy (scattered dark spots) and halos/glare first. *(impl.md: Future #5)*
+- [ ] 🟢 **7.11 Preset categories** (medical condition, age, environment) in the preset dropdown. *(impl.md: Future #6)*
+- [ ] 🟢 **7.12 Refresh the preview when the selected node is edited.** Use `figma.currentPage.on("nodechange")`, which doesn't need `loadAllPagesAsync` (see 3.6). Debounce it. *(impl.md: Future #10)*
+
+**Not planned** (from implementation.md's future list): community preset sharing (needs a backend, and the manifest blocks network access), ML-based simulation, VR/AR preview, and A/B mode (7.2 covers most of it).
+
+## Phase 8 — Documentation accuracy
+
+[implementation.md](implementation.md) says the plugin is "production ready" with "no known issues", but several of its claims don't match the code. Update each item once the related code change lands, or correct the text now if the feature isn't planned.
+
+- [ ] 🟠 **8.1 Quick simulation workflow.** The doc describes choosing a filter from a dropdown, adjusting parameters and severity, then clicking Generate. In the code, each card generates immediately with fixed default values. Fix the doc, or do 7.6.
+- [ ] 🟠 **8.2 "Labeled frames".** Only the frame *name* includes the filter; no text label is placed on the canvas (`addLabel` is never called). Fix the doc, or do it as part of 7.1.
+- [ ] 🟠 **8.3 Preview downscaling.** Limitation 3 says it's "already implemented for Vision Lab mode"; Performance §3 says it isn't. It isn't. Update after 3.1.
+- [ ] 🟠 **8.4 Optimizations that don't exist.** "Canvas API hardware acceleration (50× faster)", "progressive rendering" and "Uint8ClampedArray reuse" are listed as done. All pixel work runs in JS loops on the UI thread, and each filter allocates a new buffer. Rewrite the Performance section after Phase 3.
+- [ ] 🟠 **8.5 Scientific claims.** The doc says the plugin uses the Brettel (1997) algorithm with "peer-reviewed, physiologically validated" matrices. The code uses the ColorJack/Coblis matrices. Update after 2.1–2.2.
+- [ ] 🟢 **8.6 Parameter ranges.** Doc vs code: blur radius 1–20 vs 1–30 px, ghosting offset −20..+20 vs 0..30 px, temperature 2000–3500 K vs 1000–4000 K.
+- [ ] 🟢 **8.7 Zoom levels.** The doc lists fixed steps (25/50/100/200/400%), matching `ZOOM_LEVELS`. The code ignores that constant and steps by 25%, and no button highlights the current level. Pick one behavior.
+- [ ] 🟢 **8.8 Status claims.** Remove or re-verify "Zero TypeScript errors" (see 5.5), "Known issues: none", "keyboard navigable, WCAG compliant UI" (see 6.2–6.3) and "theme toggle works" (see 6.1).
+- [ ] 🟢 **8.9 Versions and dates.** React 18.3 → 19, and the "Last updated" date.
 
 ---
 
@@ -109,4 +136,5 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 | Date | Item | Change | Commit / PR |
 | --- | --- | --- | --- |
-| 2026-11-09 | — | Plan created | — |
+| 2026-11-09 | — | Plan created | fe07565 |
+| 2026-11-09 | 3.7–3.8, 7.7–7.12, 8.x | Added items from implementation.md; renamed file | — |
