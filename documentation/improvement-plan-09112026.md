@@ -69,7 +69,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
   - [ ] Quick simulation cards are one line each; hovering a card shows its description; the "-opia / -omaly" note is at the top. No vertical scrollbar in Quick simulation at the default window size, and the last row of cards isn't hidden behind the "Add all" bar.
   - [ ] Quick simulation, **top-level frame**: click one card → one frame appears to the right of the design, with the filter applied.
   - [ ] Click two more cards → each new frame appears **to the right of the previous one**, not on top.
-  - [ ] **Nested layer** (e.g. a card inside a frame): the simulation appears next to that layer, not somewhere else on the page.
+  - [x] **Nested layer** (e.g. a card inside a frame): the simulation appears next to that layer, not somewhere else on the page. ✅ Passed (2026-11-09). Note: the simulation is created on the page, not inside the parent frame. That is by design for now; whether to place it inside a parent Section is an open question.
   - [ ] **Add all simulations** (bottom button): shows "Adding N of 14…", the cards are disabled while it runs, 14 frames end up in one row, and a "Added 14 simulations" toast appears.
   - [ ] Click **Add all** with nothing selected → "Select a layer…" toast, and the button becomes clickable again.
   - [ ] Peripheral loss on a large frame (e.g. 1440 px wide) looks similar to peripheral loss on a small one (not almost entirely black).
