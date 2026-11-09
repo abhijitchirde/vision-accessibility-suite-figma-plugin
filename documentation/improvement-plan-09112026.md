@@ -16,8 +16,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
 - **Working on:** Phase 0 — Quick wins
-- **Next step:** 0.7 Fix the TypeScript type-check errors
-- **Last completed:** 0.6 (before that 0.5, 0.4, 0.10, 0.2 + 0.3). All build; none tested inside Figma yet, which is 0.9
+- **Next step:** 0.8 Delete dead code
+- **Last completed:** 0.7 (before that 0.6, 0.5, 0.4, 0.10, 0.2 + 0.3). All build; none tested inside Figma yet, which is 0.9
 - **In progress / half done:** —
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -25,7 +25,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
   - The plugin side creates the frame with `createSimulationFrame()`. Its size comes from `image.getSizeAsync() / export scale`. Its position comes from `getNextSimulationPosition()`: the right edge of the source's absolute box, or of the right-most existing simulation of that source if further right, plus spacing.
   - "Add current view to Figma" in Vision Lab uses the same helpers.
   - "Add all simulations" (0.4) sends `GENERATE { filters: ALL_QUICK_FILTERS }`; progress is tracked in `generateProgress`.
-- **Notes for whoever resumes:** Work on branch `sandbox`. Each item is one commit whose message starts with its number, e.g. `feat(0.1): …`, so `git log --oneline` shows exactly what's done. Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build` to check a change compiles.
+- **Notes for whoever resumes:** Work on branch `sandbox`. Each item is one commit whose message starts with its number, e.g. `feat(0.1): …`, so `git log --oneline` shows exactly what's done. Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build` and `npm run typecheck` to check a change (typecheck should report no errors).
 
 ---
 
@@ -33,12 +33,12 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 | Phase | Items | Done |
 | --- | --- | --- |
-| 0. Quick wins | 10 | 7 |
+| 0. Quick wins | 10 | 8 |
 | 1. Correctness bugs | 8 | 5 |
 | 2. Simulation accuracy | 4 | 0 |
 | 3. Performance | 8 | 1 |
 | 4. Storage | 3 | 0 |
-| 5. Code health | 9 | 0 |
+| 5. Code health | 9 | 1 |
 | 6. UX & plugin accessibility | 6 | 0 |
 | 7. New features | 12 | 0 |
 | 8. Documentation accuracy | 9 | 0 |
@@ -55,7 +55,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [x] **0.4 "Add all simulations" button** in Quick simulation, creating every simulation in a row. Put the button at the **bottom** of the tab, in the same fixed spot as Vision Lab's "Add current view to Figma" (decided 2026-11-09). Show progress such as "Adding 3 of 14…". Labels come later. (Part of 7.1.)
 - [x] **0.5 Remove `figma.loadAllPagesAsync()` (= 3.6).**
 - [x] **0.6 Scale peripheral vision loss with the design size (= 1.5).**
-- [ ] **0.7 Fix the TypeScript type-check errors (= 5.5).**
+- [x] **0.7 Fix the TypeScript type-check errors (= 5.5).**
 - [ ] **0.8 Delete dead code (= 5.7).**
 - [x] **0.10 Stop re-exporting the design on every render.** `useFigmaMessage` returns a new `sendMessage` function on every render. The effect that sends `PANEL_MOUNTED` depends on it, so every re-render in Vision Lab (including each slider move) makes Figma export the design again. Wrap `sendMessage` in `useCallback`. (Found 2026-11-09.)
 - [ ] **0.9 Build and test in Figma:** generate one simulation, then several, then "Add all", on a nested design and a top-level one.
@@ -110,7 +110,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [ ] 🟠 **5.2 Split `MainView.tsx` (1,369 lines)** into `QuickSimulationTab`, `VisionLabTab` and a `useFilterPipeline` hook.
 - [ ] 🟠 **5.3 Generate the Quick simulation filter cards from `FILTER_METADATA`** instead of writing each one by hand. This also removes the duplicated prevalence text.
 - [ ] 🟠 **5.4 Type the plugin ↔ UI messages** with one shared union type, and pick a single payload shape instead of `msg.data?.x || msg.x`.
-- [ ] 🟠 **5.5 Fix the type-check errors.** `tsc --noEmit` fails because `@types/node` conflicts with the Figma typings and the `JSX` namespace is missing. Remove `@types/node` or limit `types` in `tsconfig.json`.
+- [x] 🟠 **5.5 Fix the type-check errors.** `tsc --noEmit` fails because `@types/node` conflicts with the Figma typings and the `JSX` namespace is missing. Remove `@types/node` or limit `types` in `tsconfig.json`.
 - [ ] 🟢 **5.6 Turn on `strict` in `tsconfig.json`** and pin `@figma/plugin-typings` instead of `"*"`.
 - [ ] 🟢 **5.7 Delete dead code:**
   - [ ] `src/constants/wcag.constants.ts` (or use it in 7.4)

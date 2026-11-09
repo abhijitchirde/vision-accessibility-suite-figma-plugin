@@ -1,8 +1,11 @@
 {
   "compilerOptions": {
     "target": "es6",
+    "lib": ["es2017", "dom"],
     "jsx": "react-jsx",
     "typeRoots": ["./node_modules/@types", "./node_modules/@figma"],
+    "types": ["plugin-typings"],
+    "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "moduleResolution": "node"
