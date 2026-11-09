@@ -119,18 +119,20 @@ async function renderQuickSimulationPng(
     filtered = applyBrightLight(source);
   } else if (filter === "central-vision-loss") {
     // Scale the radius with the image so the effect looks the same at any size
+    // (default radii are tuned for a 500px image)
     const imageSize = Math.min(width, height);
     filtered = applyCentralVisionLoss(source, width, height, {
       radius: (DEFAULT_CENTRAL_VISION_LOSS_CONFIG.radius / 500) * imageSize,
       severity: DEFAULT_CENTRAL_VISION_LOSS_CONFIG.severity,
     });
   } else if (filter === "peripheral-vision-loss") {
-    filtered = applyPeripheralVisionLoss(
-      source,
-      width,
-      height,
-      DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG
-    );
+    // Same scaling as central vision loss
+    const imageSize = Math.min(width, height);
+    filtered = applyPeripheralVisionLoss(source, width, height, {
+      tunnelRadius:
+        (DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG.tunnelRadius / 500) * imageSize,
+      severity: DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG.severity,
+    });
   }
 
   ctx.putImageData(new ImageData(filtered as any, width, height), 0, 0);

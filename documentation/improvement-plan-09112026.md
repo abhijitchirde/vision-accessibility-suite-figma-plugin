@@ -16,8 +16,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
 - **Working on:** Phase 0 — Quick wins
-- **Next step:** 0.6 Scale peripheral vision loss with the design size
-- **Last completed:** 0.5 (before that 0.4, 0.10, 0.2 + 0.3). All build; none tested inside Figma yet, which is 0.9
+- **Next step:** 0.7 Fix the TypeScript type-check errors
+- **Last completed:** 0.6 (before that 0.5, 0.4, 0.10, 0.2 + 0.3). All build; none tested inside Figma yet, which is 0.9
 - **In progress / half done:** —
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -33,8 +33,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 | Phase | Items | Done |
 | --- | --- | --- |
-| 0. Quick wins | 10 | 6 |
-| 1. Correctness bugs | 8 | 4 |
+| 0. Quick wins | 10 | 7 |
+| 1. Correctness bugs | 8 | 5 |
 | 2. Simulation accuracy | 4 | 0 |
 | 3. Performance | 8 | 1 |
 | 4. Storage | 3 | 0 |
@@ -54,7 +54,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [x] **0.3 Make generation reliable (= 1.3 + 1.4).** Export the design once. Create the frame only when the filtered image is ready, and report success only after the image is applied.
 - [x] **0.4 "Add all simulations" button** in Quick simulation, creating every simulation in a row. Put the button at the **bottom** of the tab, in the same fixed spot as Vision Lab's "Add current view to Figma" (decided 2026-11-09). Show progress such as "Adding 3 of 14…". Labels come later. (Part of 7.1.)
 - [x] **0.5 Remove `figma.loadAllPagesAsync()` (= 3.6).**
-- [ ] **0.6 Scale peripheral vision loss with the design size (= 1.5).**
+- [x] **0.6 Scale peripheral vision loss with the design size (= 1.5).**
 - [ ] **0.7 Fix the TypeScript type-check errors (= 5.5).**
 - [ ] **0.8 Delete dead code (= 5.7).**
 - [x] **0.10 Stop re-exporting the design on every render.** `useFigmaMessage` returns a new `sendMessage` function on every render. The effect that sends `PANEL_MOUNTED` depends on it, so every re-render in Vision Lab (including each slider move) makes Figma export the design again. Wrap `sendMessage` in `useCallback`. (Found 2026-11-09.)
@@ -69,7 +69,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [x] 🔴 **1.3 Don't leave empty frames on failure.** Create the frame only once the filtered image is ready, or remove it if processing fails. Send `GENERATE_RESULT` after the image is applied, not before.
   - [code.ts:223-258](../src/code.ts#L223-L258)
 - [x] 🟠 **1.4 Remove the duplicate export in Quick simulation.** `generateSimulations` exports the node and discards the result, then `prepareImageForPreview` exports it again.
-- [ ] 🟠 **1.5 Scale the peripheral vision loss radius in Quick simulation.** Central loss scales with image size; peripheral still uses fixed pixel values.
+- [x] 🟠 **1.5 Scale the peripheral vision loss radius in Quick simulation.** Central loss scales with image size; peripheral still uses fixed pixel values.
   - [MainView.tsx:265-271](../src/components/views/MainView.tsx#L265-L271)
 - [ ] 🟠 **1.6 Correct pixel-based parameters for the 2× export.** Blur radius and ghosting offset are applied to a 2× image, so they come out at half the size the labels claim. Multiply by the export scale.
 - [ ] 🟠 **1.7 Stop re-attaching the message listener on every render.** The effect depends on `processFilterForGenerate`, which is a new function each render. Stabilise it with `useCallback` or a ref to remove the stale-closure risk.
