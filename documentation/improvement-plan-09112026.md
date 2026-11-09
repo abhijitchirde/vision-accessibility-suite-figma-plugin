@@ -17,8 +17,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 - **Working on:** Phase 0 — Quick wins
 - **Next step:** 0.9 Test in Figma (needs you)
-- **Last completed:** 0.11 (before that 0.8, 0.7, 0.6, 0.5, 0.4, 0.10, 0.2 + 0.3). All build; none tested inside Figma yet, which is 0.9
-- **In progress / half done:** 0.12 Light/dark mode like desi-ipsum
+- **Last completed:** 0.12 (before that 0.11, 0.8, 0.7, 0.6, 0.5, 0.4, 0.10, 0.2 + 0.3). All build; none tested inside Figma yet, which is 0.9
+- **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -34,13 +34,13 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 | Phase | Items | Done |
 | --- | --- | --- |
-| 0. Quick wins | 12 | 10 |
+| 0. Quick wins | 12 | 11 |
 | 1. Correctness bugs | 8 | 5 |
 | 2. Simulation accuracy | 4 | 0 |
 | 3. Performance | 8 | 1 |
 | 4. Storage | 3 | 0 |
 | 5. Code health | 9 | 3 |
-| 6. UX & plugin accessibility | 6 | 0 |
+| 6. UX & plugin accessibility | 6 | 1 |
 | 7. New features | 12 | 0 |
 | 8. Documentation accuracy | 9 | 0 |
 
@@ -60,9 +60,12 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [x] **0.8 Delete dead code (= 5.7).** Kept `resizeImageData` and `calculatePreviewDimensions` for 3.1. Deleted files (including `wcag.constants.ts`, which 7.4 may want) can be restored with `git show f632f6c:<path>`.
 - [x] **0.10 Stop re-exporting the design on every render.** `useFigmaMessage` returns a new `sendMessage` function on every render. The effect that sends `PANEL_MOUNTED` depends on it, so every re-render in Vision Lab (including each slider move) makes Figma export the design again. Wrap `sendMessage` in `useCallback`. (Found 2026-11-09.)
 - [x] **0.11 Shorter Quick simulation cards (+ 5.3).** Move each card's description ("Complete • ~1% males" etc.) into a native `title` tooltip, using the longer `FILTER_METADATA` descriptions. Add one note above the color sections: *"-opia: can't see that color at all · -omaly: sees it weakly"* (decided 2026-11-09). Build the cards from one list instead of 11 hand-written buttons (= 5.3).
-- [ ] **0.12 Light/dark mode like desi-ipsum (= 6.1).** `showUI({ themeColors: true })`; footer toggle cycles 🌗 Auto (follows Figma) → ☀️ Light → 🌙 Dark; choice saved per user in `figma.clientStorage` (`get-theme-pref` / `set-theme-pref`, same as desi-ipsum). Fallback colors use `:where(:root)` so Figma's injected colors win; `html[data-theme]` overrides define every `--figma-color-*` the CSS uses (28), not just 13 as in desi-ipsum. Replaces `useFigmaTheme` with `useThemePreference` (decided 2026-11-09).
+- [x] **0.12 Light/dark mode like desi-ipsum (= 6.1).** `showUI({ themeColors: true })`; footer toggle cycles 🌗 Auto (follows Figma) → ☀️ Light → 🌙 Dark; choice saved per user in `figma.clientStorage` (`get-theme-pref` / `set-theme-pref`, same as desi-ipsum). Fallback colors use `:where(:root)` so Figma's injected colors win; `html[data-theme]` overrides define every `--figma-color-*` the CSS uses (28), not just 13 as in desi-ipsum. Replaces `useFigmaTheme` with `useThemePreference` (decided 2026-11-09).
 - [ ] **0.9 Test in Figma.** Run `npm run build`, then in Figma desktop: Plugins → Development → Vision Accessibility Suite. Tick each check as it passes; write what went wrong next to any that fail.
   - [ ] Footer ⚠️ button shows the disclaimer toast.
+  - [ ] Theme button cycles 🌗 Auto → ☀️ Light → 🌙 Dark. In Auto, switching Figma between light and dark (Figma menu → Theme) changes the plugin too.
+  - [ ] Forced Light while Figma is dark (and the reverse) looks fully light (or dark): no leftover dark borders, hover colors or tab underline.
+  - [ ] Close and reopen the plugin: the theme choice is remembered.
   - [ ] Quick simulation cards are one line each; hovering a card shows its description; the "-opia / -omaly" note is at the top. No vertical scrollbar in Quick simulation at the default window size, and the last row of cards isn't hidden behind the "Add all" bar.
   - [ ] Quick simulation, **top-level frame**: click one card → one frame appears to the right of the design, with the filter applied.
   - [ ] Click two more cards → each new frame appears **to the right of the previous one**, not on top.
@@ -140,7 +143,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
 
 ## Phase 6 — UX & accessibility of the plugin UI
 
-- [ ] 🟠 **6.1 Use Figma's theme.** Pass `themeColors: true` to `showUI` and use Figma's CSS variables. Remove the hard-coded `get-theme` → `"light"` handler and the manual toggle.
+- [x] 🟠 **6.1 Use Figma's theme.** Pass `themeColors: true` to `showUI` and use Figma's CSS variables. Remove the hard-coded `get-theme` → `"light"` handler and the manual toggle.
 - [ ] 🟠 **6.2 Make the tabs accessible:** `role="tablist"` / `role="tab"`, `aria-selected`, and arrow-key navigation.
 - [ ] 🟠 **6.3 Give sliders accessible labels**, and give the preview image alt text that names the active filter.
 - [ ] 🟠 **6.4 Fix the window height.** 770px doesn't fit on many laptops; make it shorter or resizable.

@@ -1,8 +1,16 @@
 import { VisionSimulator } from "./utils/vision-simulator";
 import { SelectionService } from "./services/selection.service";
 
-// Show the plugin UI
-figma.showUI(__html__, { width: 360, height: 770 });
+// Show the plugin UI. themeColors injects Figma's real --figma-color-* values
+// for the user's light/dark theme, so "Auto" follows Figma.
+figma.showUI(__html__, { width: 360, height: 770, themeColors: true });
+
+/** Theme override chosen in the footer (Auto / Light / Dark), saved per user */
+const THEME_KEY = "themePreference";
+
+function isThemeValue(value: unknown): value is "auto" | "light" | "dark" {
+  return value === "auto" || value === "light" || value === "dark";
+}
 
 // Initialize services
 const selectionService = new SelectionService();
@@ -271,12 +279,23 @@ figma.ui.onmessage = async (msg) => {
         break;
       }
 
-      case "get-theme":
-        // Respond with current theme (if needed)
+      case "get-theme-pref": {
+        const value = await figma.clientStorage
+          .getAsync(THEME_KEY)
+          .catch(() => undefined);
         figma.ui.postMessage({
-          type: "theme-changed",
-          theme: "light", // You can detect system theme here
+          type: "theme-pref",
+          value: isThemeValue(value) ? value : "auto",
         });
+        break;
+      }
+
+      case "set-theme-pref":
+        if (isThemeValue(msg.value)) {
+          await figma.clientStorage
+            .setAsync(THEME_KEY, msg.value)
+            .catch(() => undefined);
+        }
         break;
 
       case "disclaimer":
