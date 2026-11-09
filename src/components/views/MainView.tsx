@@ -9,7 +9,10 @@ import { PresetSelector } from "../ui/Presets/PresetSelector";
 import { PresetManager } from "../ui/Presets/PresetManager";
 import { FilterParameterSlider } from "../ui/Filter/FilterParameterSlider";
 import { FilterDropdown } from "../ui/Filter/FilterDropdown";
-import { useFigmaMessage } from "../../hooks/useFigmaMessage";
+import {
+  useFigmaMessage,
+  waitForPluginMessage,
+} from "../../hooks/useFigmaMessage";
 import { FaPlus } from "react-icons/fa6";
 import { FaMinus } from "react-icons/fa6";
 import { GoScreenFull } from "react-icons/go";
@@ -47,6 +50,82 @@ import {
 } from "../../utils/image-utils";
 
 type Tab = "generate" | "simulation";
+
+/** Decode PNG bytes into an image element */
+function loadPngImage(bytes: Uint8Array): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(
+      new Blob([bytes as any], { type: "image/png" })
+    );
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Couldn't read the exported image"));
+    };
+    img.src = url;
+  });
+}
+
+/**
+ * Apply one Quick simulation filter, with its default settings, and return
+ * the result as PNG bytes.
+ */
+async function renderQuickSimulationPng(
+  img: HTMLImageElement,
+  filter: SimulationType
+): Promise<Uint8Array> {
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas isn't available");
+
+  ctx.drawImage(img, 0, 0);
+  const { width, height } = canvas;
+  const source = ctx.getImageData(0, 0, width, height).data;
+  let filtered: Uint8ClampedArray = source;
+
+  if (COLOR_BLIND_FILTERS.includes(filter)) {
+    // Type-appropriate default severity (complete = 1.0, anomalies = 0.6)
+    filtered = applyColorBlindness(source, filter as ColorBlindnessType);
+  } else if (filter === "blurred") {
+    filtered = applyBlur(source, width, height);
+  } else if (filter === "ghosting") {
+    filtered = applyGhosting(source, width, height);
+  } else if (filter === "yellowing") {
+    filtered = applyYellowing(source);
+  } else if (filter === "loss-of-contrast") {
+    filtered = applyContrastLoss(source);
+  } else if (filter === "bright-light") {
+    filtered = applyBrightLight(source);
+  } else if (filter === "central-vision-loss") {
+    // Scale the radius with the image so the effect looks the same at any size
+    const imageSize = Math.min(width, height);
+    filtered = applyCentralVisionLoss(source, width, height, {
+      radius: (DEFAULT_CENTRAL_VISION_LOSS_CONFIG.radius / 500) * imageSize,
+      severity: DEFAULT_CENTRAL_VISION_LOSS_CONFIG.severity,
+    });
+  } else if (filter === "peripheral-vision-loss") {
+    filtered = applyPeripheralVisionLoss(
+      source,
+      width,
+      height,
+      DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG
+    );
+  }
+
+  ctx.putImageData(new ImageData(filtered as any, width, height), 0, 0);
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/png")
+  );
+  if (!blob) throw new Error("Couldn't encode the filtered image");
+  return new Uint8Array(await blob.arrayBuffer());
+}
 
 export const MainView: React.FC<{}> = ({}) => {
   // Tab state
@@ -173,141 +252,40 @@ export const MainView: React.FC<{}> = ({}) => {
   };
 
   /**
-   * Process filter for generated frame (background processing)
-   * Called when plugin sends VISION_SIMULATOR_PROCESS_FILTER message
+   * Quick simulation, step 2: filter the exported image for each requested
+   * simulation and send the results to Figma one at a time. Waiting for each
+   * frame to be created before sending the next keeps them in a neat row.
+   * Called when the plugin sends VISION_SIMULATOR_PROCESS_FILTER.
    */
-  const processFilterForGenerate = async (
-    frameId: string,
-    filter: SimulationType,
-    imageData: { imageData: Uint8Array; width: number; height: number }
+  const runQuickSimulations = async (
+    sourceNodeId: string,
+    filters: SimulationType[],
+    exported: { imageData: Uint8Array }
   ) => {
     try {
-      // Create a temporary canvas for processing
-      const tempCanvas = document.createElement("canvas");
-      const ctx = tempCanvas.getContext("2d");
-      if (!ctx) {
-        console.error("Failed to get 2d context");
-        return;
-      }
+      const img = await loadPngImage(exported.imageData);
 
-      // Load image
-      const blob = new Blob([imageData.imageData as any], {
-        type: "image/png",
-      });
-      const url = URL.createObjectURL(blob);
-      const img = new Image();
+      for (const filter of filters) {
+        const png = await renderQuickSimulationPng(img, filter);
 
-      img.onload = () => {
-        // Set canvas size
-        tempCanvas.width = img.width;
-        tempCanvas.height = img.height;
-
-        // Draw original image
-        ctx.drawImage(img, 0, 0);
-
-        // Apply filter
-        if (filter !== "original") {
-          const imgData = ctx.getImageData(
-            0,
-            0,
-            tempCanvas.width,
-            tempCanvas.height
-          );
-          let filteredData: Uint8ClampedArray;
-
-          if (
-            filter === "protanopia" ||
-            filter === "deuteranopia" ||
-            filter === "tritanopia" ||
-            filter === "achromatopsia" ||
-            filter === "protanomaly" ||
-            filter === "deuteranomaly" ||
-            filter === "tritanomaly"
-          ) {
-            // For generate mode, use type-appropriate default severity
-            // (complete dichromacy = 1.0, anomalies = 0.6)
-            filteredData = applyColorBlindness(
-              imgData.data,
-              filter as ColorBlindnessType
-            );
-          } else if (filter === "blurred") {
-            filteredData = applyBlur(
-              imgData.data,
-              tempCanvas.width,
-              tempCanvas.height
-            );
-          } else if (filter === "ghosting") {
-            filteredData = applyGhosting(
-              imgData.data,
-              tempCanvas.width,
-              tempCanvas.height
-            );
-          } else if (filter === "yellowing") {
-            filteredData = applyYellowing(imgData.data);
-          } else if (filter === "loss-of-contrast") {
-            filteredData = applyContrastLoss(imgData.data);
-          } else if (filter === "bright-light") {
-            filteredData = applyBrightLight(imgData.data);
-          } else if (filter === "central-vision-loss") {
-            // Calculate proportional radius based on image dimensions
-            // This ensures the effect scales properly with different image sizes
-            const imageSize = Math.min(tempCanvas.width, tempCanvas.height);
-            const proportionalRadius = DEFAULT_CENTRAL_VISION_LOSS_CONFIG.radius / 500 * imageSize;
-            filteredData = applyCentralVisionLoss(
-              imgData.data,
-              tempCanvas.width,
-              tempCanvas.height,
-              {
-                radius: proportionalRadius,
-                severity: DEFAULT_CENTRAL_VISION_LOSS_CONFIG.severity,
-              }
-            );
-          } else if (filter === "peripheral-vision-loss") {
-            filteredData = applyPeripheralVisionLoss(
-              imgData.data,
-              tempCanvas.width,
-              tempCanvas.height,
-              DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG
-            );
-          } else {
-            filteredData = imgData.data;
-          }
-
-          const newImageData = new ImageData(
-            filteredData as any,
-            tempCanvas.width,
-            tempCanvas.height
-          );
-          ctx.putImageData(newImageData, 0, 0);
+        const applied = waitForPluginMessage("VISION_SIMULATOR_IMAGE_APPLIED");
+        sendMessage("VISION_SIMULATOR_APPLY_FILTERED_IMAGE", {
+          sourceNodeId,
+          filter,
+          imageData: png,
+          label: FILTER_METADATA[filter].name,
+        });
+        const result = await applied;
+        if (!result.success) {
+          throw new Error(result.error || "Failed to add simulation");
         }
-
-        // Convert canvas to blob then to Uint8Array
-        tempCanvas.toBlob(async (blob) => {
-          if (blob) {
-            const arrayBuffer = await blob.arrayBuffer();
-            const uint8Array = new Uint8Array(arrayBuffer);
-
-            // Send filtered image back to plugin
-            sendMessage("VISION_SIMULATOR_APPLY_FILTERED_IMAGE", {
-              frameId,
-              imageData: uint8Array,
-            });
-          } else {
-            console.error("Failed to create blob from canvas");
-          }
-        }, "image/png");
-
-        URL.revokeObjectURL(url);
-      };
-
-      img.onerror = () => {
-        console.error("Failed to load image for filter processing");
-        URL.revokeObjectURL(url);
-      };
-
-      img.src = url;
-    } catch (error) {
-      console.error("Error processing filter:", error);
+      }
+      setError(null);
+    } catch (err) {
+      console.error("Quick simulation failed:", err);
+      setError(err instanceof Error ? err.message : "Failed to add simulation");
+    } finally {
+      setGeneratingFilter(null);
     }
   };
 
@@ -317,10 +295,9 @@ export const MainView: React.FC<{}> = ({}) => {
       const msg = event.data.pluginMessage;
 
       if (msg?.type === "VISION_SIMULATOR_GENERATE_RESULT") {
-        setGeneratingFilter(null);
-        if (msg.success) {
-          setError(null);
-        } else {
+        // Only sent when generation can't start (no selection, export failed)
+        if (!msg.success) {
+          setGeneratingFilter(null);
           setError(msg.error || "Failed to generate simulation");
         }
       } else if (msg?.type === "VISION_SIMULATOR_PREVIEW_DATA") {
@@ -358,8 +335,7 @@ export const MainView: React.FC<{}> = ({}) => {
           );
         }
       } else if (msg?.type === "VISION_SIMULATOR_PROCESS_FILTER") {
-        // Process filter and send back filtered image
-        await processFilterForGenerate(msg.frameId, msg.filter, msg.imageData);
+        await runQuickSimulations(msg.sourceNodeId, msg.filters, msg.imageData);
       } else if (msg?.type === "VISION_SIMULATOR_EXPORT_TO_CANVAS_RESULT") {
         setExporting(false);
         if (msg.success) {
@@ -372,7 +348,7 @@ export const MainView: React.FC<{}> = ({}) => {
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [processFilterForGenerate]);
+  }, [runQuickSimulations]);
 
   // Notify plugin when Vision Lab tab becomes active/inactive
   useEffect(() => {
@@ -572,14 +548,7 @@ export const MainView: React.FC<{}> = ({}) => {
     setGeneratingFilter(filter);
     setError(null);
 
-    sendMessage("VISION_SIMULATOR_GENERATE", {
-      filter,
-      options: {
-        position: "right",
-        spacing: 50,
-        includeLabel: false,
-      },
-    });
+    sendMessage("VISION_SIMULATOR_GENERATE", { filters: [filter] });
   };
 
   /**
@@ -706,13 +675,11 @@ export const MainView: React.FC<{}> = ({}) => {
         label = FILTER_METADATA[currentFilter].name;
       }
 
-      // Send message to create frame and apply image
-      // Use original node dimensions, not canvas dimensions (which may be 2x)
+      // Figma sizes the frame from the image itself (image size / export scale)
       sendMessage("VISION_SIMULATOR_EXPORT_TO_CANVAS", {
         imageData,
-        width: originalNodeWidth,
-        height: originalNodeHeight,
         label,
+        filter: selectedPreset ? "original" : currentFilter,
       });
     } catch (err) {
       console.error("Failed to export to canvas:", err);

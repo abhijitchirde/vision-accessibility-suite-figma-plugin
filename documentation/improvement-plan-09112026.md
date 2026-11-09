@@ -16,13 +16,15 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
 - **Working on:** Phase 0 — Quick wins
-- **Next step:** 0.2 + 0.3 (one combined change), then 0.10, then 0.4
-- **Last completed:** 0.1 Disclaimer
-- **In progress / half done:** 0.2 + 0.3. Planned design:
+- **Next step:** 0.10, then 0.4
+- **Last completed:** 0.2 + 0.3 (builds; not yet tested inside Figma, which is 0.9)
+- **In progress / half done:** —
+- **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
-  - The UI filters the image for each filter in turn and sends `APPLY_FILTERED_IMAGE { sourceNodeId, filter, imageData }`. It waits for `IMAGE_APPLIED` before sending the next one, so positions never collide.
-  - The plugin side then creates the frame with `createSimulationFrame()`: its size comes from `image.getSizeAsync() / export scale`, and its position from `getNextSimulationPosition()`, which is the source's absolute box or, if further right, the right-most existing simulation of the same source, plus spacing.
+  - The UI (`runQuickSimulations` in MainView) filters the image for each filter in turn and sends `APPLY_FILTERED_IMAGE { sourceNodeId, filter, imageData, label }`. It waits for `IMAGE_APPLIED` before sending the next one, so positions never collide.
+  - The plugin side creates the frame with `createSimulationFrame()`. Its size comes from `image.getSizeAsync() / export scale`. Its position comes from `getNextSimulationPosition()`: the right edge of the source's absolute box, or of the right-most existing simulation of that source if further right, plus spacing.
   - "Add current view to Figma" in Vision Lab uses the same helpers.
+  - For 0.4: send `GENERATE { filters: [all 14] }` and show progress inside `runQuickSimulations`' loop.
 - **Notes for whoever resumes:** Work on branch `sandbox`. Each item is one commit whose message starts with its number, e.g. `feat(0.1): …`, so `git log --oneline` shows exactly what's done. Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build` to check a change compiles.
 
 ---
@@ -31,8 +33,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 | Phase | Items | Done |
 | --- | --- | --- |
-| 0. Quick wins | 10 | 1 |
-| 1. Correctness bugs | 8 | 0 |
+| 0. Quick wins | 10 | 3 |
+| 1. Correctness bugs | 8 | 4 |
 | 2. Simulation accuracy | 4 | 0 |
 | 3. Performance | 8 | 0 |
 | 4. Storage | 3 | 0 |
@@ -48,8 +50,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 Small, low-risk changes, done first and in this order. Several come from later phases; ticking them here also counts there (tick both).
 
 - [x] **0.1 Disclaimer in the footer.** A ⚠️ button next to the theme toggle shows a Figma notification, using the same pattern as desi-ipsum and the Indian user data generator. Wording: *"These simulations are approximations for design and learning. They can't show exactly how any one person sees, and they're not a medical tool, so don't use them for diagnosis or treatment."*
-- [ ] **0.2 Place new simulations next to existing ones (= 1.1 + 1.2).** Use absolute positions, and place each new frame to the right of the last simulation made from the same design instead of on top of it.
-- [ ] **0.3 Make generation reliable (= 1.3 + 1.4).** Export the design once. Create the frame only when the filtered image is ready, and report success only after the image is applied.
+- [x] **0.2 Place new simulations next to existing ones (= 1.1 + 1.2).** Use absolute positions, and place each new frame to the right of the last simulation made from the same design instead of on top of it.
+- [x] **0.3 Make generation reliable (= 1.3 + 1.4).** Export the design once. Create the frame only when the filtered image is ready, and report success only after the image is applied.
 - [ ] **0.4 "Add all simulations" button** in Quick simulation, creating every simulation in a row. Put the button at the **bottom** of the tab, in the same fixed spot as Vision Lab's "Add current view to Figma" (decided 2026-11-09). Show progress such as "Adding 3 of 14…". Labels come later. (Part of 7.1.)
 - [ ] **0.5 Remove `figma.loadAllPagesAsync()` (= 3.6).**
 - [ ] **0.6 Scale peripheral vision loss with the design size (= 1.5).**
@@ -60,13 +62,13 @@ Small, low-risk changes, done first and in this order. Several come from later p
 
 ## Phase 1 — Correctness bugs
 
-- [ ] 🔴 **1.1 Fix frame placement for nested nodes.** Generated and exported frames are placed with `node.x`/`node.y`, which are measured from the parent, but the frames are added to the page. Use `absoluteBoundingBox` (or `absoluteTransform`) instead.
+- [x] 🔴 **1.1 Fix frame placement for nested nodes.** Generated and exported frames are placed with `node.x`/`node.y`, which are measured from the parent, but the frames are added to the page. Use `absoluteBoundingBox` (or `absoluteTransform`) instead.
   - [vision-simulator.ts:96-128](../src/utils/vision-simulator.ts#L96-L128)
   - [code.ts:323-324](../src/code.ts#L323-L324)
-- [ ] 🔴 **1.2 Stop Quick simulations from stacking on top of each other.** `generateSimulations` always gets a single filter, so `i` is always 0 and every frame lands in the same spot. Offset each new frame from existing simulations of the same node, or find the next free position.
-- [ ] 🔴 **1.3 Don't leave empty frames on failure.** Create the frame only once the filtered image is ready, or remove it if processing fails. Send `GENERATE_RESULT` after the image is applied, not before.
+- [x] 🔴 **1.2 Stop Quick simulations from stacking on top of each other.** `generateSimulations` always gets a single filter, so `i` is always 0 and every frame lands in the same spot. Offset each new frame from existing simulations of the same node, or find the next free position.
+- [x] 🔴 **1.3 Don't leave empty frames on failure.** Create the frame only once the filtered image is ready, or remove it if processing fails. Send `GENERATE_RESULT` after the image is applied, not before.
   - [code.ts:223-258](../src/code.ts#L223-L258)
-- [ ] 🟠 **1.4 Remove the duplicate export in Quick simulation.** `generateSimulations` exports the node and discards the result, then `prepareImageForPreview` exports it again.
+- [x] 🟠 **1.4 Remove the duplicate export in Quick simulation.** `generateSimulations` exports the node and discards the result, then `prepareImageForPreview` exports it again.
 - [ ] 🟠 **1.5 Scale the peripheral vision loss radius in Quick simulation.** Central loss scales with image size; peripheral still uses fixed pixel values.
   - [MainView.tsx:265-271](../src/components/views/MainView.tsx#L265-L271)
 - [ ] 🟠 **1.6 Correct pixel-based parameters for the 2× export.** Blur radius and ghosting offset are applied to a 2× image, so they come out at half the size the labels claim. Multiply by the export scale.

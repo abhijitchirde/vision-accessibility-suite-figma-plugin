@@ -138,7 +138,10 @@ export interface SimulationResult {
 export interface GeneratedNodeData {
   isSimulation: true;
   originalNodeId: string;
+  /** Simulation applied, or "original" when a preset was applied */
   filter: SimulationType;
+  /** Display name used for the frame (filter or preset name) */
+  label?: string;
   generatedAt: number;
 }
 

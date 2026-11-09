@@ -63,90 +63,90 @@ export class VisionSimulator {
   }
 
   /**
-   * Generate canvas copies with simulated filters
+   * Work out where the next simulation of a source node should go.
    *
-   * Creates physical copies of the selected node on the canvas,
-   * each with a different visual impairment filter applied.
-   *
-   * @param node - Node to duplicate
-   * @param filters - Filters to apply (one copy per filter)
-   * @param options - Generation options
-   * @returns Array of generated node IDs
+   * Uses page (absolute) coordinates, because simulation frames are added
+   * directly to the page even when the source is nested inside other frames.
+   * The new frame goes to the right of the source, or to the right of the
+   * right-most simulation already made from the same source, so repeated
+   * simulations form a row instead of stacking on top of each other.
    */
-  async generateSimulations(
-    node: SceneNode,
-    filters: SimulationType[],
-    options: Partial<GenerateOptions> = {}
-  ): Promise<string[]> {
-    const {
-      position = 'right',
-      spacing = DEFAULT_COPY_SPACING,
-      includeLabel = true,
-    } = options;
+  getNextSimulationPosition(
+    source: SceneNode,
+    spacing: number = DEFAULT_COPY_SPACING
+  ): { x: number; y: number } {
+    const box =
+      'absoluteBoundingBox' in source && source.absoluteBoundingBox
+        ? source.absoluteBoundingBox
+        : { x: source.x, y: source.y, width: source.width, height: source.height };
 
-    const generatedIds: string[] = [];
+    let rightEdge = box.x + box.width;
 
-    // Export original node
-    const originalImage = await this.exportNodeAsImage(node);
-    if (!originalImage) {
-      throw new Error(`Failed to export node: ${node.name}`);
-    }
-
-    // Calculate positions for generated copies
-    const nodeWidth = 'width' in node ? node.width : 0;
-    const nodeHeight = 'height' in node ? node.height : 0;
-    const nodeX = 'x' in node ? node.x : 0;
-    const nodeY = 'y' in node ? node.y : 0;
-
-    // Generate a copy for each filter
-    for (let i = 0; i < filters.length; i++) {
-      const filter = filters[i];
-
-      if (filter === 'original') {
-        continue; // Skip original
-      }
-
-      try {
-        // Create frame to hold the simulated image
-        const frame = figma.createFrame();
-        frame.name = `${node.name} - ${FILTER_METADATA[filter].name}`;
-        frame.resize(nodeWidth, nodeHeight);
-
-        // Initialize with empty fills (will be replaced with filtered image)
-        frame.fills = [];
-
-        // Disable clipping
-        frame.clipsContent = false;
-
-        // Position the frame
-        if (position === 'right') {
-          frame.x = nodeX + (nodeWidth + spacing) * (i + 1);
-          frame.y = nodeY;
-        } else {
-          // below
-          frame.x = nodeX;
-          frame.y = nodeY + (nodeHeight + spacing) * (i + 1);
-        }
-
-        // Store metadata in plugin data
-        const metadata: GeneratedNodeData = {
-          isSimulation: true,
-          originalNodeId: node.id,
-          filter,
-          generatedAt: Date.now(),
-        };
-
-        frame.setPluginData(PLUGIN_DATA_KEYS.GENERATED_NODE, JSON.stringify(metadata));
-
-        // Add to current page
-        figma.currentPage.appendChild(frame);
-        generatedIds.push(frame.id);
-      } catch (error) {
-        console.error(`Failed to generate ${filter} simulation:`, error);
+    for (const child of figma.currentPage.children) {
+      const metadata = this.getGeneratedMetadata(child);
+      if (metadata && metadata.originalNodeId === source.id) {
+        rightEdge = Math.max(rightEdge, child.x + child.width);
       }
     }
 
-    return generatedIds;
+    return { x: rightEdge + spacing, y: box.y };
+  }
+
+  /**
+   * Create a frame on the page showing a filtered image of a source node.
+   *
+   * Called once the UI has finished filtering, so a failed filter never
+   * leaves an empty frame behind.
+   *
+   * @param sourceNodeId - Node the simulation was made from
+   * @param filter - Simulation applied ("original" when a preset was applied)
+   * @param imageData - Filtered PNG, at the export scale
+   * @param label - Name for the frame (filter or preset name)
+   * @returns The new frame
+   */
+  async createSimulationFrame(
+    sourceNodeId: string,
+    filter: SimulationType,
+    imageData: Uint8Array,
+    label: string
+  ): Promise<FrameNode> {
+    const source = await figma.getNodeByIdAsync(sourceNodeId);
+    if (!source || source.type === 'PAGE' || source.type === 'DOCUMENT') {
+      throw new Error('The original layer no longer exists');
+    }
+    const sourceNode = source as SceneNode;
+
+    const image = figma.createImage(imageData);
+    const size = await image.getSizeAsync();
+    const scale = IMAGE_EXPORT_SETTINGS.constraint.value;
+
+    const position = this.getNextSimulationPosition(sourceNode);
+
+    const frame = figma.createFrame();
+    frame.name = `${sourceNode.name} - ${label}`;
+    frame.resize(size.width / scale, size.height / scale);
+    frame.x = position.x;
+    frame.y = position.y;
+    frame.clipsContent = false;
+    frame.fills = [
+      {
+        type: 'IMAGE',
+        imageHash: image.hash,
+        scaleMode: 'FILL',
+      },
+    ];
+
+    const metadata: GeneratedNodeData = {
+      isSimulation: true,
+      originalNodeId: sourceNode.id,
+      filter,
+      label,
+      generatedAt: Date.now(),
+    };
+    frame.setPluginData(PLUGIN_DATA_KEYS.GENERATED_NODE, JSON.stringify(metadata));
+
+    figma.currentPage.appendChild(frame);
+    return frame;
   }
 
   /**
@@ -268,39 +268,6 @@ export class VisionSimulator {
       height,
       nodeName: node.name,
     };
-  }
-
-  /**
-   * Apply filtered image back to canvas
-   *
-   * Creates a new image fill from processed image data
-   *
-   * @param frameId - Frame ID to apply image to
-   * @param imageData - Processed image data (PNG)
-   */
-  async applyFilteredImage(frameId: string, imageData: Uint8Array): Promise<void> {
-    const frame = await figma.getNodeByIdAsync(frameId) as FrameNode;
-    if (!frame) {
-      console.error(`Frame not found with ID: ${frameId}`);
-      throw new Error(`Frame not found: ${frameId}`);
-    }
-
-    try {
-      // Create image from processed data
-      const image = figma.createImage(imageData);
-
-      // Apply as fill
-      frame.fills = [
-        {
-          type: 'IMAGE',
-          imageHash: image.hash,
-          scaleMode: 'FILL',
-        },
-      ];
-    } catch (error) {
-      console.error('Failed to apply filtered image:', error);
-      throw error;
-    }
   }
 
   /**

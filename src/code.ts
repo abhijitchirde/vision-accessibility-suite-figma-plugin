@@ -195,170 +195,125 @@ figma.ui.onmessage = async (msg) => {
         }
         break;
 
-      case "VISION_SIMULATOR_GENERATE":
-        // Generate canvas copy with filter applied
+      case "VISION_SIMULATOR_GENERATE": {
+        // Step 1 of Quick simulation: export the selected layer once and hand
+        // it to the UI, which filters it for each requested simulation.
+        // No frame is created until the filtered image comes back.
         const nodesToGenerate = visionSimulator.getSelectedNodes();
-        // console.log(
-        //   `VISION_SIMULATOR_GENERATE: Found ${nodesToGenerate.length} selected nodes`
-        // );
+        const filters: string[] = msg.data?.filters ?? [];
 
         if (nodesToGenerate.length === 0) {
-          figma.notify(
-            "Please select an element to generate visual simulation"
-          );
+          const error = "Select a layer to add a simulation";
+          figma.notify(error);
           figma.ui.postMessage({
             type: "VISION_SIMULATOR_GENERATE_RESULT",
             success: false,
-            error: "Please select an element to generate visual simulation",
+            error,
           });
-        } else {
-          try {
-            const filter = msg.data?.filter || msg.filter;
-            const options = msg.data?.options || msg.options || {};
-            // console.log(
-            //   `Generating simulation for filter: ${filter}, node: ${nodesToGenerate[0].name}`
-            // );
-
-            // Generate simulation for first selected node with single filter
-            const generatedIds = await visionSimulator.generateSimulations(
-              nodesToGenerate[0],
-              [filter], // Single filter in array
-              options
-            );
-
-            // Apply filter to the generated frame
-            const frameId = generatedIds[0];
-            // console.log(`Generated frame ID: ${frameId}`);
-
-            // Export original image
-            const originalImage = await visionSimulator.prepareImageForPreview(
-              nodesToGenerate[0].id
-            );
-            // console.log(
-            //   `Exported original image: ${originalImage ? "success" : "failed"}`
-            // );
-
-            if (originalImage) {
-              // Send to UI for filter processing
-              // console.log(`Sending image to UI for ${filter} processing`);
-              figma.ui.postMessage({
-                type: "VISION_SIMULATOR_PROCESS_FILTER",
-                frameId,
-                filter,
-                imageData: originalImage,
-              });
-            } else {
-              console.error("Failed to export original image");
-            }
-
-            figma.ui.postMessage({
-              type: "VISION_SIMULATOR_GENERATE_RESULT",
-              success: true,
-              filter: filter,
-            });
-          } catch (error) {
-            console.error("Error in VISION_SIMULATOR_GENERATE:", error);
-            figma.ui.postMessage({
-              type: "VISION_SIMULATOR_GENERATE_RESULT",
-              success: false,
-              error: error.message || "Failed to generate simulation",
-            });
-          }
+          break;
         }
-        break;
 
-      case "VISION_SIMULATOR_APPLY_FILTERED_IMAGE":
-        // Apply processed image back to canvas frame
+        const source = nodesToGenerate[0];
+        const sourceImage = await visionSimulator.prepareImageForPreview(
+          source.id
+        );
+
+        if (!sourceImage) {
+          const error = "Couldn't export the selected layer";
+          figma.notify(error);
+          figma.ui.postMessage({
+            type: "VISION_SIMULATOR_GENERATE_RESULT",
+            success: false,
+            error,
+          });
+          break;
+        }
+
+        figma.ui.postMessage({
+          type: "VISION_SIMULATOR_PROCESS_FILTER",
+          sourceNodeId: source.id,
+          filters,
+          imageData: sourceImage,
+        });
+        break;
+      }
+
+      case "VISION_SIMULATOR_APPLY_FILTERED_IMAGE": {
+        // Step 2 of Quick simulation: the UI has filtered the image; create
+        // the frame next to the source (or next to its previous simulations).
+        const { sourceNodeId, filter, imageData, label } = msg.data ?? {};
         try {
-          await visionSimulator.applyFilteredImage(
-            msg.data?.frameId || msg.frameId,
-            msg.data?.imageData || msg.imageData
+          const frame = await visionSimulator.createSimulationFrame(
+            sourceNodeId,
+            filter,
+            imageData,
+            label || filter
           );
           figma.ui.postMessage({
             type: "VISION_SIMULATOR_IMAGE_APPLIED",
             success: true,
-            frameId: msg.data?.frameId || msg.frameId,
+            filter,
+            frameId: frame.id,
           });
         } catch (error) {
+          console.error("Failed to add simulation:", error);
           figma.ui.postMessage({
             type: "VISION_SIMULATOR_IMAGE_APPLIED",
             success: false,
-            error: error.message,
+            filter,
+            error: error.message || "Failed to add simulation",
           });
         }
         break;
+      }
 
-      case "VISION_SIMULATOR_EXPORT_TO_CANVAS":
-        // Export current preview to Figma canvas
+      case "VISION_SIMULATOR_EXPORT_TO_CANVAS": {
+        // Vision Lab: add the current preview to the canvas, in the same row
+        // as Quick simulations of the same layer.
         const nodesToExport = visionSimulator.getSelectedNodes();
 
         if (nodesToExport.length === 0) {
-          figma.notify("Please select an element first");
+          const error = "Select a layer first";
+          figma.notify(error);
           figma.ui.postMessage({
             type: "VISION_SIMULATOR_EXPORT_TO_CANVAS_RESULT",
             success: false,
-            error: "Please select an element first",
+            error,
           });
-        } else {
-          try {
-            const selectedNode = nodesToExport[0];
-            const imageData = msg.data?.imageData;
-            const width = msg.data?.width;
-            const height = msg.data?.height;
-            const label = msg.data?.label || "Vision Simulation";
+          break;
+        }
 
-            if (!imageData || !width || !height) {
-              throw new Error("Invalid image data");
-            }
+        try {
+          const imageData = msg.data?.imageData;
+          const label = msg.data?.label || "Vision Simulation";
+          const filter = msg.data?.filter || "original";
 
-            // Save the original selection to restore it later
-            const originalSelection = figma.currentPage.selection.slice();
-
-            // Create a frame near the selected node
-            const frame = figma.createFrame();
-            frame.name = label;
-            frame.resize(width, height);
-
-            // Position frame to the right of the selected node
-            frame.x = selectedNode.x + selectedNode.width + 50;
-            frame.y = selectedNode.y;
-
-            // Create a rectangle to hold the image
-            const rect = figma.createRectangle();
-            rect.resize(width, height);
-            rect.x = 0;
-            rect.y = 0;
-
-            // Create image from the data
-            const image = figma.createImage(imageData);
-            rect.fills = [
-              {
-                type: "IMAGE",
-                scaleMode: "FILL",
-                imageHash: image.hash,
-              },
-            ];
-
-            frame.appendChild(rect);
-
-            // Restore the original selection
-            figma.currentPage.selection = originalSelection;
-
-            figma.notify(`Added "${label}" to canvas`);
-            figma.ui.postMessage({
-              type: "VISION_SIMULATOR_EXPORT_TO_CANVAS_RESULT",
-              success: true,
-            });
-          } catch (error) {
-            console.error("Error exporting to canvas:", error);
-            figma.ui.postMessage({
-              type: "VISION_SIMULATOR_EXPORT_TO_CANVAS_RESULT",
-              success: false,
-              error: error.message || "Failed to export to canvas",
-            });
+          if (!imageData) {
+            throw new Error("Invalid image data");
           }
+
+          await visionSimulator.createSimulationFrame(
+            nodesToExport[0].id,
+            filter,
+            imageData,
+            label
+          );
+
+          figma.notify(`Added "${label}" to canvas`);
+          figma.ui.postMessage({
+            type: "VISION_SIMULATOR_EXPORT_TO_CANVAS_RESULT",
+            success: true,
+          });
+        } catch (error) {
+          console.error("Error exporting to canvas:", error);
+          figma.ui.postMessage({
+            type: "VISION_SIMULATOR_EXPORT_TO_CANVAS_RESULT",
+            success: false,
+            error: error.message || "Failed to export to canvas",
+          });
         }
         break;
+      }
 
       case "get-theme":
         // Respond with current theme (if needed)
