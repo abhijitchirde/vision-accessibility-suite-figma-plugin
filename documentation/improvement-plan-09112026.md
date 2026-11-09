@@ -16,9 +16,13 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
 - **Working on:** Phase 0 — Quick wins
-- **Next step:** 0.2 Place new simulations next to existing ones
+- **Next step:** 0.2 + 0.3 (one combined change), then 0.10, then 0.4
 - **Last completed:** 0.1 Disclaimer
-- **In progress / half done:** —
+- **In progress / half done:** 0.2 + 0.3. Planned design:
+  - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
+  - The UI filters the image for each filter in turn and sends `APPLY_FILTERED_IMAGE { sourceNodeId, filter, imageData }`. It waits for `IMAGE_APPLIED` before sending the next one, so positions never collide.
+  - The plugin side then creates the frame with `createSimulationFrame()`: its size comes from `image.getSizeAsync() / export scale`, and its position from `getNextSimulationPosition()`, which is the source's absolute box or, if further right, the right-most existing simulation of the same source, plus spacing.
+  - "Add current view to Figma" in Vision Lab uses the same helpers.
 - **Notes for whoever resumes:** Work on branch `sandbox`. Each item is one commit whose message starts with its number, e.g. `feat(0.1): …`, so `git log --oneline` shows exactly what's done. Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build` to check a change compiles.
 
 ---
@@ -27,7 +31,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 | Phase | Items | Done |
 | --- | --- | --- |
-| 0. Quick wins | 9 | 1 |
+| 0. Quick wins | 10 | 1 |
 | 1. Correctness bugs | 8 | 0 |
 | 2. Simulation accuracy | 4 | 0 |
 | 3. Performance | 8 | 0 |
@@ -46,11 +50,12 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [x] **0.1 Disclaimer in the footer.** A ⚠️ button next to the theme toggle shows a Figma notification, using the same pattern as desi-ipsum and the Indian user data generator. Wording: *"These simulations are approximations for design and learning. They can't show exactly how any one person sees, and they're not a medical tool, so don't use them for diagnosis or treatment."*
 - [ ] **0.2 Place new simulations next to existing ones (= 1.1 + 1.2).** Use absolute positions, and place each new frame to the right of the last simulation made from the same design instead of on top of it.
 - [ ] **0.3 Make generation reliable (= 1.3 + 1.4).** Export the design once. Create the frame only when the filtered image is ready, and report success only after the image is applied.
-- [ ] **0.4 "Add all simulations" button** in Quick simulation, creating every simulation in a row. Labels come later. (Part of 7.1.)
+- [ ] **0.4 "Add all simulations" button** in Quick simulation, creating every simulation in a row. Put the button at the **bottom** of the tab, in the same fixed spot as Vision Lab's "Add current view to Figma" (decided 2026-11-09). Show progress such as "Adding 3 of 14…". Labels come later. (Part of 7.1.)
 - [ ] **0.5 Remove `figma.loadAllPagesAsync()` (= 3.6).**
 - [ ] **0.6 Scale peripheral vision loss with the design size (= 1.5).**
 - [ ] **0.7 Fix the TypeScript type-check errors (= 5.5).**
 - [ ] **0.8 Delete dead code (= 5.7).**
+- [ ] **0.10 Stop re-exporting the design on every render.** `useFigmaMessage` returns a new `sendMessage` function on every render. The effect that sends `PANEL_MOUNTED` depends on it, so every re-render in Vision Lab (including each slider move) makes Figma export the design again. Wrap `sendMessage` in `useCallback`. (Found 2026-11-09.)
 - [ ] **0.9 Build and test in Figma:** generate one simulation, then several, then "Add all", on a nested design and a top-level one.
 
 ## Phase 1 — Correctness bugs
