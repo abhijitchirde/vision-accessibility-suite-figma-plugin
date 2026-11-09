@@ -16,8 +16,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
 - **Working on:** Phase 0 — Quick wins
-- **Next step:** 0.5 Remove `figma.loadAllPagesAsync()`
-- **Last completed:** 0.4 (before that 0.10, 0.2 + 0.3). All build; none tested inside Figma yet, which is 0.9
+- **Next step:** 0.6 Scale peripheral vision loss with the design size
+- **Last completed:** 0.5 (before that 0.4, 0.10, 0.2 + 0.3). All build; none tested inside Figma yet, which is 0.9
 - **In progress / half done:** —
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -33,10 +33,10 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 | Phase | Items | Done |
 | --- | --- | --- |
-| 0. Quick wins | 10 | 5 |
+| 0. Quick wins | 10 | 6 |
 | 1. Correctness bugs | 8 | 4 |
 | 2. Simulation accuracy | 4 | 0 |
-| 3. Performance | 8 | 0 |
+| 3. Performance | 8 | 1 |
 | 4. Storage | 3 | 0 |
 | 5. Code health | 9 | 0 |
 | 6. UX & plugin accessibility | 6 | 0 |
@@ -53,7 +53,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [x] **0.2 Place new simulations next to existing ones (= 1.1 + 1.2).** Use absolute positions, and place each new frame to the right of the last simulation made from the same design instead of on top of it.
 - [x] **0.3 Make generation reliable (= 1.3 + 1.4).** Export the design once. Create the frame only when the filtered image is ready, and report success only after the image is applied.
 - [x] **0.4 "Add all simulations" button** in Quick simulation, creating every simulation in a row. Put the button at the **bottom** of the tab, in the same fixed spot as Vision Lab's "Add current view to Figma" (decided 2026-11-09). Show progress such as "Adding 3 of 14…". Labels come later. (Part of 7.1.)
-- [ ] **0.5 Remove `figma.loadAllPagesAsync()` (= 3.6).**
+- [x] **0.5 Remove `figma.loadAllPagesAsync()` (= 3.6).**
 - [ ] **0.6 Scale peripheral vision loss with the design size (= 1.5).**
 - [ ] **0.7 Fix the TypeScript type-check errors (= 5.5).**
 - [ ] **0.8 Delete dead code (= 5.7).**
@@ -92,7 +92,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [ ] 🟠 **3.3 Debounce selection changes and slider input.**
 - [ ] 🟠 **3.4 Use a faster blur.** Replace the Gaussian loop with a box-blur or stack-blur approximation, whose cost doesn't grow with the radius.
 - [ ] 🟠 **3.5 Draw straight into a visible `<canvas>`.** This avoids re-encoding a PNG with `toDataURL()` on every slider tick.
-- [ ] 🟠 **3.6 Remove `figma.loadAllPagesAsync()`.** No `documentchange` handler needs it, it isn't awaited, and it's slow in large files.
+- [x] 🟠 **3.6 Remove `figma.loadAllPagesAsync()`.** No `documentchange` handler needs it, it isn't awaited, and it's slow in large files.
   - [code.ts:6](../src/code.ts#L6)
 - [ ] 🟢 **3.7 Cache exported images by node ID** so switching back to a node doesn't export it again. Clear a node's entry when the node changes. *(impl.md)*
 - [ ] 🟢 **3.8 Explore WebGL shaders** for the color matrix and blur. Worth doing only if 3.1–3.4 aren't fast enough. *(impl.md)*

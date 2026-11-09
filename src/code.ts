@@ -1,10 +1,6 @@
 import { VisionSimulator } from "./utils/vision-simulator";
 import { SelectionService } from "./services/selection.service";
 
-// Load all pages for document change monitoring
-// This is required before registering documentchange handlers
-figma.loadAllPagesAsync();
-
 // Show the plugin UI
 figma.showUI(__html__, { width: 360, height: 770 });
 
