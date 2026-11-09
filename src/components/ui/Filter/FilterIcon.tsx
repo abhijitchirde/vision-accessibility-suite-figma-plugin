@@ -5,6 +5,8 @@ import "./FilterIcon.css";
 interface FilterIconProps {
   filterId: string;
   size?: "tiny" | "small" | "medium";
+  /** Hide from screen readers and skip the tooltip (parent already describes it) */
+  decorative?: boolean;
 }
 
 /**
@@ -77,6 +79,7 @@ const IconSymbols: Record<string, React.FC<{ color: string; size: number }>> = {
 export const FilterIcon: React.FC<FilterIconProps> = ({
   filterId,
   size = "small",
+  decorative = false,
 }) => {
   const iconData = FILTER_ICONS[filterId];
 
@@ -91,8 +94,9 @@ export const FilterIcon: React.FC<FilterIconProps> = ({
     return (
       <div
         className={`filter-icon filter-icon--bars filter-icon--${size}`}
-        aria-label={iconData.description}
-        title={iconData.description}
+        aria-label={decorative ? undefined : iconData.description}
+        aria-hidden={decorative || undefined}
+        title={decorative ? undefined : iconData.description}
       >
         {iconData.colors.map((color, index) => (
           <div
@@ -114,8 +118,9 @@ export const FilterIcon: React.FC<FilterIconProps> = ({
   return (
     <div
       className={`filter-icon filter-icon--symbol filter-icon--${size}`}
-      aria-label={iconData.description}
-      title={iconData.description}
+      aria-label={decorative ? undefined : iconData.description}
+      aria-hidden={decorative || undefined}
+      title={decorative ? undefined : iconData.description}
     >
       <IconComponent color={iconData.color} size={iconSize} />
     </div>

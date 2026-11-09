@@ -96,11 +96,12 @@
   gap: 8px;
 }
 
+/* Descriptions live in the card's tooltip (title), so cards are one line */
 .main-view__filter-card {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
   padding: 8px 12px;
   background-color: var(--figma-color-bg);
   border: 2px solid var(--figma-color-border);
@@ -129,13 +130,6 @@
   cursor: not-allowed;
 }
 
-/* Compact variant for filters without additional info (e.g., "Other" filters) */
-.main-view__filter-card--compact {
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-}
-
 .main-view__filter-card--generating {
   background-color: var(--figma-color-bg-brand-tertiary);
   border-color: var(--figma-color-border-brand);
@@ -152,11 +146,17 @@
   gap: 8px;
 }
 
-.main-view__filter-info {
-  font-size: 9px;
+/* "-opia / -omaly" hint at the top of Quick simulation */
+.main-view__generate-note {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
   color: var(--figma-color-text-secondary);
-  margin-top: 2px;
-  font-weight: 400;
+}
+
+.main-view__generate-note strong {
+  font-weight: 600;
+  color: var(--figma-color-text);
 }
 
 /* Badge for "Most common" */

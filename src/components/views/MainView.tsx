@@ -50,12 +50,28 @@ import {
 
 type Tab = "generate" | "simulation";
 
-/** Every simulation offered in Quick simulation, in display order */
-const ALL_QUICK_FILTERS: SimulationType[] = [
-  ...COLOR_BLIND_FILTERS,
-  ...VISUAL_FIELD_FILTERS,
-  ...OTHER_FILTERS,
+/** Sections and cards shown in the Quick simulation tab, in display order */
+const QUICK_SIMULATION_SECTIONS: {
+  title: string;
+  badge?: string;
+  filters: SimulationType[];
+}[] = [
+  { title: "Red deficiency (Protan)", filters: ["protanopia", "protanomaly"] },
+  {
+    title: "Green deficiency (Deutan)",
+    badge: "Most common",
+    filters: ["deuteranopia", "deuteranomaly"],
+  },
+  { title: "Blue deficiency (Tritan)", filters: ["tritanopia", "tritanomaly"] },
+  { title: "Total color blindness", filters: ["achromatopsia"] },
+  { title: "Visual field defects", filters: VISUAL_FIELD_FILTERS },
+  { title: "Other", filters: OTHER_FILTERS },
 ];
+
+/** Every simulation offered in Quick simulation, in display order */
+const ALL_QUICK_FILTERS: SimulationType[] = ([] as SimulationType[]).concat(
+  ...QUICK_SIMULATION_SECTIONS.map((section) => section.filters)
+);
 
 /** Show a Figma toast */
 function notifyInFigma(message: string) {
@@ -764,242 +780,44 @@ export const MainView: React.FC<{}> = ({}) => {
 
       {/* Tab Content */}
       <div className="main-view__content">
-        {/* Generate Tab */}
+        {/* Quick simulation tab */}
         {activeTab === "generate" && (
           <div className="main-view__generate">
-            {/* Red Deficiency Section */}
-            <div className="main-view__section">
-              <h3 className="main-view__section-title">
-                Red deficiency (Protan)
-              </h3>
-              <div className="main-view__filters">
-                <button
-                  key="protanopia"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "protanopia"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("protanopia")}
-                  disabled={isGenerating}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="protanopia" size="tiny" />
-                    Protanopia
-                  </span>
-                  <span className="main-view__filter-info">
-                    Complete • ~1% males
-                  </span>
-                </button>
-                <button
-                  key="protanomaly"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "protanomaly"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("protanomaly")}
-                  disabled={isGenerating}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="protanomaly" size="tiny" />
-                    Protanomaly
-                  </span>
-                  <span className="main-view__filter-info">
-                    Partial • ~1% males
-                  </span>
-                </button>
-              </div>
-            </div>
+            <p className="main-view__generate-note">
+              <strong>-opia</strong>: can't see that color at all ·{" "}
+              <strong>-omaly</strong>: sees it weakly
+            </p>
 
-            {/* Green Deficiency Section - MOST COMMON */}
-            <div className="main-view__section">
-              <h3 className="main-view__section-title">
-                Green deficiency (Deutan)
-                <span className="main-view__badge">
-                  Most common
-                </span>
-              </h3>
-              <div className="main-view__filters">
-                <button
-                  key="deuteranopia"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "deuteranopia"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("deuteranopia")}
-                  disabled={isGenerating}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="deuteranopia" size="tiny" />
-                    Deuteranopia
-                  </span>
-                  <span className="main-view__filter-info">
-                    Complete • ~1% males
-                  </span>
-                </button>
-                <button
-                  key="deuteranomaly"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "deuteranomaly"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("deuteranomaly")}
-                  disabled={isGenerating}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="deuteranomaly" size="tiny" />
-                    Deuteranomaly
-                  </span>
-                  <span className="main-view__filter-info">
-                    Partial • ~5-6% males
-                  </span>
-                </button>
+            {QUICK_SIMULATION_SECTIONS.map((section) => (
+              <div className="main-view__section" key={section.title}>
+                <h3 className="main-view__section-title">
+                  {section.title}
+                  {section.badge && (
+                    <span className="main-view__badge">{section.badge}</span>
+                  )}
+                </h3>
+                <div className="main-view__filters">
+                  {section.filters.map((filter) => (
+                    <button
+                      key={filter}
+                      className={`main-view__filter-card ${
+                        generatingFilter === filter
+                          ? "main-view__filter-card--generating"
+                          : ""
+                      }`}
+                      onClick={() => handleFilterClick(filter)}
+                      disabled={isGenerating}
+                      title={FILTER_METADATA[filter].description}
+                    >
+                      <span className="main-view__filter-label">
+                        <FilterIcon filterId={filter} size="tiny" decorative />
+                        {FILTER_METADATA[filter].name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-
-            {/* Blue Deficiency Section */}
-            <div className="main-view__section">
-              <h3 className="main-view__section-title">
-                Blue deficiency (Tritan)
-              </h3>
-              <div className="main-view__filters">
-                <button
-                  key="tritanopia"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "tritanopia"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("tritanopia")}
-                  disabled={isGenerating}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="tritanopia" size="tiny" />
-                    Tritanopia
-                  </span>
-                  <span className="main-view__filter-info">
-                    Complete • ~0.001%
-                  </span>
-                </button>
-                <button
-                  key="tritanomaly"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "tritanomaly"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("tritanomaly")}
-                  disabled={isGenerating}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="tritanomaly" size="tiny" />
-                    Tritanomaly
-                  </span>
-                  <span className="main-view__filter-info">
-                    Partial • ~0.01%
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Total Color Blindness Section */}
-            <div className="main-view__section">
-              <h3 className="main-view__section-title">
-                Total color blindness
-              </h3>
-              <div className="main-view__filters">
-                <button
-                  key="achromatopsia"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "achromatopsia"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("achromatopsia")}
-                  disabled={isGenerating}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="achromatopsia" size="tiny" />
-                    Achromatopsia
-                  </span>
-                  <span className="main-view__filter-info">
-                    Grayscale • ~0.003%
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Visual Field Defects Section */}
-            <div className="main-view__section">
-              <h3 className="main-view__section-title">
-                Visual field defects
-              </h3>
-              <div className="main-view__filters">
-                <button
-                  key="central-vision-loss"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "central-vision-loss"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("central-vision-loss")}
-                  disabled={isGenerating}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="central-vision-loss" size="tiny" />
-                    Central Loss
-                  </span>
-                  <span className="main-view__filter-info">
-                    Macular degeneration
-                  </span>
-                </button>
-                <button
-                  key="peripheral-vision-loss"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "peripheral-vision-loss"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("peripheral-vision-loss")}
-                  disabled={isGenerating}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="peripheral-vision-loss" size="tiny" />
-                    Peripheral Loss
-                  </span>
-                  <span className="main-view__filter-info">
-                    Glaucoma / Tunnel vision
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Other Section */}
-            <div className="main-view__section">
-              <h3 className="main-view__section-title">Other</h3>
-              <div className="main-view__filters">
-                {OTHER_FILTERS.map((filter) => (
-                  <button
-                    key={filter}
-                    className={`main-view__filter-card main-view__filter-card--compact ${
-                      generatingFilter === filter
-                        ? "main-view__filter-card--generating"
-                        : ""
-                    }`}
-                    onClick={() => handleFilterClick(filter)}
-                    disabled={isGenerating}
-                  >
-                    <span className="main-view__filter-label">
-                      <FilterIcon filterId={filter} size="tiny" />
-                      {FILTER_METADATA[filter].name}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
         )}
 
