@@ -51,6 +51,21 @@ import {
 
 type Tab = "generate" | "simulation";
 
+/** Every simulation offered in Quick simulation, in display order */
+const ALL_QUICK_FILTERS: SimulationType[] = [
+  ...COLOR_BLIND_FILTERS,
+  ...VISUAL_FIELD_FILTERS,
+  ...OTHER_FILTERS,
+];
+
+/** Show a Figma toast */
+function notifyInFigma(message: string) {
+  parent.postMessage(
+    { pluginMessage: { type: "SHOW_NOTIFICATION", message } },
+    "*"
+  );
+}
+
 /** Decode PNG bytes into an image element */
 function loadPngImage(bytes: Uint8Array): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -134,6 +149,12 @@ export const MainView: React.FC<{}> = ({}) => {
   // Generate mode state
   const [generatingFilter, setGeneratingFilter] =
     useState<SimulationType | null>(null);
+  // Set while "Add all simulations" runs: how many are done out of how many
+  const [generateProgress, setGenerateProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
+  const isGenerating = generatingFilter !== null || generateProgress !== null;
 
   // Simulation mode state
   const [currentFilter, setCurrentFilter] =
@@ -265,7 +286,11 @@ export const MainView: React.FC<{}> = ({}) => {
     try {
       const img = await loadPngImage(exported.imageData);
 
-      for (const filter of filters) {
+      for (let i = 0; i < filters.length; i++) {
+        const filter = filters[i];
+        if (filters.length > 1) {
+          setGenerateProgress({ done: i, total: filters.length });
+        }
         const png = await renderQuickSimulationPng(img, filter);
 
         const applied = waitForPluginMessage("VISION_SIMULATOR_IMAGE_APPLIED");
@@ -281,12 +306,28 @@ export const MainView: React.FC<{}> = ({}) => {
         }
       }
       setError(null);
+      if (filters.length > 1) {
+        notifyInFigma(`Added ${filters.length} simulations`);
+      }
     } catch (err) {
       console.error("Quick simulation failed:", err);
-      setError(err instanceof Error ? err.message : "Failed to add simulation");
+      const message =
+        err instanceof Error ? err.message : "Failed to add simulation";
+      setError(message);
+      notifyInFigma(message);
     } finally {
       setGeneratingFilter(null);
+      setGenerateProgress(null);
     }
+  };
+
+  /**
+   * Add every Quick simulation for the selected layer, in one row.
+   */
+  const handleAddAllSimulations = () => {
+    setError(null);
+    setGenerateProgress({ done: 0, total: ALL_QUICK_FILTERS.length });
+    sendMessage("VISION_SIMULATOR_GENERATE", { filters: ALL_QUICK_FILTERS });
   };
 
   // Listen for messages from plugin code
@@ -298,6 +339,7 @@ export const MainView: React.FC<{}> = ({}) => {
         // Only sent when generation can't start (no selection, export failed)
         if (!msg.success) {
           setGeneratingFilter(null);
+          setGenerateProgress(null);
           setError(msg.error || "Failed to generate simulation");
         }
       } else if (msg?.type === "VISION_SIMULATOR_PREVIEW_DATA") {
@@ -761,7 +803,7 @@ export const MainView: React.FC<{}> = ({}) => {
                       : ""
                   }`}
                   onClick={() => handleFilterClick("protanopia")}
-                  disabled={generatingFilter !== null}
+                  disabled={isGenerating}
                 >
                   <span className="main-view__filter-label">
                     <FilterIcon filterId="protanopia" size="tiny" />
@@ -779,7 +821,7 @@ export const MainView: React.FC<{}> = ({}) => {
                       : ""
                   }`}
                   onClick={() => handleFilterClick("protanomaly")}
-                  disabled={generatingFilter !== null}
+                  disabled={isGenerating}
                 >
                   <span className="main-view__filter-label">
                     <FilterIcon filterId="protanomaly" size="tiny" />
@@ -809,7 +851,7 @@ export const MainView: React.FC<{}> = ({}) => {
                       : ""
                   }`}
                   onClick={() => handleFilterClick("deuteranopia")}
-                  disabled={generatingFilter !== null}
+                  disabled={isGenerating}
                 >
                   <span className="main-view__filter-label">
                     <FilterIcon filterId="deuteranopia" size="tiny" />
@@ -827,7 +869,7 @@ export const MainView: React.FC<{}> = ({}) => {
                       : ""
                   }`}
                   onClick={() => handleFilterClick("deuteranomaly")}
-                  disabled={generatingFilter !== null}
+                  disabled={isGenerating}
                 >
                   <span className="main-view__filter-label">
                     <FilterIcon filterId="deuteranomaly" size="tiny" />
@@ -854,7 +896,7 @@ export const MainView: React.FC<{}> = ({}) => {
                       : ""
                   }`}
                   onClick={() => handleFilterClick("tritanopia")}
-                  disabled={generatingFilter !== null}
+                  disabled={isGenerating}
                 >
                   <span className="main-view__filter-label">
                     <FilterIcon filterId="tritanopia" size="tiny" />
@@ -872,7 +914,7 @@ export const MainView: React.FC<{}> = ({}) => {
                       : ""
                   }`}
                   onClick={() => handleFilterClick("tritanomaly")}
-                  disabled={generatingFilter !== null}
+                  disabled={isGenerating}
                 >
                   <span className="main-view__filter-label">
                     <FilterIcon filterId="tritanomaly" size="tiny" />
@@ -899,7 +941,7 @@ export const MainView: React.FC<{}> = ({}) => {
                       : ""
                   }`}
                   onClick={() => handleFilterClick("achromatopsia")}
-                  disabled={generatingFilter !== null}
+                  disabled={isGenerating}
                 >
                   <span className="main-view__filter-label">
                     <FilterIcon filterId="achromatopsia" size="tiny" />
@@ -926,7 +968,7 @@ export const MainView: React.FC<{}> = ({}) => {
                       : ""
                   }`}
                   onClick={() => handleFilterClick("central-vision-loss")}
-                  disabled={generatingFilter !== null}
+                  disabled={isGenerating}
                 >
                   <span className="main-view__filter-label">
                     <FilterIcon filterId="central-vision-loss" size="tiny" />
@@ -944,7 +986,7 @@ export const MainView: React.FC<{}> = ({}) => {
                       : ""
                   }`}
                   onClick={() => handleFilterClick("peripheral-vision-loss")}
-                  disabled={generatingFilter !== null}
+                  disabled={isGenerating}
                 >
                   <span className="main-view__filter-label">
                     <FilterIcon filterId="peripheral-vision-loss" size="tiny" />
@@ -970,7 +1012,7 @@ export const MainView: React.FC<{}> = ({}) => {
                         : ""
                     }`}
                     onClick={() => handleFilterClick(filter)}
-                    disabled={generatingFilter !== null}
+                    disabled={isGenerating}
                   >
                     <span className="main-view__filter-label">
                       <FilterIcon filterId={filter} size="tiny" />
@@ -1301,6 +1343,22 @@ export const MainView: React.FC<{}> = ({}) => {
           </div>
         )}
       </div>
+
+      {/* Add all simulations - Fixed at bottom of Quick simulation */}
+      {activeTab === "generate" && (
+        <div className="main-view__export-button-container">
+          <Button
+            variant="primary"
+            size="medium"
+            onClick={handleAddAllSimulations}
+            disabled={isGenerating}
+          >
+            {generateProgress
+              ? `Adding ${generateProgress.done + 1} of ${generateProgress.total}…`
+              : "Add all simulations"}
+          </Button>
+        </div>
+      )}
 
       {/* Export to Canvas Button - Fixed at bottom, above bottom section */}
       {activeTab === "simulation" &&

@@ -16,15 +16,15 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
 - **Working on:** Phase 0 — Quick wins
-- **Next step:** 0.4 "Add all simulations" button (at the bottom of Quick simulation)
-- **Last completed:** 0.10 (before that 0.2 + 0.3). All build; none tested inside Figma yet, which is 0.9
+- **Next step:** 0.5 Remove `figma.loadAllPagesAsync()`
+- **Last completed:** 0.4 (before that 0.10, 0.2 + 0.3). All build; none tested inside Figma yet, which is 0.9
 - **In progress / half done:** —
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
   - The UI (`runQuickSimulations` in MainView) filters the image for each filter in turn and sends `APPLY_FILTERED_IMAGE { sourceNodeId, filter, imageData, label }`. It waits for `IMAGE_APPLIED` before sending the next one, so positions never collide.
   - The plugin side creates the frame with `createSimulationFrame()`. Its size comes from `image.getSizeAsync() / export scale`. Its position comes from `getNextSimulationPosition()`: the right edge of the source's absolute box, or of the right-most existing simulation of that source if further right, plus spacing.
   - "Add current view to Figma" in Vision Lab uses the same helpers.
-  - For 0.4: send `GENERATE { filters: [all 14] }` and show progress inside `runQuickSimulations`' loop.
+  - "Add all simulations" (0.4) sends `GENERATE { filters: ALL_QUICK_FILTERS }`; progress is tracked in `generateProgress`.
 - **Notes for whoever resumes:** Work on branch `sandbox`. Each item is one commit whose message starts with its number, e.g. `feat(0.1): …`, so `git log --oneline` shows exactly what's done. Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build` to check a change compiles.
 
 ---
@@ -33,7 +33,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 | Phase | Items | Done |
 | --- | --- | --- |
-| 0. Quick wins | 10 | 4 |
+| 0. Quick wins | 10 | 5 |
 | 1. Correctness bugs | 8 | 4 |
 | 2. Simulation accuracy | 4 | 0 |
 | 3. Performance | 8 | 0 |
@@ -52,7 +52,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [x] **0.1 Disclaimer in the footer.** A ⚠️ button next to the theme toggle shows a Figma notification, using the same pattern as desi-ipsum and the Indian user data generator. Wording: *"These simulations are approximations for design and learning. They can't show exactly how any one person sees, and they're not a medical tool, so don't use them for diagnosis or treatment."*
 - [x] **0.2 Place new simulations next to existing ones (= 1.1 + 1.2).** Use absolute positions, and place each new frame to the right of the last simulation made from the same design instead of on top of it.
 - [x] **0.3 Make generation reliable (= 1.3 + 1.4).** Export the design once. Create the frame only when the filtered image is ready, and report success only after the image is applied.
-- [ ] **0.4 "Add all simulations" button** in Quick simulation, creating every simulation in a row. Put the button at the **bottom** of the tab, in the same fixed spot as Vision Lab's "Add current view to Figma" (decided 2026-11-09). Show progress such as "Adding 3 of 14…". Labels come later. (Part of 7.1.)
+- [x] **0.4 "Add all simulations" button** in Quick simulation, creating every simulation in a row. Put the button at the **bottom** of the tab, in the same fixed spot as Vision Lab's "Add current view to Figma" (decided 2026-11-09). Show progress such as "Adding 3 of 14…". Labels come later. (Part of 7.1.)
 - [ ] **0.5 Remove `figma.loadAllPagesAsync()` (= 3.6).**
 - [ ] **0.6 Scale peripheral vision loss with the design size (= 1.5).**
 - [ ] **0.7 Fix the TypeScript type-check errors (= 5.5).**
