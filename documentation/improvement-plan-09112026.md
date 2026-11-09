@@ -17,14 +17,15 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 - **Working on:** Phase 0 — Quick wins
 - **Next step:** 0.9 Test in Figma (needs you)
-- **Last completed:** 0.12 (before that 0.11, 0.8, 0.7, 0.6, 0.5, 0.4, 0.10, 0.2 + 0.3). All build; none tested inside Figma yet, which is 0.9
-- **In progress / half done:** 0.13 Keep simulations inside Sections
+- **Last completed:** 0.13 (before that 0.12, 0.11, 0.8, 0.7, 0.6, 0.5, 0.4, 0.10, 0.2 + 0.3). All build; none tested inside Figma yet, which is 0.9
+- **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
   - The UI (`runQuickSimulations` in MainView) filters the image for each filter in turn and sends `APPLY_FILTERED_IMAGE { sourceNodeId, filter, imageData, label }`. It waits for `IMAGE_APPLIED` before sending the next one, so positions never collide.
   - The plugin side creates the frame with `createSimulationFrame()`. Its size comes from `image.getSizeAsync() / export scale`. Its position comes from `getNextSimulationPosition()`: the right edge of the source's absolute box, or of the right-most existing simulation of that source if further right, plus spacing.
   - "Add current view to Figma" in Vision Lab uses the same helpers.
+  - Container (0.13): `getSimulationContainer()` returns the nearest Section ancestor of the source, or the page. Frames are added there, positioned relative to the Section, and the Section grows to fit.
   - "Add all simulations" (0.4) sends `GENERATE { filters: ALL_QUICK_FILTERS }`; progress is tracked in `generateProgress`.
 - **Notes for whoever resumes:** Work on branch `sandbox`. Each item is one commit whose message starts with its number, e.g. `feat(0.1): …`, so `git log --oneline` shows exactly what's done. Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build` and `npm run typecheck` to check a change (typecheck should report no errors).
 
@@ -34,7 +35,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 | Phase | Items | Done |
 | --- | --- | --- |
-| 0. Quick wins | 13 | 11 |
+| 0. Quick wins | 13 | 12 |
 | 1. Correctness bugs | 8 | 5 |
 | 2. Simulation accuracy | 4 | 0 |
 | 3. Performance | 8 | 1 |
@@ -61,7 +62,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [x] **0.10 Stop re-exporting the design on every render.** `useFigmaMessage` returns a new `sendMessage` function on every render. The effect that sends `PANEL_MOUNTED` depends on it, so every re-render in Vision Lab (including each slider move) makes Figma export the design again. Wrap `sendMessage` in `useCallback`. (Found 2026-11-09.)
 - [x] **0.11 Shorter Quick simulation cards (+ 5.3).** Move each card's description ("Complete • ~1% males" etc.) into a native `title` tooltip, using the longer `FILTER_METADATA` descriptions. Add one note above the color sections: *"-opia: can't see that color at all · -omaly: sees it weakly"* (decided 2026-11-09). Build the cards from one list instead of 11 hand-written buttons (= 5.3).
 - [x] **0.12 Light/dark mode like desi-ipsum (= 6.1).** `showUI({ themeColors: true })`; footer toggle cycles 🌗 Auto (follows Figma) → ☀️ Light → 🌙 Dark; choice saved per user in `figma.clientStorage` (`get-theme-pref` / `set-theme-pref`, same as desi-ipsum). Fallback colors use `:where(:root)` so Figma's injected colors win; `html[data-theme]` overrides define every `--figma-color-*` the CSS uses (28), not just 13 as in desi-ipsum. Replaces `useFigmaTheme` with `useThemePreference` (decided 2026-11-09).
-- [ ] **0.13 Keep simulations inside Sections.** Simulations stay off the user's frames (never inside the parent frame), but if the source layer is inside a Section, the simulation goes into the nearest Section, lined up after earlier simulations there; the Section grows to fit if needed. Otherwise it stays on the page (decided 2026-11-09 after the nested-layer test).
+- [x] **0.13 Keep simulations inside Sections.** Simulations stay off the user's frames (never inside the parent frame), but if the source layer is inside a Section, the simulation goes into the nearest Section, lined up after earlier simulations there; the Section grows to fit if needed. Otherwise it stays on the page (decided 2026-11-09 after the nested-layer test).
 - [ ] **0.9 Test in Figma.** Run `npm run build`, then in Figma desktop: Plugins → Development → Vision Accessibility Suite. Tick each check as it passes; write what went wrong next to any that fail.
   - [ ] Footer ⚠️ button shows the disclaimer toast.
   - [ ] Theme button cycles 🌗 Auto → ☀️ Light → 🌙 Dark. In Auto, switching Figma between light and dark (Figma menu → Theme) changes the plugin too.
@@ -71,6 +72,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
   - [ ] Quick simulation, **top-level frame**: click one card → one frame appears to the right of the design, with the filter applied.
   - [ ] Click two more cards → each new frame appears **to the right of the previous one**, not on top.
   - [x] **Nested layer** (e.g. a card inside a frame): the simulation appears next to that layer, not somewhere else on the page. ✅ Passed (2026-11-09). Note: the simulation is created on the page, not inside the parent frame. That is by design for now; decided: put it inside a parent Section (0.13).
+  - [ ] **Layer inside a Section:** simulations go inside that Section in a row, and the Section grows if they would stick out. Moving the Section moves them too.
   - [ ] **Add all simulations** (bottom button): shows "Adding N of 14…", the cards are disabled while it runs, 14 frames end up in one row, and a "Added 14 simulations" toast appears.
   - [ ] Click **Add all** with nothing selected → "Select a layer…" toast, and the button becomes clickable again.
   - [ ] Peripheral loss on a large frame (e.g. 1440 px wide) looks similar to peripheral loss on a small one (not almost entirely black).

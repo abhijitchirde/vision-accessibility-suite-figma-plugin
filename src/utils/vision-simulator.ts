@@ -56,37 +56,81 @@ export class VisionSimulator {
   }
 
   /**
-   * Work out where the next simulation of a source node should go.
+   * Where simulations of a source node are added.
    *
-   * Uses page (absolute) coordinates, because simulation frames are added
-   * directly to the page even when the source is nested inside other frames.
+   * Never inside the user's frames (that would break auto layout, get
+   * clipped, or change components). If the source is inside a Section,
+   * use the nearest Section so simulations move with it; otherwise the page.
+   */
+  getSimulationContainer(source: SceneNode): PageNode | SectionNode {
+    let node = source.parent;
+    while (node && node.type !== 'PAGE' && node.type !== 'DOCUMENT') {
+      if (node.type === 'SECTION') return node;
+      node = node.parent;
+    }
+    return figma.currentPage;
+  }
+
+  /**
+   * Work out where the next simulation of a source node should go, in page
+   * (absolute) coordinates.
+   *
    * The new frame goes to the right of the source, or to the right of the
    * right-most simulation already made from the same source, so repeated
    * simulations form a row instead of stacking on top of each other.
+   * Simulations directly on the page are counted too, so a row started
+   * before 0.13 (when everything went on the page) continues seamlessly.
    */
   getNextSimulationPosition(
     source: SceneNode,
+    container: PageNode | SectionNode,
     spacing: number = DEFAULT_COPY_SPACING
   ): { x: number; y: number } {
-    const box =
-      'absoluteBoundingBox' in source && source.absoluteBoundingBox
-        ? source.absoluteBoundingBox
-        : { x: source.x, y: source.y, width: source.width, height: source.height };
-
+    const box = this.getAbsoluteBox(source);
     let rightEdge = box.x + box.width;
 
-    for (const child of figma.currentPage.children) {
+    const candidates =
+      container.type === 'PAGE'
+        ? container.children
+        : [...container.children, ...figma.currentPage.children];
+
+    for (const child of candidates) {
       const metadata = this.getGeneratedMetadata(child);
       if (metadata && metadata.originalNodeId === source.id) {
-        rightEdge = Math.max(rightEdge, child.x + child.width);
+        const childBox = this.getAbsoluteBox(child);
+        rightEdge = Math.max(rightEdge, childBox.x + childBox.width);
       }
     }
 
     return { x: rightEdge + spacing, y: box.y };
   }
 
+  /** A node's bounds in page coordinates */
+  private getAbsoluteBox(node: SceneNode): Rect {
+    if ('absoluteBoundingBox' in node && node.absoluteBoundingBox) {
+      return node.absoluteBoundingBox;
+    }
+    return { x: node.x, y: node.y, width: node.width, height: node.height };
+  }
+
   /**
-   * Create a frame on the page showing a filtered image of a source node.
+   * Grow a Section so a frame inside it isn't left hanging over its edge.
+   * Frame coordinates are relative to the Section.
+   */
+  private growSectionToFit(section: SectionNode, frame: FrameNode): void {
+    const neededWidth = frame.x + frame.width + DEFAULT_COPY_SPACING;
+    const neededHeight = frame.y + frame.height + DEFAULT_COPY_SPACING;
+    if (neededWidth > section.width || neededHeight > section.height) {
+      section.resizeWithoutConstraints(
+        Math.max(section.width, neededWidth),
+        Math.max(section.height, neededHeight)
+      );
+    }
+  }
+
+  /**
+   * Create a frame showing a filtered image of a source node, on the page
+   * or in the source's nearest Section (see getSimulationContainer).
    *
    * Called once the UI has finished filtering, so a failed filter never
    * leaves an empty frame behind.
@@ -113,13 +157,12 @@ export class VisionSimulator {
     const size = await image.getSizeAsync();
     const scale = IMAGE_EXPORT_SETTINGS.constraint.value;
 
-    const position = this.getNextSimulationPosition(sourceNode);
+    const container = this.getSimulationContainer(sourceNode);
+    const position = this.getNextSimulationPosition(sourceNode, container);
 
     const frame = figma.createFrame();
     frame.name = `${sourceNode.name} - ${label}`;
     frame.resize(size.width / scale, size.height / scale);
-    frame.x = position.x;
-    frame.y = position.y;
     frame.clipsContent = false;
     frame.fills = [
       {
@@ -138,7 +181,19 @@ export class VisionSimulator {
     };
     frame.setPluginData(PLUGIN_DATA_KEYS.GENERATED_NODE, JSON.stringify(metadata));
 
-    figma.currentPage.appendChild(frame);
+    container.appendChild(frame);
+
+    // Children of a Section are positioned relative to it
+    if (container.type === 'SECTION') {
+      const origin = this.getAbsoluteBox(container);
+      frame.x = position.x - origin.x;
+      frame.y = position.y - origin.y;
+      this.growSectionToFit(container, frame);
+    } else {
+      frame.x = position.x;
+      frame.y = position.y;
+    }
+
     return frame;
   }
 
