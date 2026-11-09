@@ -7,7 +7,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 **Started:** 2026-11-09 · **Branch:** `sandbox`
 
-**Sources:** a code review on 2026-11-09, plus the "Known Limitations" and "Future Enhancements" sections of [implementation.md](implementation.md). Items that came from implementation.md are marked *(impl.md)*.
+**Sources:** a code review on 2026-11-09, plus the "Known Limitations" and "Future Enhancements" sections of [implementation.md](implementation.md). Items that came from implementation.md are marked _(impl.md)_.
 
 ---
 
@@ -16,8 +16,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
 - **Working on:** Phase 0 — Quick wins
-- **Next step:** 0.9 Test in Figma (needs you)
-- **Last completed:** 0.13 (before that 0.12, 0.11, 0.8, 0.7, 0.6, 0.5, 0.4, 0.10, 0.2 + 0.3). All build; none tested inside Figma yet, which is 0.9
+- **Next step:** retest the two remaining 0.9 checks (nested layer, layer inside a Section), then merge `sandbox` into `master`
+- **Last completed:** 0.13 (before that 0.12, 0.11, 0.8, 0.7, 0.6, 0.5, 0.4, 0.10, 0.2 + 0.3). Tested in Figma on 2026-11-09 (0.9): all checks pass except the two Section/nested checks, which need a retest after 0.13
 - **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
@@ -33,17 +33,17 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 ## Progress
 
-| Phase | Items | Done |
-| --- | --- | --- |
-| 0. Quick wins | 13 | 12 |
-| 1. Correctness bugs | 8 | 5 |
-| 2. Simulation accuracy | 4 | 0 |
-| 3. Performance | 8 | 1 |
-| 4. Storage | 3 | 0 |
-| 5. Code health | 9 | 3 |
-| 6. UX & plugin accessibility | 6 | 1 |
-| 7. New features | 12 | 0 |
-| 8. Documentation accuracy | 9 | 0 |
+| Phase                        | Items | Done |
+| ---------------------------- | ----- | ---- |
+| 0. Quick wins                | 13    | 12   |
+| 1. Correctness bugs          | 8     | 5    |
+| 2. Simulation accuracy       | 4     | 0    |
+| 3. Performance               | 8     | 1    |
+| 4. Storage                   | 3     | 0    |
+| 5. Code health               | 9     | 3    |
+| 6. UX & plugin accessibility | 6     | 1    |
+| 7. New features              | 12    | 0    |
+| 8. Documentation accuracy    | 9     | 0    |
 
 ---
 
@@ -51,7 +51,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 Small, low-risk changes, done first and in this order. Several come from later phases; ticking them here also counts there (tick both).
 
-- [x] **0.1 Disclaimer in the footer.** A ⚠️ button next to the theme toggle shows a Figma notification, using the same pattern as desi-ipsum and the Indian user data generator. Wording: *"These simulations are approximations for design and learning. They can't show exactly how any one person sees, and they're not a medical tool, so don't use them for diagnosis or treatment."*
+- [x] **0.1 Disclaimer in the footer.** A ⚠️ button next to the theme toggle shows a Figma notification, using the same pattern as desi-ipsum and the Indian user data generator. Wording: _"These simulations are approximations for design and learning. They can't show exactly how any one person sees, and they're not a medical tool, so don't use them for diagnosis or treatment."_
 - [x] **0.2 Place new simulations next to existing ones (= 1.1 + 1.2).** Use absolute positions, and place each new frame to the right of the last simulation made from the same design instead of on top of it.
 - [x] **0.3 Make generation reliable (= 1.3 + 1.4).** Export the design once. Create the frame only when the filtered image is ready, and report success only after the image is applied.
 - [x] **0.4 "Add all simulations" button** in Quick simulation, creating every simulation in a row. Put the button at the **bottom** of the tab, in the same fixed spot as Vision Lab's "Add current view to Figma" (decided 2026-11-09). Show progress such as "Adding 3 of 14…". Labels come later. (Part of 7.1.)
@@ -60,25 +60,25 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [x] **0.7 Fix the TypeScript type-check errors (= 5.5).**
 - [x] **0.8 Delete dead code (= 5.7).** Kept `resizeImageData` and `calculatePreviewDimensions` for 3.1. Deleted files (including `wcag.constants.ts`, which 7.4 may want) can be restored with `git show f632f6c:<path>`.
 - [x] **0.10 Stop re-exporting the design on every render.** `useFigmaMessage` returns a new `sendMessage` function on every render. The effect that sends `PANEL_MOUNTED` depends on it, so every re-render in Vision Lab (including each slider move) makes Figma export the design again. Wrap `sendMessage` in `useCallback`. (Found 2026-11-09.)
-- [x] **0.11 Shorter Quick simulation cards (+ 5.3).** Move each card's description ("Complete • ~1% males" etc.) into a native `title` tooltip, using the longer `FILTER_METADATA` descriptions. Add one note above the color sections: *"-opia: can't see that color at all · -omaly: sees it weakly"* (decided 2026-11-09). Build the cards from one list instead of 11 hand-written buttons (= 5.3).
+- [x] **0.11 Shorter Quick simulation cards (+ 5.3).** Move each card's description ("Complete • ~1% males" etc.) into a native `title` tooltip, using the longer `FILTER_METADATA` descriptions. Add one note above the color sections: _"-opia: can't see that color at all · -omaly: sees it weakly"_ (decided 2026-11-09). Build the cards from one list instead of 11 hand-written buttons (= 5.3).
 - [x] **0.12 Light/dark mode like desi-ipsum (= 6.1).** `showUI({ themeColors: true })`; footer toggle cycles 🌗 Auto (follows Figma) → ☀️ Light → 🌙 Dark; choice saved per user in `figma.clientStorage` (`get-theme-pref` / `set-theme-pref`, same as desi-ipsum). Fallback colors use `:where(:root)` so Figma's injected colors win; `html[data-theme]` overrides define every `--figma-color-*` the CSS uses (28), not just 13 as in desi-ipsum. Replaces `useFigmaTheme` with `useThemePreference` (decided 2026-11-09).
 - [x] **0.13 Keep simulations inside Sections.** Simulations stay off the user's frames (never inside the parent frame), but if the source layer is inside a Section, the simulation goes into the nearest Section, lined up after earlier simulations there; the Section grows to fit if needed. Otherwise it stays on the page (decided 2026-11-09 after the nested-layer test).
 - [ ] **0.9 Test in Figma.** Run `npm run build`, then in Figma desktop: Plugins → Development → Vision Accessibility Suite. Tick each check as it passes; write what went wrong next to any that fail.
-  - [ ] Footer ⚠️ button shows the disclaimer toast.
-  - [ ] Theme button cycles 🌗 Auto → ☀️ Light → 🌙 Dark. In Auto, switching Figma between light and dark (Figma menu → Theme) changes the plugin too.
-  - [ ] Forced Light while Figma is dark (and the reverse) looks fully light (or dark): no leftover dark borders, hover colors or tab underline.
-  - [ ] Close and reopen the plugin: the theme choice is remembered.
-  - [ ] Quick simulation cards are one line each; hovering a card shows its description; the "-opia / -omaly" note is at the top. No vertical scrollbar in Quick simulation at the default window size, and the last row of cards isn't hidden behind the "Add all" bar.
-  - [ ] Quick simulation, **top-level frame**: click one card → one frame appears to the right of the design, with the filter applied.
-  - [ ] Click two more cards → each new frame appears **to the right of the previous one**, not on top.
-  - [x] **Nested layer** (e.g. a card inside a frame): the simulation appears next to that layer, not somewhere else on the page. ✅ Passed (2026-11-09). Note: the simulation is created on the page, not inside the parent frame. That is by design for now; decided: put it inside a parent Section (0.13).
+  - [x] Footer ⚠️ button shows the disclaimer toast.
+  - [x] Theme button cycles 🌗 Auto → ☀️ Light → 🌙 Dark. In Auto, switching Figma between light and dark (Figma menu → Theme) changes the plugin too.
+  - [x] Forced Light while Figma is dark (and the reverse) looks fully light (or dark): no leftover dark borders, hover colors or tab underline.
+  - [x] Close and reopen the plugin: the theme choice is remembered.
+  - [x] Quick simulation cards are one line each; hovering a card shows its description; the "-opia / -omaly" note is at the top. No vertical scrollbar in Quick simulation at the default window size, and the last row of cards isn't hidden behind the "Add all" bar.
+  - [x] Quick simulation, **top-level frame**: click one card → one frame appears to the right of the design, with the filter applied.
+  - [x] Click two more cards → each new frame appears **to the right of the previous one**, not on top.
+  - [ ] **Nested layer** (e.g. a card inside a frame): the simulation appears next to that layer, not somewhere else on the page. Position was right (2026-11-09), but the simulation is created on the page, not inside the parent frame. Decided: never inside the user's frames, but inside a parent Section (0.13). Retest together with the next check.
   - [ ] **Layer inside a Section:** simulations go inside that Section in a row, and the Section grows if they would stick out. Moving the Section moves them too.
-  - [ ] **Add all simulations** (bottom button): shows "Adding N of 14…", the cards are disabled while it runs, 14 frames end up in one row, and a "Added 14 simulations" toast appears.
-  - [ ] Click **Add all** with nothing selected → "Select a layer…" toast, and the button becomes clickable again.
-  - [ ] Peripheral loss on a large frame (e.g. 1440 px wide) looks similar to peripheral loss on a small one (not almost entirely black).
-  - [ ] Vision Lab: preview loads when you select a layer; moving a slider updates the preview without lag building up.
-  - [ ] Vision Lab: **Add current view to Figma** → frame appears in the same row as the Quick simulations of that layer, at the right size.
-  - [ ] Delete all simulations of a layer, then add one → it goes right next to the design again.
+  - [x] **Add all simulations** (bottom button): shows "Adding N of 14…", the cards are disabled while it runs, 14 frames end up in one row, and a "Added 14 simulations" toast appears.
+  - [x] Click **Add all** with nothing selected → "Select a layer…" toast, and the button becomes clickable again.
+  - [x] Peripheral loss on a large frame (e.g. 1440 px wide) looks similar to peripheral loss on a small one (not almost entirely black).
+  - [x] Vision Lab: preview loads when you select a layer; moving a slider updates the preview without lag building up.
+  - [x] Vision Lab: **Add current view to Figma** → frame appears in the same row as the Quick simulations of that layer, at the right size.
+  - [x] Delete all simulations of a layer, then add one → it goes right next to the design again.
 
 ## Phase 1 — Correctness bugs
 
@@ -114,8 +114,8 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [ ] 🟠 **3.5 Draw straight into a visible `<canvas>`.** This avoids re-encoding a PNG with `toDataURL()` on every slider tick.
 - [x] 🟠 **3.6 Remove `figma.loadAllPagesAsync()`.** No `documentchange` handler needs it, it isn't awaited, and it's slow in large files.
   - [code.ts:6](../src/code.ts#L6)
-- [ ] 🟢 **3.7 Cache exported images by node ID** so switching back to a node doesn't export it again. Clear a node's entry when the node changes. *(impl.md)*
-- [ ] 🟢 **3.8 Explore WebGL shaders** for the color matrix and blur. Worth doing only if 3.1–3.4 aren't fast enough. *(impl.md)*
+- [ ] 🟢 **3.7 Cache exported images by node ID** so switching back to a node doesn't export it again. Clear a node's entry when the node changes. _(impl.md)_
+- [ ] 🟢 **3.8 Explore WebGL shaders** for the color matrix and blur. Worth doing only if 3.1–3.4 aren't fast enough. _(impl.md)_
 
 ## Phase 4 — Storage
 
@@ -161,12 +161,12 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [ ] 🟢 **7.4 Contrast check under each simulation:** flag text that fails WCAG contrast once a simulation is applied.
 - [ ] 🟢 **7.5 Support multiple selected nodes** (currently only `selection[0]` is used).
 - [ ] 🟢 **7.6 Parameters for Quick simulation:** let it use the last-used Vision Lab settings, or a chosen preset.
-- [ ] 🟠 **7.7 Presets in Quick simulation.** Presets currently work only in Vision Lab, so multi-filter frames can only reach the canvas through "Add current view to Figma". *(impl.md: Limitation 8, Future #2)*
-- [ ] 🟠 **7.8 Preset builder in the UI.** Add, remove and reorder the filters in a preset, with sliders for each filter and a live preview. Today a custom preset means editing JSON and importing it. This is the full version of 7.3. *(impl.md: Limitations 5–7, Future #1)*
-- [ ] 🟢 **7.9 Download the filtered image as a PNG** from Vision Lab, with the filter name in the file name. *(impl.md: Future #4)*
-- [ ] 🟢 **7.10 More conditions:** diabetic retinopathy (scattered dark spots) and halos/glare first. *(impl.md: Future #5)*
-- [ ] 🟢 **7.11 Preset categories** (medical condition, age, environment) in the preset dropdown. *(impl.md: Future #6)*
-- [ ] 🟢 **7.12 Refresh the preview when the selected node is edited.** Use `figma.currentPage.on("nodechange")`, which doesn't need `loadAllPagesAsync` (see 3.6). Debounce it. *(impl.md: Future #10)*
+- [ ] 🟠 **7.7 Presets in Quick simulation.** Presets currently work only in Vision Lab, so multi-filter frames can only reach the canvas through "Add current view to Figma". _(impl.md: Limitation 8, Future #2)_
+- [ ] 🟠 **7.8 Preset builder in the UI.** Add, remove and reorder the filters in a preset, with sliders for each filter and a live preview. Today a custom preset means editing JSON and importing it. This is the full version of 7.3. _(impl.md: Limitations 5–7, Future #1)_
+- [ ] 🟢 **7.9 Download the filtered image as a PNG** from Vision Lab, with the filter name in the file name. _(impl.md: Future #4)_
+- [ ] 🟢 **7.10 More conditions:** diabetic retinopathy (scattered dark spots) and halos/glare first. _(impl.md: Future #5)_
+- [ ] 🟢 **7.11 Preset categories** (medical condition, age, environment) in the preset dropdown. _(impl.md: Future #6)_
+- [ ] 🟢 **7.12 Refresh the preview when the selected node is edited.** Use `figma.currentPage.on("nodechange")`, which doesn't need `loadAllPagesAsync` (see 3.6). Debounce it. _(impl.md: Future #10)_
 
 **Not planned** (from implementation.md's future list): community preset sharing (needs a backend, and the manifest blocks network access), ML-based simulation, VR/AR preview, and A/B mode (7.2 covers most of it).
 
@@ -174,8 +174,8 @@ Small, low-risk changes, done first and in this order. Several come from later p
 
 [implementation.md](implementation.md) says the plugin is "production ready" with "no known issues", but several of its claims don't match the code. Update each item once the related code change lands, or correct the text now if the feature isn't planned.
 
-- [ ] 🟠 **8.1 Describe the Quick simulation tab as it is now.** The doc still describes an older "Generate" tab: a filter dropdown, a severity slider, "Advanced Parameters" and a Generate button. This appears in Features → Generate Mode, the Generate Mode Layout mockup, the Generate Mode Flow and the "Severity applied correctly in Generate mode" test. That design was replaced by the "Quick simulation" card grid, where each card generates immediately with default values. The doc's Vision Lab sections are correct. Rewrite the Generate sections to match the card grid and rename them "Quick simulation". The flow should also say that `GENERATE_RESULT` is currently sent *before* the image is applied (see 1.3).
-- [ ] 🟠 **8.2 "Labeled frames".** Only the frame *name* includes the filter; no text label is placed on the canvas (`addLabel` is never called). Fix the doc, or do it as part of 7.1.
+- [ ] 🟠 **8.1 Describe the Quick simulation tab as it is now.** The doc still describes an older "Generate" tab: a filter dropdown, a severity slider, "Advanced Parameters" and a Generate button. This appears in Features → Generate Mode, the Generate Mode Layout mockup, the Generate Mode Flow and the "Severity applied correctly in Generate mode" test. That design was replaced by the "Quick simulation" card grid, where each card generates immediately with default values. The doc's Vision Lab sections are correct. Rewrite the Generate sections to match the card grid and rename them "Quick simulation". The flow should also say that `GENERATE_RESULT` is currently sent _before_ the image is applied (see 1.3).
+- [ ] 🟠 **8.2 "Labeled frames".** Only the frame _name_ includes the filter; no text label is placed on the canvas (`addLabel` is never called). Fix the doc, or do it as part of 7.1.
 - [ ] 🟠 **8.3 Preview downscaling.** Limitation 3 says it's "already implemented for Vision Lab mode"; Performance §3 says it isn't. It isn't. Update after 3.1.
 - [ ] 🟠 **8.4 Optimizations that don't exist.** "Canvas API hardware acceleration (50× faster)", "progressive rendering" and "Uint8ClampedArray reuse" are listed as done. All pixel work runs in JS loops on the UI thread, and each filter allocates a new buffer. Rewrite the Performance section after Phase 3.
 - [ ] 🟠 **8.5 Scientific claims.** The doc says the plugin uses the Brettel (1997) algorithm with "peer-reviewed, physiologically validated" matrices. The code uses the ColorJack/Coblis matrices. Update after 2.1–2.2.
@@ -188,7 +188,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
 
 ## Change log
 
-| Date | Item | Change | Commit / PR |
-| --- | --- | --- | --- |
-| 2026-11-09 | — | Plan created | fe07565 |
-| 2026-11-09 | 3.7–3.8, 7.7–7.12, 8.x | Added items from implementation.md; renamed file | — |
+| Date       | Item                   | Change                                           | Commit / PR |
+| ---------- | ---------------------- | ------------------------------------------------ | ----------- |
+| 2026-11-09 | —                      | Plan created                                     | fe07565     |
+| 2026-11-09 | 3.7–3.8, 7.7–7.12, 8.x | Added items from implementation.md; renamed file | —           |
