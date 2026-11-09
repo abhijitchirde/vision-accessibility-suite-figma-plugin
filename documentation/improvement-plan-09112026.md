@@ -16,7 +16,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
 - **Working on:** Phase 0 complete (2026-11-09)
-- **Next step:** merge `sandbox` into `master` (waiting for the go-ahead), then pick the next batch. Suggested: 3.1 Downscale the Vision Lab preview, then 2.1 + 2.2 Accurate color-blindness model
+- **Next step:** pick the next batch. Suggested: 3.1 Downscale the Vision Lab preview, then 2.1 + 2.2 Accurate color-blindness model
 - **Last completed:** 0.9 — all Phase 0 items built and tested in Figma (2026-11-09)
 - **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
@@ -27,7 +27,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
   - "Add current view to Figma" in Vision Lab uses the same helpers.
   - Container (0.13): `getSimulationContainer()` returns the nearest Section ancestor of the source, or the page. Frames are added there, positioned relative to the Section, and the Section grows to fit.
   - "Add all simulations" (0.4) sends `GENERATE { filters: ALL_QUICK_FILTERS }`; progress is tracked in `generateProgress`.
-- **Notes for whoever resumes:** Work on branch `sandbox`. Each item is one commit whose message starts with its number, e.g. `feat(0.1): …`, so `git log --oneline` shows exactly what's done. Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build` and `npm run typecheck` to check a change (typecheck should report no errors).
+- **Notes for whoever resumes:** Work on branch `sandbox`. **Don't merge into `master` or push:** all changes stay on `sandbox` until they are published to the Figma Community; merge to `master` after publishing (decided 2026-11-09). Each item is one commit whose message starts with its number, e.g. `feat(0.1): …`, so `git log --oneline` shows exactly what's done. Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build` and `npm run typecheck` to check a change (typecheck should report no errors).
 
 ---
 
