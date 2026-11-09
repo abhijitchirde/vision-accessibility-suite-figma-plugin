@@ -161,6 +161,33 @@ a:hover {
 .theme-toggle-container {
   display: flex;
   align-items: center;
+  gap: 0.25rem;
+}
+
+.icon-button {
+  font-size: 0.7rem;
+  padding: 4px;
+  border: 1px solid var(--figma-color-border);
+  background-color: var(--figma-color-bg);
+  border-radius: 4px;
+  color: var(--figma-color-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-button:hover {
+  background-color: var(--figma-color-bg-secondary);
+  border-color: var(--figma-color-border-strong);
+}
+
+.icon-button:active {
+  background-color: var(--figma-color-bg-tertiary);
+  border-color: var(--figma-color-bg-brand);
 }
 
 .credit-container {

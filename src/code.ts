@@ -368,6 +368,13 @@ figma.ui.onmessage = async (msg) => {
         });
         break;
 
+      case "disclaimer":
+        figma.notify(
+          "These simulations are approximations for design and learning. They can't show exactly how any one person sees, and they're not a medical tool, so don't use them for diagnosis or treatment.",
+          { timeout: 8000 }
+        );
+        break;
+
       case "SHOW_NOTIFICATION":
         if (msg.message) {
           figma.notify(msg.message);

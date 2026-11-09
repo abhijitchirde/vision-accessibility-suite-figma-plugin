@@ -16,10 +16,10 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
 - **Working on:** Phase 0 — Quick wins
-- **Next step:** 0.1 Disclaimer
-- **Last completed:** — (nothing yet)
+- **Next step:** 0.2 Place new simulations next to existing ones
+- **Last completed:** 0.1 Disclaimer
 - **In progress / half done:** —
-- **Notes for whoever resumes:** Work on branch `sandbox`. Commit after each item and record the hash in the change log. Check `git status` first: uncommitted changes mean the "In progress" item was interrupted.
+- **Notes for whoever resumes:** Work on branch `sandbox`. Each item is one commit whose message starts with its number, e.g. `feat(0.1): …`, so `git log --oneline` shows exactly what's done. Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build` to check a change compiles.
 
 ---
 
@@ -27,7 +27,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 | Phase | Items | Done |
 | --- | --- | --- |
-| 0. Quick wins | 9 | 0 |
+| 0. Quick wins | 9 | 1 |
 | 1. Correctness bugs | 8 | 0 |
 | 2. Simulation accuracy | 4 | 0 |
 | 3. Performance | 8 | 0 |
@@ -43,7 +43,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 Small, low-risk changes, done first and in this order. Several come from later phases; ticking them here also counts there (tick both).
 
-- [ ] **0.1 Disclaimer in the footer.** A ⚠️ button next to the theme toggle shows a Figma notification, using the same pattern as desi-ipsum and the Indian user data generator. Wording: *"These simulations are approximations for design and learning. They can't show exactly how any one person sees, and they're not a medical tool, so don't use them for diagnosis or treatment."*
+- [x] **0.1 Disclaimer in the footer.** A ⚠️ button next to the theme toggle shows a Figma notification, using the same pattern as desi-ipsum and the Indian user data generator. Wording: *"These simulations are approximations for design and learning. They can't show exactly how any one person sees, and they're not a medical tool, so don't use them for diagnosis or treatment."*
 - [ ] **0.2 Place new simulations next to existing ones (= 1.1 + 1.2).** Use absolute positions, and place each new frame to the right of the last simulation made from the same design instead of on top of it.
 - [ ] **0.3 Make generation reliable (= 1.3 + 1.4).** Export the design once. Create the frame only when the filtered image is ready, and report success only after the image is applied.
 - [ ] **0.4 "Add all simulations" button** in Quick simulation, creating every simulation in a row. Labels come later. (Part of 7.1.)

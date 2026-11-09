@@ -2,9 +2,22 @@ import * as React from "react";
 import ThemeToggle from "./ThemeToggle";
 
 const BottomSection = () => {
+  const onDisclaimer = () => {
+    parent.postMessage({ pluginMessage: { type: "disclaimer" } }, "*");
+  };
+
   return (
     <div className="bottom-wrapper">
       <div className="theme-toggle-container">
+        <button
+          id="disclaimer"
+          onClick={onDisclaimer}
+          className="icon-button"
+          title="Disclaimer"
+          aria-label="Disclaimer"
+        >
+          ⚠️
+        </button>
         <ThemeToggle />
       </div>
 
