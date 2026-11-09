@@ -15,9 +15,9 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
-- **Working on:** Phase 0 — Quick wins
-- **Next step:** retest the two remaining 0.9 checks (nested layer, layer inside a Section), then merge `sandbox` into `master`
-- **Last completed:** 0.13 (before that 0.12, 0.11, 0.8, 0.7, 0.6, 0.5, 0.4, 0.10, 0.2 + 0.3). Tested in Figma on 2026-11-09 (0.9): all checks pass except the two Section/nested checks, which need a retest after 0.13
+- **Working on:** Phase 0 complete (2026-11-09)
+- **Next step:** merge `sandbox` into `master` (waiting for the go-ahead), then pick the next batch. Suggested: 3.1 Downscale the Vision Lab preview, then 2.1 + 2.2 Accurate color-blindness model
+- **Last completed:** 0.9 — all Phase 0 items built and tested in Figma (2026-11-09)
 - **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
@@ -35,7 +35,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 | Phase                        | Items | Done |
 | ---------------------------- | ----- | ---- |
-| 0. Quick wins                | 13    | 12   |
+| 0. Quick wins                | 13    | 13   |
 | 1. Correctness bugs          | 8     | 5    |
 | 2. Simulation accuracy       | 4     | 0    |
 | 3. Performance               | 8     | 1    |
@@ -63,7 +63,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [x] **0.11 Shorter Quick simulation cards (+ 5.3).** Move each card's description ("Complete • ~1% males" etc.) into a native `title` tooltip, using the longer `FILTER_METADATA` descriptions. Add one note above the color sections: _"-opia: can't see that color at all · -omaly: sees it weakly"_ (decided 2026-11-09). Build the cards from one list instead of 11 hand-written buttons (= 5.3).
 - [x] **0.12 Light/dark mode like desi-ipsum (= 6.1).** `showUI({ themeColors: true })`; footer toggle cycles 🌗 Auto (follows Figma) → ☀️ Light → 🌙 Dark; choice saved per user in `figma.clientStorage` (`get-theme-pref` / `set-theme-pref`, same as desi-ipsum). Fallback colors use `:where(:root)` so Figma's injected colors win; `html[data-theme]` overrides define every `--figma-color-*` the CSS uses (28), not just 13 as in desi-ipsum. Replaces `useFigmaTheme` with `useThemePreference` (decided 2026-11-09).
 - [x] **0.13 Keep simulations inside Sections.** Simulations stay off the user's frames (never inside the parent frame), but if the source layer is inside a Section, the simulation goes into the nearest Section, lined up after earlier simulations there; the Section grows to fit if needed. Otherwise it stays on the page (decided 2026-11-09 after the nested-layer test).
-- [ ] **0.9 Test in Figma.** Run `npm run build`, then in Figma desktop: Plugins → Development → Vision Accessibility Suite. Tick each check as it passes; write what went wrong next to any that fail.
+- [x] **0.9 Test in Figma.** Run `npm run build`, then in Figma desktop: Plugins → Development → Vision Accessibility Suite. Tick each check as it passes; write what went wrong next to any that fail.
   - [x] Footer ⚠️ button shows the disclaimer toast.
   - [x] Theme button cycles 🌗 Auto → ☀️ Light → 🌙 Dark. In Auto, switching Figma between light and dark (Figma menu → Theme) changes the plugin too.
   - [x] Forced Light while Figma is dark (and the reverse) looks fully light (or dark): no leftover dark borders, hover colors or tab underline.
@@ -71,8 +71,8 @@ Small, low-risk changes, done first and in this order. Several come from later p
   - [x] Quick simulation cards are one line each; hovering a card shows its description; the "-opia / -omaly" note is at the top. No vertical scrollbar in Quick simulation at the default window size, and the last row of cards isn't hidden behind the "Add all" bar.
   - [x] Quick simulation, **top-level frame**: click one card → one frame appears to the right of the design, with the filter applied.
   - [x] Click two more cards → each new frame appears **to the right of the previous one**, not on top.
-  - [ ] **Nested layer** (e.g. a card inside a frame): the simulation appears next to that layer, not somewhere else on the page. Position was right (2026-11-09), but the simulation is created on the page, not inside the parent frame. Decided: never inside the user's frames, but inside a parent Section (0.13). Retest together with the next check.
-  - [ ] **Layer inside a Section:** simulations go inside that Section in a row, and the Section grows if they would stick out. Moving the Section moves them too.
+  - [x] **Nested layer** (e.g. a card inside a frame): the simulation appears next to that layer, not somewhere else on the page. Position was right (2026-11-09), but the simulation is created on the page, not inside the parent frame. Decided: never inside the user's frames, but inside a parent Section (0.13). Retested 2026-11-09: works.
+  - [x] **Layer inside a Section:** simulations go inside that Section in a row, and the Section grows if they would stick out. Moving the Section moves them too. ✅ 2026-11-09
   - [x] **Add all simulations** (bottom button): shows "Adding N of 14…", the cards are disabled while it runs, 14 frames end up in one row, and a "Added 14 simulations" toast appears.
   - [x] Click **Add all** with nothing selected → "Select a layer…" toast, and the button becomes clickable again.
   - [x] Peripheral loss on a large frame (e.g. 1440 px wide) looks similar to peripheral loss on a small one (not almost entirely black).
