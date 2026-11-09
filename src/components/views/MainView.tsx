@@ -30,7 +30,6 @@ import {
   COLOR_BLIND_FILTERS,
   VISUAL_FIELD_FILTERS,
   OTHER_FILTERS,
-  ZOOM_LEVELS,
   DEFAULT_ZOOM,
   COLOR_BLIND_FILTERS as ALL_COLOR_BLIND_FILTERS,
   DEFAULT_CENTRAL_VISION_LOSS_CONFIG,
@@ -224,21 +223,13 @@ export const MainView: React.FC<{}> = ({}) => {
     const handleMessage = (event: MessageEvent) => {
       const msg = event.data.pluginMessage;
       if (msg?.type === "VISION_SIMULATOR_PRESETS_LOADED") {
-        // console.log("[UI] Loaded presets:", msg.presets);
         setCustomPresets(msg.presets || []);
       } else if (msg?.type === "VISION_SIMULATOR_SELECTED_PRESET_LOADED") {
-        // console.log("[UI] Loaded selected preset ID:", msg.presetId);
         if (msg.presetId) {
           setPendingPresetId(msg.presetId);
         }
       } else if (msg?.type === "VISION_SIMULATOR_PRESETS_SAVED") {
-        if (msg.success) {
-          // console.log(
-          //   "[UI] ✓ Presets saved successfully to Figma storage:",
-          //   msg.count,
-          //   "presets"
-          // );
-        } else {
+        if (!msg.success) {
           console.error("[UI] ✗ Failed to save presets:", msg.error);
         }
       }
@@ -253,7 +244,6 @@ export const MainView: React.FC<{}> = ({}) => {
     if (pendingPresetId && allPresets.length > 0) {
       const preset = allPresets.find((p) => p.id === pendingPresetId);
       if (preset) {
-        // console.log("Restoring preset:", preset.name);
         setSelectedPreset(preset);
         setPendingPresetId(null);
       }
@@ -618,13 +608,10 @@ export const MainView: React.FC<{}> = ({}) => {
    * Handle preset import
    */
   const handleImportPresets = (importedPresets: FilterPreset[]) => {
-    // console.log("[UI] handleImportPresets called with:", importedPresets);
-    // console.log("[UI] Current customPresets state:", customPresets);
 
     // Add imported presets to custom presets
     // Only modify ID if it already exists to avoid duplicates
     const existingIds = new Set(customPresets.map((p) => p.id));
-    // console.log("[UI] Existing preset IDs:", Array.from(existingIds));
 
     const newPresets = importedPresets.map((preset) => {
       let finalId = preset.id;
@@ -632,9 +619,6 @@ export const MainView: React.FC<{}> = ({}) => {
       // If preset ID already exists, append timestamp to make it unique
       if (existingIds.has(preset.id)) {
         finalId = `${preset.id}-${Date.now()}`;
-        // console.log(
-        //   `[UI] Preset ID ${preset.id} already exists, using ${finalId}`
-        // );
       }
 
       return {
@@ -646,17 +630,9 @@ export const MainView: React.FC<{}> = ({}) => {
       };
     });
 
-    // console.log("[UI] New presets to add:", newPresets);
 
     setCustomPresets((prev) => {
-      // console.log("[UI] setCustomPresets updater - prev:", prev);
       const updated = [...prev, ...newPresets];
-      // console.log("[UI] setCustomPresets updater - updated:", updated);
-      // console.log(
-      //   "[UI] About to send SAVE message with:",
-      //   updated.length,
-      //   "presets"
-      // );
 
       // Save to persistent storage via code.ts
       sendMessage("VISION_SIMULATOR_SAVE_PRESETS", {
@@ -1035,7 +1011,6 @@ export const MainView: React.FC<{}> = ({}) => {
               presets={allPresets}
               selectedPreset={selectedPreset}
               onSelectPreset={(preset) => {
-                // console.log("Preset selected:", preset?.name || "none");
                 setSelectedPreset(preset);
                 // Save selected preset ID to storage
                 sendMessage("VISION_SIMULATOR_SAVE_SELECTED_PRESET", {

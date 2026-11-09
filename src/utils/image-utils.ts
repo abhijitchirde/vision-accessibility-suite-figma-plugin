@@ -807,16 +807,6 @@ export function applyPeripheralVisionLoss(
 }
 
 /**
- * Convert Uint8Array (PNG/JPEG) to ImageData-compatible Uint8ClampedArray
- *
- * Note: In the Figma plugin environment, we need to use Canvas API in the UI thread
- * This function is a placeholder - actual conversion happens in UI via Canvas
- */
-export function uint8ArrayToImageData(data: Uint8Array): Uint8ClampedArray {
-  return new Uint8ClampedArray(data);
-}
-
-/**
  * Resize image data (for performance optimization)
  *
  * @param imageData - Original image data

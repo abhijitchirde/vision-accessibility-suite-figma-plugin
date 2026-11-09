@@ -73,23 +73,13 @@ figma.ui.onmessage = async (msg) => {
         visionSimulatorPanelActive = false;
         break;
 
-      case "VISION_SIMULATOR_REQUEST_PREVIEW":
-        // Manual preview request (can be removed if no longer needed)
-        await autoLoadVisionSimulatorPreview();
-        break;
-
       case "VISION_SIMULATOR_LOAD_PRESETS":
         // Load custom presets from storage
         try {
           const presetsData = figma.root.getPluginData(
             "vision-simulator-presets"
           );
-          // console.log(
-          //   "[code.ts] Loading presets from storage, raw data:",
-          //   presetsData
-          // );
           const presets = presetsData ? JSON.parse(presetsData) : [];
-          // console.log("[code.ts] Parsed presets:", presets.length, "presets");
           figma.ui.postMessage({
             type: "VISION_SIMULATOR_PRESETS_LOADED",
             presets: presets,
@@ -106,41 +96,12 @@ figma.ui.onmessage = async (msg) => {
       case "VISION_SIMULATOR_SAVE_PRESETS":
         // Save custom presets to storage
         try {
-          // console.log("[code.ts] Received SAVE_PRESETS message, raw msg:", msg);
           const presetsToSave = msg.data?.presets || []; // FIX: Use msg.data.presets
-          // console.log("[code.ts] presetsToSave extracted:", presetsToSave);
-          // console.log(
-          //   "[code.ts] presetsToSave is array?",
-          //   Array.isArray(presetsToSave)
-          // );
-          // console.log("[code.ts] presetsToSave length:", presetsToSave.length);
-          // console.log(
-          //   "[code.ts] Saving presets to storage:",
-          //   presetsToSave.length,
-          //   "presets"
-          // );
-          // console.log(
-          //   "[code.ts] Full preset data:",
-          //   JSON.stringify(presetsToSave, null, 2)
-          // );
 
           figma.root.setPluginData(
             "vision-simulator-presets",
             JSON.stringify(presetsToSave)
           );
-
-          // Verify the save by reading it back
-          const verification = figma.root.getPluginData(
-            "vision-simulator-presets"
-          );
-          // console.log(
-          //   "[code.ts] Verification - data saved successfully:",
-          //   verification ? "YES" : "NO"
-          // );
-          // console.log(
-          //   "[code.ts] Verification - saved data length:",
-          //   verification?.length || 0
-          // );
 
           // Send confirmation back to UI
           figma.ui.postMessage({
@@ -185,7 +146,6 @@ figma.ui.onmessage = async (msg) => {
             "vision-simulator-selected-preset",
             presetId
           );
-          // console.log("[code.ts] Saved selected preset ID:", presetId);
         } catch (error) {
           console.error("[code.ts] Failed to save selected preset:", error);
         }
@@ -333,7 +293,6 @@ figma.ui.onmessage = async (msg) => {
         break;
 
       default:
-      // console.log("Unknown message type:", msg.type);
     }
   } catch (error) {
     console.error("Error handling message:", error);

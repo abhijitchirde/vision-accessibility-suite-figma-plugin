@@ -37,12 +37,6 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
   const builtInPresets = presets.filter((p) => p.isBuiltIn);
   const customPresets = presets.filter((p) => !p.isBuiltIn);
 
-  // console.log(
-  //   "PresetManager rendered - Total presets:",
-  //   presets.length,
-  //   "Custom:",
-  //   customPresets.length
-  // );
 
   /**
    * Handle import file selection
@@ -59,11 +53,8 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
 
     try {
       const text = await file.text();
-      // console.log("Importing file:", file.name);
-      // console.log("File content:", text);
 
       const imported = JSON.parse(text);
-      // console.log("Parsed JSON:", imported);
 
       // Validate imported data
       if (!Array.isArray(imported)) {
@@ -81,7 +72,6 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
         }
       }
 
-      // console.log("Calling onImportPresets with:", imported);
       onImportPresets(imported as FilterPreset[]);
 
       const count = imported.length;

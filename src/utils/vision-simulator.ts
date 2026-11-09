@@ -9,18 +9,11 @@
  * Note: Actual filter application happens in UI thread (Canvas API required)
  */
 
-import {
-  SimulationType,
-  GenerateOptions,
-  GeneratedNodeData,
-  SimulationResult,
-} from './vision-simulator.types';
+import { SimulationType, GeneratedNodeData } from './vision-simulator.types';
 import {
   PLUGIN_DATA_KEYS,
   IMAGE_EXPORT_SETTINGS,
   DEFAULT_COPY_SPACING,
-  LABEL_SETTINGS,
-  FILTER_METADATA,
 } from './vision-simulator.constants';
 
 export class VisionSimulator {
@@ -150,56 +143,6 @@ export class VisionSimulator {
   }
 
   /**
-   * Add a text label below a generated frame
-   *
-   * @param frame - Frame to add label to
-   * @param labelText - Label text
-   */
-  private addLabel(frame: FrameNode, labelText: string): void {
-    const label = figma.createText();
-
-    // Load default font
-    figma.loadFontAsync({ family: 'Inter', style: 'Regular' }).then(() => {
-      label.fontName = { family: 'Inter', style: 'Regular' };
-      label.fontSize = 12;
-      label.characters = labelText;
-
-      // Position label below the frame
-      label.x = frame.x;
-      label.y = frame.y + frame.height + 8;
-
-      // Set text color
-      label.fills = [
-        {
-          type: 'SOLID',
-          color: { r: 0, g: 0, b: 0 },
-        },
-      ];
-
-      // Add to current page (not as child of frame)
-      figma.currentPage.appendChild(label);
-    });
-  }
-
-  /**
-   * Check if a node is a generated simulation
-   *
-   * @param node - Node to check
-   * @returns True if node is a generated simulation
-   */
-  isGeneratedSimulation(node: SceneNode): boolean {
-    try {
-      const data = node.getPluginData(PLUGIN_DATA_KEYS.GENERATED_NODE);
-      if (!data) return false;
-
-      const metadata: GeneratedNodeData = JSON.parse(data);
-      return metadata.isSimulation === true;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
    * Get metadata for a generated simulation node
    *
    * @param node - Generated node
@@ -213,22 +156,6 @@ export class VisionSimulator {
       return JSON.parse(data);
     } catch {
       return null;
-    }
-  }
-
-  /**
-   * Delete all generated simulations for a given original node
-   *
-   * @param originalNodeId - Original node ID
-   */
-  deleteGeneratedSimulations(originalNodeId: string): void {
-    const allNodes = figma.currentPage.findAll();
-
-    for (const node of allNodes) {
-      const metadata = this.getGeneratedMetadata(node);
-      if (metadata && metadata.originalNodeId === originalNodeId) {
-        node.remove();
-      }
     }
   }
 
@@ -268,22 +195,5 @@ export class VisionSimulator {
       height,
       nodeName: node.name,
     };
-  }
-
-  /**
-   * Get all nodes on current page (for selection)
-   *
-   * @returns List of exportable nodes
-   */
-  getAllExportableNodes(): Array<{ id: string; name: string; type: string }> {
-    const allNodes = figma.currentPage.findAll((node) => {
-      return 'exportAsync' in node && typeof node.exportAsync === 'function';
-    });
-
-    return allNodes.map((node) => ({
-      id: node.id,
-      name: node.name,
-      type: node.type,
-    }));
   }
 }

@@ -16,8 +16,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
 - **Working on:** Phase 0 — Quick wins
-- **Next step:** 0.8 Delete dead code
-- **Last completed:** 0.7 (before that 0.6, 0.5, 0.4, 0.10, 0.2 + 0.3). All build; none tested inside Figma yet, which is 0.9
+- **Next step:** 0.9 Build and test in Figma (needs you: run the plugin in Figma desktop and follow the checklist under 0.9)
+- **Last completed:** 0.8 (before that 0.7, 0.6, 0.5, 0.4, 0.10, 0.2 + 0.3). All build; none tested inside Figma yet, which is 0.9
 - **In progress / half done:** —
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -33,12 +33,12 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 | Phase | Items | Done |
 | --- | --- | --- |
-| 0. Quick wins | 10 | 8 |
+| 0. Quick wins | 10 | 9 |
 | 1. Correctness bugs | 8 | 5 |
 | 2. Simulation accuracy | 4 | 0 |
 | 3. Performance | 8 | 1 |
 | 4. Storage | 3 | 0 |
-| 5. Code health | 9 | 1 |
+| 5. Code health | 9 | 2 |
 | 6. UX & plugin accessibility | 6 | 0 |
 | 7. New features | 12 | 0 |
 | 8. Documentation accuracy | 9 | 0 |
@@ -56,7 +56,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [x] **0.5 Remove `figma.loadAllPagesAsync()` (= 3.6).**
 - [x] **0.6 Scale peripheral vision loss with the design size (= 1.5).**
 - [x] **0.7 Fix the TypeScript type-check errors (= 5.5).**
-- [ ] **0.8 Delete dead code (= 5.7).**
+- [x] **0.8 Delete dead code (= 5.7).** Kept `resizeImageData` and `calculatePreviewDimensions` for 3.1. Deleted files (including `wcag.constants.ts`, which 7.4 may want) can be restored with `git show f632f6c:<path>`.
 - [x] **0.10 Stop re-exporting the design on every render.** `useFigmaMessage` returns a new `sendMessage` function on every render. The effect that sends `PANEL_MOUNTED` depends on it, so every re-render in Vision Lab (including each slider move) makes Figma export the design again. Wrap `sendMessage` in `useCallback`. (Found 2026-11-09.)
 - [ ] **0.9 Build and test in Figma:** generate one simulation, then several, then "Add all", on a nested design and a top-level one.
 
@@ -112,15 +112,15 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [ ] 🟠 **5.4 Type the plugin ↔ UI messages** with one shared union type, and pick a single payload shape instead of `msg.data?.x || msg.x`.
 - [x] 🟠 **5.5 Fix the type-check errors.** `tsc --noEmit` fails because `@types/node` conflicts with the Figma typings and the `JSX` namespace is missing. Remove `@types/node` or limit `types` in `tsconfig.json`.
 - [ ] 🟢 **5.6 Turn on `strict` in `tsconfig.json`** and pin `@figma/plugin-typings` instead of `"*"`.
-- [ ] 🟢 **5.7 Delete dead code:**
-  - [ ] `src/constants/wcag.constants.ts` (or use it in 7.4)
-  - [ ] `src/constants/storage.constants.ts`
-  - [ ] `src/utils/preset-storage.ts`
-  - [ ] `src/services/storage.service.ts`
-  - [ ] `Card`, `Badge`, `Checkbox` components
-  - [ ] Unused `SelectionService` methods
-  - [ ] `addLabel`, `deleteGeneratedSimulations`, `getAllExportableNodes` (unless used by 7.1)
-  - [ ] Commented-out `console.log` lines
+- [x] 🟢 **5.7 Delete dead code:**
+  - [x] `src/constants/wcag.constants.ts` (or use it in 7.4)
+  - [x] `src/constants/storage.constants.ts`
+  - [x] `src/utils/preset-storage.ts`
+  - [x] `src/services/storage.service.ts`
+  - [x] `Card`, `Badge`, `Checkbox` components
+  - [x] Unused `SelectionService` methods
+  - [x] `addLabel`, `deleteGeneratedSimulations`, `getAllExportableNodes` (unless used by 7.1)
+  - [x] Commented-out `console.log` lines
 - [ ] 🟢 **5.8 Add unit tests (Vitest)** for `image-utils.ts`. For example: severity 0 returns the input unchanged, and achromatopsia output has R = G = B.
 - [ ] 🟢 **5.9 Add ESLint**, including `react-hooks/exhaustive-deps`.
 
