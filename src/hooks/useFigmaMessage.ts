@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback } from "react";
 
 interface UseFigmaMessageReturn {
   sendMessage: (type: string, data?: any) => void;
@@ -33,7 +33,10 @@ export function waitForPluginMessage(
 }
 
 export function useFigmaMessage(): UseFigmaMessageReturn {
-  const sendMessage = (type: string, data?: any) => {
+  // Stable across renders: effects that depend on sendMessage (e.g. the
+  // Vision Lab PANEL_MOUNTED effect) must not re-run on every render, or
+  // Figma re-exports the selected layer each time.
+  const sendMessage = useCallback((type: string, data?: any) => {
     if (typeof parent !== "undefined" && parent.postMessage) {
       parent.postMessage(
         {
@@ -45,7 +48,7 @@ export function useFigmaMessage(): UseFigmaMessageReturn {
         "*"
       );
     }
-  };
+  }, []);
 
   return {
     sendMessage,

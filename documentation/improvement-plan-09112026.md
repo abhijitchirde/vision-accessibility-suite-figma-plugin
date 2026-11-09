@@ -16,8 +16,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
 - **Working on:** Phase 0 — Quick wins
-- **Next step:** 0.10, then 0.4
-- **Last completed:** 0.2 + 0.3 (builds; not yet tested inside Figma, which is 0.9)
+- **Next step:** 0.4 "Add all simulations" button (at the bottom of Quick simulation)
+- **Last completed:** 0.10 (before that 0.2 + 0.3). All build; none tested inside Figma yet, which is 0.9
 - **In progress / half done:** —
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -33,7 +33,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 | Phase | Items | Done |
 | --- | --- | --- |
-| 0. Quick wins | 10 | 3 |
+| 0. Quick wins | 10 | 4 |
 | 1. Correctness bugs | 8 | 4 |
 | 2. Simulation accuracy | 4 | 0 |
 | 3. Performance | 8 | 0 |
@@ -57,7 +57,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [ ] **0.6 Scale peripheral vision loss with the design size (= 1.5).**
 - [ ] **0.7 Fix the TypeScript type-check errors (= 5.5).**
 - [ ] **0.8 Delete dead code (= 5.7).**
-- [ ] **0.10 Stop re-exporting the design on every render.** `useFigmaMessage` returns a new `sendMessage` function on every render. The effect that sends `PANEL_MOUNTED` depends on it, so every re-render in Vision Lab (including each slider move) makes Figma export the design again. Wrap `sendMessage` in `useCallback`. (Found 2026-11-09.)
+- [x] **0.10 Stop re-exporting the design on every render.** `useFigmaMessage` returns a new `sendMessage` function on every render. The effect that sends `PANEL_MOUNTED` depends on it, so every re-render in Vision Lab (including each slider move) makes Figma export the design again. Wrap `sendMessage` in `useCallback`. (Found 2026-11-09.)
 - [ ] **0.9 Build and test in Figma:** generate one simulation, then several, then "Add all", on a nested design and a top-level one.
 
 ## Phase 1 — Correctness bugs
