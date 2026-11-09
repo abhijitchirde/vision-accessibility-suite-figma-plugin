@@ -62,7 +62,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [x] **0.11 Shorter Quick simulation cards (+ 5.3).** Move each card's description ("Complete • ~1% males" etc.) into a native `title` tooltip, using the longer `FILTER_METADATA` descriptions. Add one note above the color sections: *"-opia: can't see that color at all · -omaly: sees it weakly"* (decided 2026-11-09). Build the cards from one list instead of 11 hand-written buttons (= 5.3).
 - [ ] **0.9 Test in Figma.** Run `npm run build`, then in Figma desktop: Plugins → Development → Vision Accessibility Suite. Tick each check as it passes; write what went wrong next to any that fail.
   - [ ] Footer ⚠️ button shows the disclaimer toast.
-  - [ ] Quick simulation cards are one line each; hovering a card shows its description; the "-opia / -omaly" note is at the top.
+  - [ ] Quick simulation cards are one line each; hovering a card shows its description; the "-opia / -omaly" note is at the top. No vertical scrollbar in Quick simulation at the default window size, and the last row of cards isn't hidden behind the "Add all" bar.
   - [ ] Quick simulation, **top-level frame**: click one card → one frame appears to the right of the design, with the filter applied.
   - [ ] Click two more cards → each new frame appears **to the right of the previous one**, not on top.
   - [ ] **Nested layer** (e.g. a card inside a frame): the simulation appears next to that layer, not somewhere else on the page.
