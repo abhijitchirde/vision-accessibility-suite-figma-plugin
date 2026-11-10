@@ -146,12 +146,12 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
   - [ ] Dropdowns (Start from, + Add a simulation): ↓ opens with the current option focused, ↑ / ↓ / Home / End move, Enter picks, Esc closes back to the dropdown.
   - [ ] Every slider can be reached with Tab and changed with the arrow keys.
 
-- [ ] **Zoom and pan (Vision Lab preview)**
-  - [ ] The preview box keeps the same height at every zoom level; the Vision Lab tab itself doesn't start scrolling when you zoom in.
-  - [ ] 100% shows the whole design inside the box (also a tall page); + / − zoom around the centre.
-  - [ ] Zoomed in: hovering shows a grab hand, dragging pans (grabbing hand), the box's own scrollbars and mouse wheel work.
-  - [ ] Click the preview (or Tab to it): arrow keys move around, + / − zoom, 0 fits.
-  - [ ] The plugin window is a fixed size again (no resize grip).
+- [x] **Zoom and pan (Vision Lab preview)** ✅ tested 2026-11-10
+  - [x] The preview box keeps the same height at every zoom level; the Vision Lab tab itself doesn't start scrolling when you zoom in.
+  - [x] 100% shows the whole design inside the box (also a tall page); + / − zoom around the centre.
+  - [x] Zoomed in: hovering shows a grab hand, dragging pans (grabbing hand), the box's own scrollbars and mouse wheel work.
+  - [x] Click the preview (or Tab to it): arrow keys move around, + / − zoom, 0 fits.
+  - [x] The plugin window is a fixed size again (no resize grip).
 
 ## Phase 1 — Correctness bugs
 
