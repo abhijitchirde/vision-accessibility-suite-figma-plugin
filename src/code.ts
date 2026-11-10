@@ -19,9 +19,15 @@ const visionSimulator = new VisionSimulator();
 // Track Vision Simulator panel state for auto-preview
 let visionSimulatorPanelActive = false;
 
+// Increases with every preview request; a response is only sent if no newer
+// request started while its export was running (so a slow export of an old
+// selection can't overwrite the preview of the current one).
+let latestPreviewRequest = 0;
+
 // Function to auto-load vision simulator preview for current selection
 async function autoLoadVisionSimulatorPreview() {
   if (!visionSimulatorPanelActive) return;
+  const requestId = ++latestPreviewRequest;
 
   const selectedNodes = visionSimulator.getSelectedNodes();
   if (selectedNodes.length === 0) {
@@ -36,6 +42,8 @@ async function autoLoadVisionSimulatorPreview() {
   const previewData = await visionSimulator.prepareImageForPreview(
     selectedNodes[0].id
   );
+  if (requestId !== latestPreviewRequest) return; // superseded
+
   if (previewData) {
     figma.ui.postMessage({
       type: "VISION_SIMULATOR_PREVIEW_DATA",
@@ -51,10 +59,18 @@ async function autoLoadVisionSimulatorPreview() {
   }
 }
 
-// Listen for selection changes and automatically update vision simulator preview
-selectionService.onSelectionChange(async () => {
-  // Auto-load vision simulator preview if panel is active
-  await autoLoadVisionSimulatorPreview();
+// Listen for selection changes and update the Vision Lab preview. Waits a
+// moment after the last change, so clicking or shift-selecting through several
+// layers exports only the one you end on.
+const SELECTION_DEBOUNCE_MS = 150;
+let selectionTimer: ReturnType<typeof setTimeout> | null = null;
+
+selectionService.onSelectionChange(() => {
+  if (selectionTimer !== null) clearTimeout(selectionTimer);
+  selectionTimer = setTimeout(() => {
+    selectionTimer = null;
+    autoLoadVisionSimulatorPreview();
+  }, SELECTION_DEBOUNCE_MS);
 });
 
 // Handle messages from UI
