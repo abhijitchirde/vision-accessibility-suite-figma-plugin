@@ -18,7 +18,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 - **Working on:** Phase 6 plugin accessibility (6.2–6.5). Batch A/B/C, v2, reference and stack-polish Figma tests not yet confirmed
 - **Next step:** 6.5 Scrollable zoom, then 6.4 resizable window, then tick 6.6
 - **Last completed:** 6.2 tabs and 6.3 labels/keyboard (2026-11-10); rename fixes (no forms; full-width field). Before that 7.16, 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
-- **In progress / half done:** 6.5 scrollable zoom (canvas width = min(px × zoom, zoom × 100%), no transform; preview content uses `safe center`). Then 6.4 resizable window and 6.6 tick.
+- **In progress / half done:** 6.4 resizable window: `components/ui/ResizeHandle.tsx` (bottom-right grip, pointer drag using screen coordinates, arrow keys ±20px) sends `resize-window` {width,height}; code.ts clamps to 320–800 × 480–1200, calls figma.ui.resize, saves to clientStorage `windowSize` on `save-window-size`, restores it on start. Default stays 360×770.
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
