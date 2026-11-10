@@ -18,7 +18,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 - **Working on:** 5.1 → 7.17 → 7.15 (stack) → 7.13 (in-plugin reference). Batch A/B/C Figma tests still open (needs you)
 - **Next step:** 5.1 One filter registry
 - **Last completed:** Batch C (4.1, 4.2, 4.3), 2026-11-10. Before that 1.9, Batch B, Batch A. All build; Batch A/B/C not yet fully tested in Figma
-- **In progress / half done:** 5.1 — paused before any code change (2026-11-10) to discuss the preset guide and Preset Manager layout. Plan: `applyFilterConfig(data, w, h, config, pixelScale)` in image-utils.ts handles every filter type; `applyFilterPreset` loops over it; Quick simulation and Vision Lab build a `CompleteFilterConfig` and call it. Pixel values in configs are in 2× export pixels and get multiplied by `pixelScale`. Must give identical output (checked with a before/after pixel comparison).
+- **In progress / half done:** 5.1 (resumed 2026-11-10). Plan: `applyFilterConfig(data, w, h, config, pixelScale)` in image-utils.ts handles every filter type; `applyFilterPreset` loops over it; Quick simulation and Vision Lab build a `CompleteFilterConfig` and call it. Pixel values in configs are in 2× export pixels and get multiplied by `pixelScale`. Must give identical output (checked with a before/after pixel comparison).
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
