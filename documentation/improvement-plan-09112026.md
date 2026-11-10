@@ -15,10 +15,10 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
-- **Working on:** Batch A — smooth Vision Lab (3.1 + 3.3 + 3.5), then Batch B — accurate color blindness (2.1 + 2.2). Started 2026-11-10
-- **Next step:** Batch B — 2.1 + 2.2 Accurate color-blindness model
-- **Last completed:** Batch A code (3.1, 3.5, 3.3, 1.8) on 2026-11-10. Builds; not yet tested in Figma (see "Batch tests")
-- **In progress / half done:** 2.1 + 2.2. Plan: new file `src/utils/machado-matrices.ts` with Machado (2009) protan/deutan/tritan matrices at severity 0.0–1.0 in 0.1 steps; `applyColorBlindness` decodes sRGB → linear (lookup table), applies the matrix (interpolating between the two nearest severity steps), encodes back. Achromatopsia = Rec. 709 luminance in linear RGB. Old ColorJack matrices removed.
+- **Working on:** Batches A and B — code done 2026-11-10, waiting for Figma test
+- **Next step:** run the "Batch tests" checklist in Figma (needs you). Then pick the next batch; suggested: 3.2 Web Worker, 4.1 per-user presets, 5.1 one filter registry, and the Phase 8 doc fixes that are now unblocked (8.3, 8.5)
+- **Last completed:** Batch B (2.1 + 2.2) and Batch A (3.1, 3.5, 3.3, 1.8), 2026-11-10. Both build; not yet tested in Figma
+- **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -28,6 +28,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
   - Container (0.13): `getSimulationContainer()` returns the nearest Section ancestor of the source, or the page. Frames are added there, positioned relative to the Section, and the Section grows to fit.
   - "Add all simulations" (0.4) sends `GENERATE { filters: ALL_QUICK_FILTERS }`; progress is tracked in `generateProgress`.
 - **How Vision Lab renders (after Batch A):** `loadImageForPreview` keeps the full export in `originalImageRef` and a copy ≤ `MAX_PREVIEW_SIDE` (1200px) in `previewSourceRef`. A redraw effect calls `renderVisionLab(..., scale)` at most once per animation frame and draws into the visible `previewCanvasRef`. Pixel settings are multiplied by `scale` (the `pixelScale` parameter in image-utils) so the preview matches the export. "Add current view to Figma" runs `renderVisionLab` on the full-size image with scale 1. `code.ts` debounces selection (150 ms) and drops superseded previews (`latestPreviewRequest`).
+- **Color blindness (after Batch B):** `applyColorBlindness` (image-utils.ts) converts sRGB → linear with lookup tables, applies `getColorBlindnessMatrix(type, severity)`, converts back. Matrices are in `machado-matrices.ts` (Machado 2009, severity steps 0.0–1.0, interpolated); achromatopsia = Rec. 709 luminance. Transcription checked: all 90 matrix rows sum to 1 and steps are smooth; worth one comparison against the paper's published table before release.
 - **Notes for whoever resumes:** Work on branch `sandbox`. **Don't merge into `master` or push:** all changes stay on `sandbox` until they are published to the Figma Community; merge to `master` after publishing (decided 2026-11-09). Each item is one commit whose message starts with its number, e.g. `feat(0.1): …`, so `git log --oneline` shows exactly what's done. Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build` and `npm run typecheck` to check a change (typecheck should report no errors).
 
 ---
@@ -38,7 +39,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | ---------------------------- | ----- | ---- |
 | 0. Quick wins                | 13    | 13   |
 | 1. Correctness bugs          | 8     | 6    |
-| 2. Simulation accuracy       | 4     | 0    |
+| 2. Simulation accuracy       | 4     | 2    |
 | 3. Performance               | 8     | 4    |
 | 4. Storage                   | 3     | 0    |
 | 5. Code health               | 9     | 3    |
@@ -92,6 +93,12 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
   - [ ] **Add current view to Figma** on a large frame shows "Adding to Figma..." while it works, and the frame is full quality.
   - [ ] Click quickly through several layers: the preview ends up showing the last one you selected, not an earlier one.
   - [ ] Small layer (e.g. a button): preview and Add to Figma still work as before.
+- [ ] **Batch B — accurate color blindness**
+  - [ ] Every color-blind simulation looks different from before (expected), and greys, black and white look unchanged.
+  - [ ] Protanopia: reds look dark olive/brown. Deuteranopia: reds look olive/brown, greens beige. Tritanopia: blues look teal, greens look cyan-ish.
+  - [ ] Severity slider: 0% looks identical to the original; moving towards 100% changes smoothly, with no sudden jumps.
+  - [ ] Achromatopsia is grey, with brightness that looks natural (yellows light, blues dark).
+  - [ ] Optional: compare one screenshot against another simulator that uses Machado (e.g. Chrome DevTools → Rendering → Emulate vision deficiencies). Results should look very close.
 
 ## Phase 1 — Correctness bugs
 
@@ -111,9 +118,9 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 
 ## Phase 2 — Simulation accuracy
 
-- [ ] 🔴 **2.1 Replace the color-blindness matrices with Machado et al. (2009).** The current protan/deutan/tritan matrices are the inaccurate "ColorJack"/Coblis set. Machado provides severity steps from 0.1 to 1.0, which can replace the linear blend toward the identity matrix.
+- [x] 🔴 **2.1 Replace the color-blindness matrices with Machado et al. (2009).** The current protan/deutan/tritan matrices are the inaccurate "ColorJack"/Coblis set. Machado provides severity steps from 0.1 to 1.0, which can replace the linear blend toward the identity matrix.
   - [vision-simulator.constants.ts:41-64](../src/utils/vision-simulator.constants.ts#L41-L64)
-- [ ] 🔴 **2.2 Apply color matrices in linear RGB.** Convert sRGB to linear, apply the matrix, then convert back. A lookup table keeps this fast.
+- [x] 🔴 **2.2 Apply color matrices in linear RGB.** Convert sRGB to linear, apply the matrix, then convert back. A lookup table keeps this fast.
 - [ ] 🟠 **2.3 Make bright-light "washout" reduce saturation.** It currently blends toward white, and the `gray` value it computes is never used.
   - [image-utils.ts:519](../src/utils/image-utils.ts#L519)
 - [ ] 🟢 **2.4 Premultiply alpha in blur.** This prevents dark fringes on transparent edges.
