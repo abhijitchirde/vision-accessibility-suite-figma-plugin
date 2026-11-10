@@ -16,9 +16,9 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
 - **Working on:** Batch A — smooth Vision Lab (3.1 + 3.3 + 3.5), then Batch B — accurate color blindness (2.1 + 2.2). Started 2026-11-10
-- **Next step:** 3.1 Downscale the Vision Lab preview
-- **Last completed:** 0.9 — all Phase 0 items built and tested in Figma (2026-11-09)
-- **In progress / half done:** 3.1. Plan: keep the full-size export for "Add current view to Figma" (filtered once on click); filter a copy scaled to ≤ 2× the panel width for the live preview
+- **Next step:** Batch B — 2.1 + 2.2 Accurate color-blindness model
+- **Last completed:** Batch A code (3.1, 3.5, 3.3, 1.8) on 2026-11-10. Builds; not yet tested in Figma (see "Batch tests")
+- **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -27,6 +27,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
   - "Add current view to Figma" in Vision Lab uses the same helpers.
   - Container (0.13): `getSimulationContainer()` returns the nearest Section ancestor of the source, or the page. Frames are added there, positioned relative to the Section, and the Section grows to fit.
   - "Add all simulations" (0.4) sends `GENERATE { filters: ALL_QUICK_FILTERS }`; progress is tracked in `generateProgress`.
+- **How Vision Lab renders (after Batch A):** `loadImageForPreview` keeps the full export in `originalImageRef` and a copy ≤ `MAX_PREVIEW_SIDE` (1200px) in `previewSourceRef`. A redraw effect calls `renderVisionLab(..., scale)` at most once per animation frame and draws into the visible `previewCanvasRef`. Pixel settings are multiplied by `scale` (the `pixelScale` parameter in image-utils) so the preview matches the export. "Add current view to Figma" runs `renderVisionLab` on the full-size image with scale 1. `code.ts` debounces selection (150 ms) and drops superseded previews (`latestPreviewRequest`).
 - **Notes for whoever resumes:** Work on branch `sandbox`. **Don't merge into `master` or push:** all changes stay on `sandbox` until they are published to the Figma Community; merge to `master` after publishing (decided 2026-11-09). Each item is one commit whose message starts with its number, e.g. `feat(0.1): …`, so `git log --oneline` shows exactly what's done. Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build` and `npm run typecheck` to check a change (typecheck should report no errors).
 
 ---
@@ -36,9 +37,9 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | Phase                        | Items | Done |
 | ---------------------------- | ----- | ---- |
 | 0. Quick wins                | 13    | 13   |
-| 1. Correctness bugs          | 8     | 5    |
+| 1. Correctness bugs          | 8     | 6    |
 | 2. Simulation accuracy       | 4     | 0    |
-| 3. Performance               | 8     | 1    |
+| 3. Performance               | 8     | 4    |
 | 4. Storage                   | 3     | 0    |
 | 5. Code health               | 9     | 3    |
 | 6. UX & plugin accessibility | 6     | 1    |
@@ -80,6 +81,18 @@ Small, low-risk changes, done first and in this order. Several come from later p
   - [x] Vision Lab: **Add current view to Figma** → frame appears in the same row as the Quick simulations of that layer, at the right size.
   - [x] Delete all simulations of a layer, then add one → it goes right next to the design again.
 
+## Batch tests (needs you)
+
+Run `npm run build`, then test in Figma desktop. Tick each check as it passes; write what went wrong next to any that fail.
+
+- [ ] **Batch A — smooth Vision Lab**
+  - [ ] Large frame (e.g. 1440 px wide or bigger): moving any slider updates the preview smoothly, without lag building up.
+  - [ ] The preview looks right: same framing as before, sharp enough at 100%. (At 400% zoom it can be softer than before; say if that bothers you.)
+  - [ ] For blur, ghosting, central and peripheral loss, and a preset with blur (e.g. Advanced Cataracts): the frame from **Add current view to Figma** looks like the preview (same strength of effect).
+  - [ ] **Add current view to Figma** on a large frame shows "Adding to Figma..." while it works, and the frame is full quality.
+  - [ ] Click quickly through several layers: the preview ends up showing the last one you selected, not an earlier one.
+  - [ ] Small layer (e.g. a button): preview and Add to Figma still work as before.
+
 ## Phase 1 — Correctness bugs
 
 - [x] 🔴 **1.1 Fix frame placement for nested nodes.** Generated and exported frames are placed with `node.x`/`node.y`, which are measured from the parent, but the frames are added to the page. Use `absoluteBoundingBox` (or `absoluteTransform`) instead.
@@ -94,7 +107,7 @@ Small, low-risk changes, done first and in this order. Several come from later p
 - [ ] 🟠 **1.6 Correct pixel-based parameters for the 2× export.** Blur radius and ghosting offset are applied to a 2× image, so they come out at half the size the labels claim. Multiply by the export scale.
 - [ ] 🟠 **1.7 Stop re-attaching the message listener on every render.** The effect depends on `processFilterForGenerate`, which is a new function each render. Stabilise it with `useCallback` or a ref to remove the stale-closure risk.
   - [MainView.tsx:375](../src/components/views/MainView.tsx#L375)
-- [ ] 🟠 **1.8 Ignore stale previews.** Tag each preview request with an ID (or the node ID) and drop responses that arrive after a newer selection.
+- [x] 🟠 **1.8 Ignore stale previews.** Tag each preview request with an ID (or the node ID) and drop responses that arrive after a newer selection.
 
 ## Phase 2 — Simulation accuracy
 
@@ -107,11 +120,11 @@ Small, low-risk changes, done first and in this order. Several come from later p
 
 ## Phase 3 — Performance
 
-- [ ] 🔴 **3.1 Downscale the Vision Lab preview.** Process at about 2× the panel width using the existing, unused `calculatePreviewDimensions` and `resizeImageData` (or canvas `drawImage` scaling). Keep full resolution only for "Add to Figma".
+- [x] 🔴 **3.1 Downscale the Vision Lab preview.** Process at about 2× the panel width using the existing, unused `calculatePreviewDimensions` and `resizeImageData` (or canvas `drawImage` scaling). Keep full resolution only for "Add to Figma".
 - [ ] 🔴 **3.2 Move image processing into a Web Worker** using `OffscreenCanvas`, so the UI stays responsive.
-- [ ] 🟠 **3.3 Debounce selection changes and slider input.**
+- [x] 🟠 **3.3 Debounce selection changes and slider input.**
 - [ ] 🟠 **3.4 Use a faster blur.** Replace the Gaussian loop with a box-blur or stack-blur approximation, whose cost doesn't grow with the radius.
-- [ ] 🟠 **3.5 Draw straight into a visible `<canvas>`.** This avoids re-encoding a PNG with `toDataURL()` on every slider tick.
+- [x] 🟠 **3.5 Draw straight into a visible `<canvas>`.** This avoids re-encoding a PNG with `toDataURL()` on every slider tick.
 - [x] 🟠 **3.6 Remove `figma.loadAllPagesAsync()`.** No `documentchange` handler needs it, it isn't awaited, and it's slow in large files.
   - [code.ts:6](../src/code.ts#L6)
 - [ ] 🟢 **3.7 Cache exported images by node ID** so switching back to a node doesn't export it again. Clear a node's entry when the node changes. _(impl.md)_
