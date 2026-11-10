@@ -15,10 +15,10 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
-- **Working on:** 9.1 Community assets (icon options, cover, slides, description)
-- **Next step:** 9.1 Community assets; then the cleanup batch (1.6 tick, 1.7, 2.3, 5.8) and 9.3 docs
-- **Last completed:** 6.8 zoom and pan inside the preview; 6.4 resizable window reverted at the user's request (2026-11-10). Before that 6.2, 6.3, 6.5, 7.16, 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
-- **In progress / half done:** 9.1. Plan (one commit per step): (1) shared styles + 4 icon options + icon renders; (2) a sample design page and `make-lib.mjs`, which bundles the plugin's filter modules for the browser; (3) cover with real plugin windows (Quick simulation light, Vision Lab dark with a preset loaded, answered by `src/window.js`); (4) 4 slides; (5) description.md + README.md; `npm run community` script.
+- **Working on:** release prep: 9.2 final icon (user), 9.3 README + current docs, 9.4 version bump; cleanup batch (1.6 tick, 1.7, 2.3, 5.8). Open Figma test groups: Batch A/B/C, v2, reference, stack polish (keyboard), keyboard
+- **Next step:** user reviews the community assets; then the cleanup batch and 9.3 docs
+- **Last completed:** 9.1 community assets (2026-11-10). Before that 6.8 zoom/pan, 6.4 reverted, 6.2, 6.3, 6.5, 7.16, 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
+- **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -50,7 +50,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | 6. UX & plugin accessibility | 8     | 7    |
 | 7. New features              | 15    | 4    |
 | 8. Documentation accuracy    | 9     | 0    |
-| 9. Community release         | 4     | 0    |
+| 9. Community release         | 4     | 1    |
 
 ---
 
@@ -273,8 +273,8 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 
 Everything needed to publish on the Figma Community. Assets live in `documentation/community/` (same approach as desi-ipsum and the Indian user data generator: HTML/CSS sources rendered to PNG with headless Edge by `render.mjs`).
 
-- [ ] 🔴 **9.1 Community assets.** 4 icon options (128 px to upload, 512 px preview, overview sheet at 64/32/16 px on light and dark), a 1920×960 cover with the real plugin UI, 4 carousel slides (1920×1080), and `description.md` (tagline options, tags, full description to paste). Simulated images come from the plugin's own filter code run on a sample design, so they show real output (requested 2026-11-10).
-- [ ] 🟠 **9.2 Pick the icon** (user) and set it in the plugin/README; re-render the cover and slides with it (`npm run community -- --icon N`).
+- [x] 🔴 **9.1 Community assets.** 4 icon options (128 px to upload, 512 px preview, overview sheet at 64/32/16 px on light and dark), a 1920×960 cover with the real plugin UI, 4 carousel slides (1920×1080), and `description.md` (tagline options, tags, full description to paste). Simulated images come from the plugin's own filter code run on a sample design, so they show real output (requested 2026-11-10). Done 2026-11-10: 8 icon options (5–8 after the original dot-eye icon), cover, 4 slides, description.md, README; `npm run community`.
+- [ ] 🟠 **9.2 Pick the icon** (user) and set it in the plugin/README; re-render the cover and slides with it (`npm run community -- --icon N`). Cover and slides use option 8 (dot iris) for now (user, 2026-11-10); final pick still open.
 - [ ] 🟠 **9.3 Docs for release:** README, and implementation.md rewritten to describe the plugin as it is now (covers Phase 8).
 - [ ] 🟠 **9.4 Version bump** in package.json, and a short changelog of what's new.
 
