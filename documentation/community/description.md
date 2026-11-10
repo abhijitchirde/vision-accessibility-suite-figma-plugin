@@ -80,6 +80,16 @@ These simulations are approximations for design and learning. They can't show ex
 
 ---
 
+## Version notes (when publishing this update)
+
+Figma asks for a short note when you publish a new version. For 2.0:
+
+---
+
+Big update: stack simulations in Vision Lab and save them as presets, "Add all simulations" in one click, and color blindness now uses the Machado (2009) model in linear RGB for more accurate results. Also: presets saved to your account, zoom and pan in the preview, light and dark mode, keyboard access, and fixes for placement, large designs and performance.
+
+---
+
 ## Images to upload
 
 | Field | File |
