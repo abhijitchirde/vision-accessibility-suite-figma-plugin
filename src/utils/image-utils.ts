@@ -22,8 +22,6 @@ import {
   FilterPreset,
 } from "./vision-simulator.types";
 import {
-  DEFAULT_BLUR_CONFIG,
-  DEFAULT_GHOSTING_CONFIG,
   DEFAULT_YELLOWING_CONFIG,
   DEFAULT_CONTRAST_LOSS_CONFIG,
   DEFAULT_BRIGHT_LIGHT_CONFIG,
@@ -180,7 +178,7 @@ export function applyBlur(
   imageData: Uint8ClampedArray,
   width: number,
   height: number,
-  config: BlurConfig = DEFAULT_BLUR_CONFIG
+  config: BlurConfig
 ): Uint8ClampedArray {
   const { radius, iterations = 1 } = config;
   let result = new Uint8ClampedArray(imageData) as Uint8ClampedArray;
@@ -315,7 +313,7 @@ export function applyGhosting(
   imageData: Uint8ClampedArray,
   width: number,
   height: number,
-  config: GhostingConfig = DEFAULT_GHOSTING_CONFIG
+  config: GhostingConfig
 ): Uint8ClampedArray {
   const { offset, opacity } = config;
   const result = new Uint8ClampedArray(imageData);
@@ -827,8 +825,14 @@ export function calculatePreviewDimensions(
 }
 
 /**
- * Scale a blur radius for an image that is `scale` times the full export
- * size. Keeps at least 1px so a downscaled preview still shows some blur.
+ * Export scale the plugin normally uses (2x); filter settings that are tuned
+ * in pixels assume an image at this scale.
+ */
+export const REFERENCE_EXPORT_SCALE = 2;
+
+/**
+ * Convert a blur radius to image pixels (`scale` = image pixels per unit of
+ * `radius`). Keeps at least 1px so a downscaled preview still shows blur.
  */
 export function scaleBlurRadius(radius: number, scale: number): number {
   if (radius <= 0) return 0;
@@ -840,9 +844,10 @@ export function scaleBlurRadius(radius: number, scale: number): number {
  * function that implements it. Quick simulation, Vision Lab and presets all
  * go through here.
  *
- * Pixel values in the config (blur radius, ghosting offset, visual-field
- * radius) are in pixels of a 2x export of the design; `pixelScale` converts
- * them to this image's pixels (e.g. 0.4 for a downscaled preview).
+ * Config units are preset format v2: blur radius and ghosting offset in
+ * design pixels, visual field radius as a percentage of the image's smaller
+ * side. `pixelScale` is this image's pixels per design pixel: 2 for a
+ * normal 2x export, less for a downscaled preview or a very large design.
  *
  * @returns New image data (the input is not modified)
  */
@@ -851,9 +856,14 @@ export function applyFilterConfig(
   width: number,
   height: number,
   filter: CompleteFilterConfig,
-  pixelScale: number = 1
+  pixelScale: number = REFERENCE_EXPORT_SCALE
 ): Uint8ClampedArray {
   const px = (value: number) => value * pixelScale;
+  // Percentage of the image's smaller side, in this image's pixels
+  const fieldRadius = (percent: number) =>
+    (percent / 100) * Math.min(width, height);
+  // The visual field filters' own blur is tuned for a 2x export
+  const fieldBlurScale = pixelScale / REFERENCE_EXPORT_SCALE;
 
   switch (filter.type) {
     case "protanopia":
@@ -887,16 +897,22 @@ export function applyFilterConfig(
         imageData,
         width,
         height,
-        { ...filter.config, radius: px(filter.config.radius) },
-        pixelScale
+        {
+          radius: fieldRadius(filter.config.radiusPercent),
+          severity: filter.config.severity,
+        },
+        fieldBlurScale
       );
     case "peripheral-vision-loss":
       return applyPeripheralVisionLoss(
         imageData,
         width,
         height,
-        { ...filter.config, tunnelRadius: px(filter.config.tunnelRadius) },
-        pixelScale
+        {
+          tunnelRadius: fieldRadius(filter.config.radiusPercent),
+          severity: filter.config.severity,
+        },
+        fieldBlurScale
       );
     default:
       // Unknown type (e.g. from a hand-edited file): leave the image as is
@@ -915,7 +931,7 @@ export function applyFilterPreset(
   width: number,
   height: number,
   preset: FilterPreset,
-  pixelScale: number = 1
+  pixelScale: number = REFERENCE_EXPORT_SCALE
 ): Uint8ClampedArray {
   let result: Uint8ClampedArray = new Uint8ClampedArray(imageData);
   for (const filter of preset.filters) {

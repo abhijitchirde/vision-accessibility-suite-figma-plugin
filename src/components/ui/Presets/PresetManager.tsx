@@ -118,6 +118,7 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
   const handleCopyTemplate = () => {
     const template = `[
   {
+    "version": 2,
     "id": "custom-preset-1",
     "name": "My Custom Preset",
     "description": "Description of what this preset simulates",
@@ -125,7 +126,7 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
       {
         "type": "blurred",
         "config": {
-          "radius": 8,
+          "radius": 4,
           "iterations": 2
         }
       },
@@ -317,6 +318,12 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
                 <span className="json-bracket">{"{"}</span>
                 {"\n"}
                 {"    "}
+                <span className="json-key">"version"</span>
+                <span className="json-punct">:</span>{" "}
+                <span className="json-number">2</span>
+                <span className="json-punct">,</span>
+                {"\n"}
+                {"    "}
                 <span className="json-key">"id"</span>
                 <span className="json-punct">:</span>{" "}
                 <span className="json-string">"custom-preset-1"</span>
@@ -358,7 +365,7 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
                 {"          "}
                 <span className="json-key">"radius"</span>
                 <span className="json-punct">:</span>{" "}
-                <span className="json-number">8</span>
+                <span className="json-number">4</span>
                 <span className="json-punct">,</span>
                 {"\n"}
                 {"          "}

@@ -30,7 +30,7 @@ import {
   DEFAULT_PRESETS,
 } from "../../utils/vision-simulator.constants";
 import {
-  exportPixelFactor,
+  imagePixelsPerDesignPixel,
   renderQuickSimulation,
   renderVisionLab,
   VisionLabSettings,
@@ -91,12 +91,12 @@ function loadPngImage(bytes: Uint8Array): Promise<HTMLImageElement> {
 /**
  * Apply one Quick simulation filter, with its default settings, and return
  * the result as PNG bytes. `pixelScale` scales pixel-based settings (see
- * exportPixelFactor).
+ * imagePixelsPerDesignPixel).
  */
 async function renderQuickSimulationPng(
   img: HTMLImageElement,
   filter: SimulationType,
-  pixelScale: number = 1
+  pixelScale: number = 2
 ): Promise<Uint8Array> {
   const canvas = document.createElement("canvas");
   canvas.width = img.width;
@@ -187,10 +187,11 @@ export const MainView: React.FC<{}> = ({}) => {
   const [exporting, setExporting] = useState(false);
 
   // Other filter parameters
-  const [blurRadius, setBlurRadius] = useState<number>(8);
+  // Blur radius and ghosting offsets are in design pixels
+  const [blurRadius, setBlurRadius] = useState<number>(4);
   const [blurIterations, setBlurIterations] = useState<number>(2);
-  const [ghostingOffsetX, setGhostingOffsetX] = useState<number>(10);
-  const [ghostingOffsetY, setGhostingOffsetY] = useState<number>(5);
+  const [ghostingOffsetX, setGhostingOffsetX] = useState<number>(5);
+  const [ghostingOffsetY, setGhostingOffsetY] = useState<number>(2.5);
   const [ghostingOpacity, setGhostingOpacity] = useState<number>(0.5);
   const [yellowingIntensity, setYellowingIntensity] = useState<number>(0.6);
   const [yellowingTemperature, setYellowingTemperature] =
@@ -214,7 +215,7 @@ export const MainView: React.FC<{}> = ({}) => {
   const originalImageRef = useRef<HTMLImageElement | null>(null); // full-size export
   const previewSourceRef = useRef<ImagePixels | null>(null); // downscaled pixels
   const renderFrameRef = useRef<number | null>(null); // pending redraw
-  const exportPixelFactorRef = useRef(1); // see exportPixelFactor
+  const pixelsPerDesignPixelRef = useRef(2); // see imagePixelsPerDesignPixel
 
   const { sendMessage } = useFigmaMessage();
 
@@ -299,7 +300,7 @@ export const MainView: React.FC<{}> = ({}) => {
         const png = await renderQuickSimulationPng(
           img,
           filter,
-          exportPixelFactor(exported.exportScale)
+          imagePixelsPerDesignPixel(exported.exportScale)
         );
 
         const applied = waitForPluginMessage("VISION_SIMULATOR_IMAGE_APPLIED");
@@ -493,10 +494,10 @@ export const MainView: React.FC<{}> = ({}) => {
     try {
       const img = await loadPngImage(imageData);
       originalImageRef.current = img;
-      exportPixelFactorRef.current = exportPixelFactor(exportScale);
+      pixelsPerDesignPixelRef.current = imagePixelsPerDesignPixel(exportScale);
       const preview = getImagePixels(img, MAX_PREVIEW_SIDE);
-      // Pixel settings scale with both the preview downscale and the export scale
-      preview.scale *= exportPixelFactorRef.current;
+      // Preview pixels per design pixel = downscale × export scale
+      preview.scale *= pixelsPerDesignPixelRef.current;
       previewSourceRef.current = preview;
       setHasPreview(true);
       setImageVersion((v) => v + 1);
@@ -619,7 +620,7 @@ export const MainView: React.FC<{}> = ({}) => {
         full.width,
         full.height,
         settings,
-        exportPixelFactorRef.current
+        pixelsPerDesignPixelRef.current
       );
 
       const canvas = document.createElement("canvas");
@@ -892,9 +893,9 @@ export const MainView: React.FC<{}> = ({}) => {
                         label="Blur Radius"
                         value={blurRadius}
                         onChange={setBlurRadius}
-                        min={1}
-                        max={30}
-                        step={1}
+                        min={0.5}
+                        max={15}
+                        step={0.5}
                         unit="px"
                         description="Blur strength (higher = more blur)"
                       />
@@ -920,8 +921,8 @@ export const MainView: React.FC<{}> = ({}) => {
                         value={ghostingOffsetX}
                         onChange={setGhostingOffsetX}
                         min={0}
-                        max={30}
-                        step={1}
+                        max={15}
+                        step={0.5}
                         unit="px"
                         description="Ghost image horizontal displacement"
                       />
@@ -930,8 +931,8 @@ export const MainView: React.FC<{}> = ({}) => {
                         value={ghostingOffsetY}
                         onChange={setGhostingOffsetY}
                         min={0}
-                        max={30}
-                        step={1}
+                        max={15}
+                        step={0.5}
                         unit="px"
                         description="Ghost image vertical displacement"
                       />

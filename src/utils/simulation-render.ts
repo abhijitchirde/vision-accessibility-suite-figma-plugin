@@ -27,26 +27,13 @@ import {
 import { applyFilterConfig, applyFilterPreset } from "./image-utils";
 
 /**
- * Pixel-based settings (blur radius, ghosting offset, ...) are tuned for a
- * 2x export. Very large designs are exported at a lower scale to stay under
- * Figma's image size limit; this is the factor to scale those settings by.
+ * Image pixels per design pixel for an exported design: the export scale
+ * (2x normally; less for very large designs, to stay under Figma's image
+ * size limit). Filter settings are in design pixels and use this to
+ * convert.
  */
-export function exportPixelFactor(exportScale: number | undefined): number {
-  return exportScale ? exportScale / IMAGE_EXPORT_SETTINGS.constraint.value : 1;
-}
-
-/**
- * The visual-field defaults are tuned for a 500px image; this keeps the
- * effect the same relative size on any image. Returned in 2x-export pixels
- * (the unit filter configs use), hence the division by pixelScale.
- */
-function relativeRadius(
-  defaultRadius: number,
-  width: number,
-  height: number,
-  pixelScale: number
-): number {
-  return ((defaultRadius / 500) * Math.min(width, height)) / pixelScale;
+export function imagePixelsPerDesignPixel(exportScale: number | undefined): number {
+  return exportScale ?? IMAGE_EXPORT_SETTINGS.constraint.value;
 }
 
 /**
@@ -54,10 +41,7 @@ function relativeRadius(
  * for "original".
  */
 export function quickSimulationConfig(
-  filter: SimulationType,
-  width: number,
-  height: number,
-  pixelScale: number = 1
+  filter: SimulationType
 ): CompleteFilterConfig | null {
   if (COLOR_BLIND_FILTERS.includes(filter)) {
     // No severity: type-appropriate default (complete = 1.0, anomalies = 0.6)
@@ -75,21 +59,9 @@ export function quickSimulationConfig(
     case "bright-light":
       return { type: "bright-light", config: DEFAULT_BRIGHT_LIGHT_CONFIG };
     case "central-vision-loss":
-      return {
-        type: "central-vision-loss",
-        config: {
-          radius: relativeRadius(DEFAULT_CENTRAL_VISION_LOSS_CONFIG.radius, width, height, pixelScale),
-          severity: DEFAULT_CENTRAL_VISION_LOSS_CONFIG.severity,
-        },
-      };
+      return { type: "central-vision-loss", config: DEFAULT_CENTRAL_VISION_LOSS_CONFIG };
     case "peripheral-vision-loss":
-      return {
-        type: "peripheral-vision-loss",
-        config: {
-          tunnelRadius: relativeRadius(DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG.tunnelRadius, width, height, pixelScale),
-          severity: DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG.severity,
-        },
-      };
+      return { type: "peripheral-vision-loss", config: DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG };
     default:
       return null;
   }
@@ -97,16 +69,17 @@ export function quickSimulationConfig(
 
 /**
  * Apply one Quick simulation filter with its default settings.
- * `pixelScale` scales pixel-based settings (see exportPixelFactor).
+ * `pixelScale` is image pixels per design pixel (see
+ * imagePixelsPerDesignPixel).
  */
 export function renderQuickSimulation(
   source: Uint8ClampedArray,
   width: number,
   height: number,
   filter: SimulationType,
-  pixelScale: number = 1
+  pixelScale: number = IMAGE_EXPORT_SETTINGS.constraint.value
 ): Uint8ClampedArray {
-  const config = quickSimulationConfig(filter, width, height, pixelScale);
+  const config = quickSimulationConfig(filter);
   return config
     ? applyFilterConfig(source, width, height, config, pixelScale)
     : source;
@@ -119,9 +92,12 @@ export interface VisionLabSettings {
   severity: number;
   /** Visual field radius as a fraction of the image's smaller side */
   radius: number;
+  /** Design pixels */
   blurRadius: number;
   blurIterations: number;
+  /** Design pixels */
   ghostingOffsetX: number;
+  /** Design pixels */
   ghostingOffsetY: number;
   ghostingOpacity: number;
   yellowingIntensity: number;
@@ -133,21 +109,16 @@ export interface VisionLabSettings {
 
 /**
  * Filter config for the Vision Lab single-simulation settings, or null for
- * "original". Pixel values come out in 2x-export pixels (see
- * applyFilterConfig); `scale` is this image's size relative to that.
+ * "original".
  */
 export function visionLabConfig(
-  s: VisionLabSettings,
-  width: number,
-  height: number,
-  scale: number
+  s: VisionLabSettings
 ): CompleteFilterConfig | null {
   const filter = s.filter;
   if (COLOR_BLIND_FILTERS.includes(filter)) {
     return { type: filter as ColorBlindnessType, severity: s.severity };
   }
-  // The radius slider is a fraction of the image's smaller side
-  const fieldRadius = (s.radius * Math.min(width, height)) / scale;
+  const radiusPercent = s.radius * 100;
   switch (filter) {
     case "blurred":
       return {
@@ -183,12 +154,12 @@ export function visionLabConfig(
     case "central-vision-loss":
       return {
         type: "central-vision-loss",
-        config: { radius: fieldRadius, severity: s.severity },
+        config: { radiusPercent, severity: s.severity },
       };
     case "peripheral-vision-loss":
       return {
         type: "peripheral-vision-loss",
-        config: { tunnelRadius: fieldRadius, severity: s.severity },
+        config: { radiusPercent, severity: s.severity },
       };
     default:
       return null;
@@ -196,10 +167,9 @@ export function visionLabConfig(
 }
 
 /**
- * Apply the Vision Lab filter or preset. `scale` is the image size relative
- * to the full export; pixel-based settings are scaled by it so the
- * downscaled preview matches what "Add current view to Figma" produces.
- * Returns the input unchanged for "original" with no preset.
+ * Apply the Vision Lab filter or preset. `scale` is image pixels per design
+ * pixel, so the downscaled preview matches what "Add current view to Figma"
+ * produces. Returns the input unchanged for "original" with no preset.
  */
 export function renderVisionLab(
   source: Uint8ClampedArray,
@@ -211,6 +181,6 @@ export function renderVisionLab(
   if (s.preset) {
     return applyFilterPreset(source, width, height, s.preset, scale);
   }
-  const config = visionLabConfig(s, width, height, scale);
+  const config = visionLabConfig(s);
   return config ? applyFilterConfig(source, width, height, config, scale) : source;
 }

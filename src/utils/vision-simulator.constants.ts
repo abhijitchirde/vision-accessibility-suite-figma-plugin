@@ -17,21 +17,22 @@ import {
   YellowingConfig,
   ContrastLossConfig,
   BrightLightConfig,
-  CentralVisionLossConfig,
-  PeripheralVisionLossConfig,
+  VisualFieldPresetConfig,
 } from "./vision-simulator.types";
 
 /**
- * Default configurations for other visual impairments
+ * Default settings for Quick simulation and new Vision Lab simulations.
+ * Units follow preset format v2: blur radius and ghosting offset in design
+ * pixels, visual field radius as a percentage of the design's smaller side.
  */
 
 export const DEFAULT_BLUR_CONFIG: BlurConfig = {
-  radius: 8, // 8px blur radius (moderate blur)
+  radius: 4, // 4 design px (moderate blur)
   iterations: 2, // Apply blur twice for smoother effect
 };
 
 export const DEFAULT_GHOSTING_CONFIG: GhostingConfig = {
-  offset: { x: 10, y: 5 }, // Ghost offset in pixels
+  offset: { x: 5, y: 2.5 }, // Ghost offset in design px
   opacity: 0.5, // 50% opacity for ghost image
 };
 
@@ -50,23 +51,22 @@ export const DEFAULT_BRIGHT_LIGHT_CONFIG: BrightLightConfig = {
 };
 
 /**
- * Default central vision loss configuration (macular degeneration)
+ * Default central vision loss (macular degeneration): affected area of 30%
+ * of the design's smaller side
  */
-export const DEFAULT_CENTRAL_VISION_LOSS_CONFIG: CentralVisionLossConfig = {
-  radius: 150, // 150px radius of affected center area
+export const DEFAULT_CENTRAL_VISION_LOSS_CONFIG: VisualFieldPresetConfig = {
+  radiusPercent: 30,
   severity: 0.8, // 80% severity (significant center vision loss)
 };
 
 /**
- * Default peripheral vision loss configuration (glaucoma/tunnel vision)
- *
- * For generate mode: Uses smaller radius to ensure visible darkening
+ * Default peripheral vision loss (glaucoma/tunnel vision): clear centre of
+ * 12% of the design's smaller side (small, so the darkening is visible)
  */
-export const DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG: PeripheralVisionLossConfig =
-  {
-    tunnelRadius: 60, // 60px radius of clear center area (small for visible effect)
-    severity: 0.8, // 80% severity (strong peripheral darkening for clear demonstration)
-  };
+export const DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG: VisualFieldPresetConfig = {
+  radiusPercent: 12,
+  severity: 0.8, // 80% severity (strong peripheral darkening for clear demonstration)
+};
 
 /**
  * Default severity levels for partial color vision deficiencies
@@ -361,11 +361,12 @@ export const DEFAULT_PRESETS: FilterPreset[] = [
     name: "Advanced Cataracts",
     description: "Severe cataracts: heavy blur, yellowing, and contrast loss",
     isBuiltIn: true,
+    version: 2,
     filters: [
       {
         type: "blurred",
         config: {
-          radius: 15,
+          radius: 7.5, // design px
           iterations: 3,
         },
       },
@@ -390,11 +391,12 @@ export const DEFAULT_PRESETS: FilterPreset[] = [
     description:
       "Typical age-related vision changes: mild blur, yellowing, and slight contrast loss",
     isBuiltIn: true,
+    version: 2,
     filters: [
       {
         type: "blurred",
         config: {
-          radius: 4,
+          radius: 2, // design px
           iterations: 1,
         },
       },
@@ -419,11 +421,12 @@ export const DEFAULT_PRESETS: FilterPreset[] = [
     description:
       "Advanced aging: high blur, yellowing, contrast loss, and central vision degradation",
     isBuiltIn: true,
+    version: 2,
     filters: [
       {
         type: "blurred",
         config: {
-          radius: 10,
+          radius: 5, // design px
           iterations: 2,
         },
       },
@@ -443,7 +446,7 @@ export const DEFAULT_PRESETS: FilterPreset[] = [
       {
         type: "central-vision-loss",
         config: {
-          radius: 120,
+          radiusPercent: 24, // % of the design's smaller side
           severity: 0.4,
         },
       },
@@ -455,6 +458,7 @@ export const DEFAULT_PRESETS: FilterPreset[] = [
     description:
       "Bright sunlight conditions: intense brightness, washout, and glare",
     isBuiltIn: true,
+    version: 2,
     filters: [
       {
         type: "bright-light",
@@ -476,6 +480,7 @@ export const DEFAULT_PRESETS: FilterPreset[] = [
     name: "Night Vision",
     description: "Low-light conditions: reduced contrast and mild blur",
     isBuiltIn: true,
+    version: 2,
     filters: [
       {
         type: "loss-of-contrast",
@@ -486,7 +491,7 @@ export const DEFAULT_PRESETS: FilterPreset[] = [
       {
         type: "blurred",
         config: {
-          radius: 3,
+          radius: 1.5, // design px
           iterations: 1,
         },
       },

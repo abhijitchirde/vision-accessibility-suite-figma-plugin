@@ -226,23 +226,43 @@ export type OtherFilterConfig =
   | { type: "bright-light"; config: BrightLightConfig };
 
 /**
+ * Visual field settings in a filter config (preset format v2):
+ * `radiusPercent` is a percentage of the design's smaller side, so the
+ * effect covers the same share of a button or a full page. For central
+ * loss it's the affected area; for peripheral loss, the clear centre.
+ */
+export interface VisualFieldPresetConfig {
+  radiusPercent: number; // 0-100
+  severity: number; // 0-1
+}
+
+/**
  * Complete filter configuration that can represent any filter type
- * with its parameters. Used by the preset system.
+ * with its parameters. Used by presets, Quick simulation and Vision Lab.
+ *
+ * Units (preset format v2): blur `radius` and ghosting `offset` are in
+ * design pixels; visual field radius is a percentage (radiusPercent).
+ * applyFilterConfig converts them to the pixels of the image it filters.
  */
 export type CompleteFilterConfig =
   | { type: ColorBlindnessType; severity?: number } // default: 1.0 for -opia, 0.6 for -omaly
-  | { type: "central-vision-loss"; config: CentralVisionLossConfig }
-  | { type: "peripheral-vision-loss"; config: PeripheralVisionLossConfig }
+  | { type: "central-vision-loss"; config: VisualFieldPresetConfig }
+  | { type: "peripheral-vision-loss"; config: VisualFieldPresetConfig }
   | { type: "blurred"; config: BlurConfig }
   | { type: "ghosting"; config: GhostingConfig }
   | { type: "yellowing"; config: YellowingConfig }
   | { type: "loss-of-contrast"; config: ContrastLossConfig }
   | { type: "bright-light"; config: BrightLightConfig };
 
+/** Current preset file format (see CompleteFilterConfig for units) */
+export const PRESET_FORMAT_VERSION = 2;
+
 /**
  * Filter preset - a named collection of filters applied sequentially
  */
 export interface FilterPreset {
+  /** Preset format; missing means 1 (pixel units of a 2x export) */
+  version?: number;
   id: string; // Unique identifier
   name: string; // Display name (e.g., "Advanced Cataracts")
   description: string; // Brief description of what this preset simulates
