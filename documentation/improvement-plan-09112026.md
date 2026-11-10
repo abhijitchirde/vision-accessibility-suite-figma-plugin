@@ -16,9 +16,9 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
 - **Working on:** Batch C — presets per user (4.1 + 4.2 + 4.3), then 5.1 one filter registry, then Phase 8 doc fixes. 3.2 (Web Worker) moved last: the preview is already small, and a worker needs extra webpack setup to inline into Figma's single-file UI. Batch A/B Figma tests still open (needs you)
-- **Next step:** 4.1 Store custom presets per user
-- **Last completed:** 1.9 large-design fix (2026-11-10), after Batch B (2.1 + 2.2) and Batch A (3.1, 3.5, 3.3, 1.8). All build; not yet tested in Figma
-- **In progress / half done:** 4.1 + 4.2. Plan: `code.ts` reads/writes presets and the selected preset with `figma.clientStorage` (keys `customPresets`, `selectedPresetId`). On load, presets still saved in the document (old key `vision-simulator-presets`) are merged in once; their ids go into `importedLegacyPresetIds` so a deleted preset isn't imported again. Document data is left untouched.
+- **Next step:** 5.1 One filter registry
+- **Last completed:** Batch C (4.1, 4.2, 4.3), 2026-11-10. Before that 1.9, Batch B, Batch A. All build; Batch A/B/C not yet fully tested in Figma
+- **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -29,6 +29,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
   - "Add all simulations" (0.4) sends `GENERATE { filters: ALL_QUICK_FILTERS }`; progress is tracked in `generateProgress`.
 - **How Vision Lab renders (after Batch A):** `loadImageForPreview` keeps the full export in `originalImageRef` and a copy ≤ `MAX_PREVIEW_SIDE` (1200px) in `previewSourceRef`. A redraw effect calls `renderVisionLab(..., scale)` at most once per animation frame and draws into the visible `previewCanvasRef`. Pixel settings are multiplied by `scale` (the `pixelScale` parameter in image-utils) so the preview matches the export. "Add current view to Figma" runs `renderVisionLab` on the full-size image with scale 1. `code.ts` debounces selection (150 ms) and drops superseded previews (`latestPreviewRequest`).
 - **Color blindness (after Batch B):** `applyColorBlindness` (image-utils.ts) converts sRGB → linear with lookup tables, applies `getColorBlindnessMatrix(type, severity)`, converts back. Matrices are in `machado-matrices.ts` (Machado 2009, severity steps 0.0–1.0, interpolated); achromatopsia = Rec. 709 luminance. Transcription checked: all 90 matrix rows sum to 1 and steps are smooth; worth one comparison against the paper's published table before release.
+- **Presets (after Batch C):** `src/services/preset-store.ts` saves custom presets (`customPresets`) and the selected preset (`selectedPresetId`) in `figma.clientStorage`. Presets found in a file's old plugin data (`vision-simulator-presets`) are imported once; seen ids are kept in `importedLegacyPresetIds`. `src/utils/preset-validation.ts` (`validatePreset`, `sanitizePresets`) checks imports and stored data.
 - **Notes for whoever resumes:** Work on branch `sandbox`. **Don't merge into `master` or push:** all changes stay on `sandbox` until they are published to the Figma Community; merge to `master` after publishing (decided 2026-11-09). Each item is one commit whose message starts with its number, e.g. `feat(0.1): …`, so `git log --oneline` shows exactly what's done. Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build` and `npm run typecheck` to check a change (typecheck should report no errors).
 
 ---
@@ -41,7 +42,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | 1. Correctness bugs          | 9     | 7    |
 | 2. Simulation accuracy       | 4     | 2    |
 | 3. Performance               | 8     | 4    |
-| 4. Storage                   | 3     | 0    |
+| 4. Storage                   | 3     | 3    |
 | 5. Code health               | 9     | 3    |
 | 6. UX & plugin accessibility | 6     | 1    |
 | 7. New features              | 12    | 0    |
@@ -94,6 +95,12 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
   - [ ] Click quickly through several layers: the preview ends up showing the last one you selected, not an earlier one.
   - [ ] Small layer (e.g. a button): preview and Add to Figma still work as before.
   - [x] **Very large design** (wider or taller than 2048 px, e.g. a long landing page): Vision Lab "Add current view to Figma" and Quick simulation (one card and "Add all") work without "Image is too large". The new frame is the same size as the design; blur and ghosting look about as strong as on a smaller design. (Very large designs come out at lower resolution; that's Figma's image limit.) ✅ 2026-11-10
+- [ ] **Batch C — presets per user**
+  - [ ] Import a preset file, then open a **different** Figma file: the preset is there too.
+  - [ ] Open a file where you made presets with the old version: a toast says they were imported, and they appear. Delete one, close and reopen the plugin: it stays deleted.
+  - [ ] Select a preset, close and reopen the plugin (also in another file): the same preset is selected. Clear it, reopen: nothing is selected.
+  - [ ] In a file you can only view: presets load and the selected preset is remembered.
+  - [ ] Import a broken file (e.g. a filter with `"radius": 5000`, or a missing `config`): you get a message saying what's wrong, and nothing is imported.
 - [ ] **Batch B — accurate color blindness**
   - [ ] Every color-blind simulation looks different from before (expected), and greys, black and white look unchanged.
   - [ ] Protanopia: reds look dark olive/brown. Deuteranopia: reds look olive/brown, greens beige. Tritanopia: blues look teal, greens look cyan-ish.
@@ -142,9 +149,9 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 
 ## Phase 4 — Storage
 
-- [ ] 🔴 **4.1 Store custom presets per user with `figma.clientStorage`.** They currently live on the document via `figma.root.setPluginData`, so they don't follow the user to other files and fail in view-only files. Migrate any presets already stored on the document.
-- [ ] 🟠 **4.2 Store the selected preset in `clientStorage` too.**
-- [ ] 🟠 **4.3 Validate imported presets fully.** Check each filter's `type` and `config` shape; a missing `config` currently crashes when it's destructured.
+- [x] 🔴 **4.1 Store custom presets per user with `figma.clientStorage`.** They currently live on the document via `figma.root.setPluginData`, so they don't follow the user to other files and fail in view-only files. Migrate any presets already stored on the document.
+- [x] 🟠 **4.2 Store the selected preset in `clientStorage` too.**
+- [x] 🟠 **4.3 Validate imported presets fully.** Check each filter's `type` and `config` shape; a missing `config` currently crashes when it's destructured.
   - [PresetManager.tsx:65-80](../src/components/ui/Presets/PresetManager.tsx#L65-L80)
 
 ## Phase 5 — Code health
