@@ -14,9 +14,26 @@ import {
   PLUGIN_DATA_KEYS,
   IMAGE_EXPORT_SETTINGS,
   DEFAULT_COPY_SPACING,
+  MAX_EXPORT_SIDE_TARGET,
 } from './vision-simulator.constants';
 
 export class VisionSimulator {
+  /**
+   * Export scale for a node: 2x when it fits, otherwise the largest scale
+   * that keeps the image within Figma's 4096px image limit (so very large
+   * designs are exported, and simulated, at lower resolution).
+   */
+  getExportScale(node: SceneNode): number {
+    const bounds =
+      ('absoluteRenderBounds' in node && node.absoluteRenderBounds) ||
+      this.getAbsoluteBox(node);
+    const longestSide = Math.max(bounds.width, bounds.height, 1);
+    return Math.min(
+      IMAGE_EXPORT_SETTINGS.constraint.value,
+      MAX_EXPORT_SIDE_TARGET / longestSide
+    );
+  }
+
   /**
    * Export a node as an image for simulation
    *
@@ -34,7 +51,10 @@ export class VisionSimulator {
     }
 
     try {
-      const imageData = await node.exportAsync(IMAGE_EXPORT_SETTINGS);
+      const imageData = await node.exportAsync({
+        format: IMAGE_EXPORT_SETTINGS.format,
+        constraint: { type: 'SCALE', value: this.getExportScale(node) },
+      });
       return imageData;
     } catch (error) {
       console.error(`Failed to export node ${node.name}:`, error);
@@ -153,9 +173,20 @@ export class VisionSimulator {
     }
     const sourceNode = source as SceneNode;
 
-    const image = figma.createImage(imageData);
+    let image: Image;
+    try {
+      image = figma.createImage(imageData);
+    } catch (error) {
+      // Shouldn't happen now that exports stay under the limit, but give a
+      // clearer message than Figma's if it does
+      if (String(error).includes('too large')) {
+        throw new Error('This design is too large for Figma to store as one image');
+      }
+      throw error;
+    }
     const size = await image.getSizeAsync();
-    const scale = IMAGE_EXPORT_SETTINGS.constraint.value;
+    // Same scale the source was exported at, so the frame matches its size
+    const scale = this.getExportScale(sourceNode);
 
     const container = this.getSimulationContainer(sourceNode);
     const position = this.getNextSimulationPosition(sourceNode, container);
@@ -229,6 +260,8 @@ export class VisionSimulator {
     width: number;
     height: number;
     nodeName: string;
+    /** Scale the image was exported at (2, or less for very large designs) */
+    exportScale: number;
   } | null> {
     const node = await figma.getNodeByIdAsync(nodeId);
     if (!node || node.type === 'PAGE' || node.type === 'DOCUMENT') {
@@ -249,6 +282,7 @@ export class VisionSimulator {
       width,
       height,
       nodeName: node.name,
+      exportScale: this.getExportScale(node as SceneNode),
     };
   }
 }

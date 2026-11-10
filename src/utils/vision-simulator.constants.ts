@@ -323,6 +323,14 @@ export const IMAGE_EXPORT_SETTINGS = {
 };
 
 /**
+ * Figma can't store images larger than 4096px on a side ("Image is too
+ * large"). Designs that would exceed this at 2x are exported at a lower
+ * scale; the target leaves a little room for rounding and effects.
+ */
+export const MAX_IMAGE_SIDE = 4096;
+export const MAX_EXPORT_SIDE_TARGET = 4000;
+
+/**
  * Canvas copy label settings
  */
 export const LABEL_SETTINGS = {

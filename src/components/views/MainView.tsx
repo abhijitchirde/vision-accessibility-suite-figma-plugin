@@ -35,6 +35,9 @@ import {
   DEFAULT_CENTRAL_VISION_LOSS_CONFIG,
   DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG,
   DEFAULT_PRESETS,
+  DEFAULT_BLUR_CONFIG,
+  DEFAULT_GHOSTING_CONFIG,
+  IMAGE_EXPORT_SETTINGS,
 } from "../../utils/vision-simulator.constants";
 import {
   applyColorBlindness,
@@ -102,12 +105,23 @@ function loadPngImage(bytes: Uint8Array): Promise<HTMLImageElement> {
 }
 
 /**
+ * Pixel-based settings (blur radius, ghosting offset, ...) are tuned for a
+ * 2x export. Very large designs are exported at a lower scale to stay under
+ * Figma's image size limit; this is the factor to scale those settings by.
+ */
+function exportPixelFactor(exportScale: number | undefined): number {
+  return exportScale ? exportScale / IMAGE_EXPORT_SETTINGS.constraint.value : 1;
+}
+
+/**
  * Apply one Quick simulation filter, with its default settings, and return
- * the result as PNG bytes.
+ * the result as PNG bytes. `pixelScale` scales pixel-based settings (see
+ * exportPixelFactor).
  */
 async function renderQuickSimulationPng(
   img: HTMLImageElement,
-  filter: SimulationType
+  filter: SimulationType,
+  pixelScale: number = 1
 ): Promise<Uint8Array> {
   const canvas = document.createElement("canvas");
   canvas.width = img.width;
@@ -124,9 +138,19 @@ async function renderQuickSimulationPng(
     // Type-appropriate default severity (complete = 1.0, anomalies = 0.6)
     filtered = applyColorBlindness(source, filter as ColorBlindnessType);
   } else if (filter === "blurred") {
-    filtered = applyBlur(source, width, height);
+    filtered = applyBlur(source, width, height, {
+      ...DEFAULT_BLUR_CONFIG,
+      radius: scaleBlurRadius(DEFAULT_BLUR_CONFIG.radius, pixelScale),
+    });
   } else if (filter === "ghosting") {
-    filtered = applyGhosting(source, width, height);
+    const { offset } = DEFAULT_GHOSTING_CONFIG;
+    filtered = applyGhosting(source, width, height, {
+      ...DEFAULT_GHOSTING_CONFIG,
+      offset: {
+        x: Math.round(offset.x * pixelScale),
+        y: Math.round(offset.y * pixelScale),
+      },
+    });
   } else if (filter === "yellowing") {
     filtered = applyYellowing(source);
   } else if (filter === "loss-of-contrast") {
@@ -137,18 +161,31 @@ async function renderQuickSimulationPng(
     // Scale the radius with the image so the effect looks the same at any size
     // (default radii are tuned for a 500px image)
     const imageSize = Math.min(width, height);
-    filtered = applyCentralVisionLoss(source, width, height, {
-      radius: (DEFAULT_CENTRAL_VISION_LOSS_CONFIG.radius / 500) * imageSize,
-      severity: DEFAULT_CENTRAL_VISION_LOSS_CONFIG.severity,
-    });
+    filtered = applyCentralVisionLoss(
+      source,
+      width,
+      height,
+      {
+        radius: (DEFAULT_CENTRAL_VISION_LOSS_CONFIG.radius / 500) * imageSize,
+        severity: DEFAULT_CENTRAL_VISION_LOSS_CONFIG.severity,
+      },
+      pixelScale
+    );
   } else if (filter === "peripheral-vision-loss") {
     // Same scaling as central vision loss
     const imageSize = Math.min(width, height);
-    filtered = applyPeripheralVisionLoss(source, width, height, {
-      tunnelRadius:
-        (DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG.tunnelRadius / 500) * imageSize,
-      severity: DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG.severity,
-    });
+    filtered = applyPeripheralVisionLoss(
+      source,
+      width,
+      height,
+      {
+        tunnelRadius:
+          (DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG.tunnelRadius / 500) *
+          imageSize,
+        severity: DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG.severity,
+      },
+      pixelScale
+    );
   }
 
   ctx.putImageData(new ImageData(filtered as any, width, height), 0, 0);
@@ -349,6 +386,7 @@ export const MainView: React.FC<{}> = ({}) => {
   const originalImageRef = useRef<HTMLImageElement | null>(null); // full-size export
   const previewSourceRef = useRef<ImagePixels | null>(null); // downscaled pixels
   const renderFrameRef = useRef<number | null>(null); // pending redraw
+  const exportPixelFactorRef = useRef(1); // see exportPixelFactor
 
   const { sendMessage } = useFigmaMessage();
 
@@ -420,7 +458,7 @@ export const MainView: React.FC<{}> = ({}) => {
   const runQuickSimulations = async (
     sourceNodeId: string,
     filters: SimulationType[],
-    exported: { imageData: Uint8Array }
+    exported: { imageData: Uint8Array; exportScale?: number }
   ) => {
     try {
       const img = await loadPngImage(exported.imageData);
@@ -430,7 +468,11 @@ export const MainView: React.FC<{}> = ({}) => {
         if (filters.length > 1) {
           setGenerateProgress({ done: i, total: filters.length });
         }
-        const png = await renderQuickSimulationPng(img, filter);
+        const png = await renderQuickSimulationPng(
+          img,
+          filter,
+          exportPixelFactor(exported.exportScale)
+        );
 
         const applied = waitForPluginMessage("VISION_SIMULATOR_IMAGE_APPLIED");
         sendMessage("VISION_SIMULATOR_APPLY_FILTERED_IMAGE", {
@@ -484,7 +526,7 @@ export const MainView: React.FC<{}> = ({}) => {
       } else if (msg?.type === "VISION_SIMULATOR_PREVIEW_DATA") {
         if (msg.success && msg.data) {
           setError(null);
-          loadImageForPreview(msg.data.imageData);
+          loadImageForPreview(msg.data.imageData, msg.data.exportScale);
         } else if (msg.error === null) {
           // No selection, clear preview
           clearPreview();
@@ -616,11 +658,18 @@ export const MainView: React.FC<{}> = ({}) => {
    * Load an exported design into the preview: keep the full-size image for
    * "Add to Figma", and a downscaled copy for the live preview.
    */
-  const loadImageForPreview = async (imageData: Uint8Array) => {
+  const loadImageForPreview = async (
+    imageData: Uint8Array,
+    exportScale?: number
+  ) => {
     try {
       const img = await loadPngImage(imageData);
       originalImageRef.current = img;
-      previewSourceRef.current = getImagePixels(img, MAX_PREVIEW_SIDE);
+      exportPixelFactorRef.current = exportPixelFactor(exportScale);
+      const preview = getImagePixels(img, MAX_PREVIEW_SIDE);
+      // Pixel settings scale with both the preview downscale and the export scale
+      preview.scale *= exportPixelFactorRef.current;
+      previewSourceRef.current = preview;
       setHasPreview(true);
       setImageVersion((v) => v + 1);
     } catch (err) {
@@ -742,7 +791,7 @@ export const MainView: React.FC<{}> = ({}) => {
         full.width,
         full.height,
         settings,
-        1
+        exportPixelFactorRef.current
       );
 
       const canvas = document.createElement("canvas");
