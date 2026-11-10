@@ -18,7 +18,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 - **Working on:** Figma testing of today's batches (needs you); then 7.16 stack polish, 3.2 Web Worker, Phase 6 accessibility and Phase 8 docs
 - **Next step:** run the "Batch tests" checklist in Figma (needs you). Code-wise next: 7.16 Stack polish
 - **Last completed:** 7.13 in-plugin preset reference (2026-11-10). Before that 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
-- **In progress / half done:** —
+- **In progress / half done:** 6.7 Vision Lab scrollbar and slim scrollbars
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -47,7 +47,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | 3. Performance               | 8     | 4    |
 | 4. Storage                   | 3     | 3    |
 | 5. Code health               | 9     | 4    |
-| 6. UX & plugin accessibility | 6     | 1    |
+| 6. UX & plugin accessibility | 7     | 1    |
 | 7. New features              | 15    | 3    |
 | 8. Documentation accuracy    | 9     | 0    |
 
@@ -205,6 +205,7 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 - [ ] 🟠 **6.4 Fix the window height.** 770px doesn't fit on many laptops; make it shorter or resizable.
 - [ ] 🟢 **6.5 Make zoom scrollable.** It uses `transform: scale()` with no scroll container, so a zoomed preview gets cut off.
 - [ ] 🟢 **6.6 Show feedback while a Quick simulation is generating**, and a clear message when the selection can't be exported.
+- [ ] 🟠 **6.7 No needless scrollbar in Vision Lab; slim scrollbars everywhere.** Vision Lab reserved space for the "Add current view" bar twice (80px preview margin + 56px padding) even when the bar is hidden, so an empty Vision Lab scrolled. Reserve 56px only while the bar shows. Use the QR code generator's slim rounded scrollbar for the whole plugin (found in testing 2026-11-10).
 
 ## Phase 7 — New features
 
