@@ -15,10 +15,10 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
-- **Working on:** Phase 6 plugin accessibility (6.2–6.5). Batch A/B/C, v2, reference and stack-polish Figma tests not yet confirmed
-- **Next step:** 6.5 Scrollable zoom, then 6.4 resizable window, then tick 6.6
-- **Last completed:** 6.2 tabs and 6.3 labels/keyboard (2026-11-10); rename fixes (no forms; full-width field). Before that 7.16, 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
-- **In progress / half done:** 6.4 resizable window: `components/ui/ResizeHandle.tsx` (bottom-right grip, pointer drag using screen coordinates, arrow keys ±20px) sends `resize-window` {width,height}; code.ts clamps to 320–800 × 480–1200, calls figma.ui.resize, saves to clientStorage `windowSize` on `save-window-size`, restores it on start. Default stays 360×770.
+- **Working on:** Phase 6 done. Remaining: Phase 8 docs, 3.2 Web Worker, low-priority items (2.3, 2.4, 3.7, 3.8, 5.6, 5.8, 5.9, 7.x). Batch A/B/C, v2, reference, keyboard, zoom and window Figma tests not all confirmed
+- **Next step:** Figma tests for today's batches (needs you); code-wise next: Phase 8 doc fixes
+- **Last completed:** Phase 6 plugin accessibility: 6.2, 6.3, 6.4, 6.5 (6.6 already covered), 2026-11-10. Before that 7.16, 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
+- **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -47,7 +47,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | 3. Performance               | 8     | 4    |
 | 4. Storage                   | 3     | 3    |
 | 5. Code health               | 9     | 4    |
-| 6. UX & plugin accessibility | 7     | 4    |
+| 6. UX & plugin accessibility | 7     | 7    |
 | 7. New features              | 15    | 4    |
 | 8. Documentation accuracy    | 9     | 0    |
 
@@ -146,6 +146,11 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
   - [ ] Dropdowns (Start from, + Add a simulation): ↓ opens with the current option focused, ↑ / ↓ / Home / End move, Enter picks, Esc closes back to the dropdown.
   - [ ] Every slider can be reached with Tab and changed with the arrow keys.
 
+- [ ] **Zoom and window size**
+  - [ ] Vision Lab zoom 200% / 400%: the preview area scrolls horizontally and vertically and you can reach every edge; 100% looks as before.
+  - [ ] Drag the grip in the bottom-right corner: the window resizes (not smaller than 320×480 or larger than 800×1200); layout still fits at small and large sizes.
+  - [ ] Close and reopen the plugin: it opens at the size you left it. Tab to the grip and use the arrow keys: it resizes in steps.
+
 ## Phase 1 — Correctness bugs
 
 - [x] 🔴 **1.1 Fix frame placement for nested nodes.** Generated and exported frames are placed with `node.x`/`node.y`, which are measured from the parent, but the frames are added to the page. Use `absoluteBoundingBox` (or `absoluteTransform`) instead.
@@ -217,9 +222,9 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 - [x] 🟠 **6.1 Use Figma's theme.** Pass `themeColors: true` to `showUI` and use Figma's CSS variables. Remove the hard-coded `get-theme` → `"light"` handler and the manual toggle.
 - [x] 🟠 **6.2 Make the tabs accessible:** `role="tablist"` / `role="tab"`, `aria-selected`, and arrow-key navigation.
 - [x] 🟠 **6.3 Give sliders accessible labels**, and give the preview image alt text that names the active filter.
-- [ ] 🟠 **6.4 Fix the window height.** 770px doesn't fit on many laptops; make it shorter or resizable.
-- [ ] 🟢 **6.5 Make zoom scrollable.** It uses `transform: scale()` with no scroll container, so a zoomed preview gets cut off.
-- [ ] 🟢 **6.6 Show feedback while a Quick simulation is generating**, and a clear message when the selection can't be exported.
+- [x] 🟠 **6.4 Fix the window height.** 770px doesn't fit on many laptops; make it shorter or resizable.
+- [x] 🟢 **6.5 Make zoom scrollable.** It uses `transform: scale()` with no scroll container, so a zoomed preview gets cut off.
+- [x] 🟢 **6.6 Show feedback while a Quick simulation is generating**, and a clear message when the selection can't be exported. Covered by 0.3/0.4: cards show a generating state, "Add all" shows progress, and failures (no selection, export failed) show a toast.
 - [x] 🟠 **6.7 No needless scrollbar in Vision Lab; slim scrollbars everywhere.** Vision Lab reserved space for the "Add current view" bar twice (80px preview margin + 56px padding) even when the bar is hidden, so an empty Vision Lab scrolled. Reserve 56px only while the bar shows. Use the QR code generator's slim rounded scrollbar for the whole plugin (found in testing 2026-11-10).
 
 ## Phase 7 — New features
