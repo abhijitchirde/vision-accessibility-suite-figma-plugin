@@ -153,6 +153,51 @@
   color: var(--figma-color-text-danger);
 }
 
+/* Inline rename of a custom preset: the name field gets its own full-width
+   line (the action icons are hidden meanwhile), Save/Cancel below it */
+.preset-manager__rename {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.preset-manager__rename-input {
+  flex: 1 1 100%;
+  min-width: 120px;
+  box-sizing: border-box;
+  height: 28px;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--figma-color-text);
+  background-color: var(--figma-color-bg);
+  border: 1px solid var(--figma-color-border-brand);
+  border-radius: 3px;
+}
+
+.preset-manager__rename-input:focus {
+  outline: none;
+}
+
+.preset-manager__rename-btn {
+  height: 26px;
+  padding: 0 8px;
+  font-family: inherit;
+  font-size: 11px;
+  color: var(--figma-color-text);
+  background-color: var(--figma-color-bg-secondary);
+  border: 1px solid var(--figma-color-border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.preset-manager__rename-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .preset-manager__actions {
   margin-top: 20px;
   display: flex;
@@ -270,18 +315,31 @@
   white-space: pre;
 }
 
-/* JSON Syntax Highlighting */
+/* JSON syntax highlighting (light/dark aware) */
+:root {
+  --json-key: #0b62b8;
+  --json-string: #1b7f3b;
+  --json-number: #a65200;
+}
+
+html.figma-dark:not([data-theme="light"]),
+html[data-theme="dark"] {
+  --json-key: #7cc4f8;
+  --json-string: #7fd99a;
+  --json-number: #f2a65a;
+}
+
 .preset-manager__template-code .json-key {
-  color: #0066cc;
+  color: var(--json-key);
   font-weight: 500;
 }
 
 .preset-manager__template-code .json-string {
-  color: #008000;
+  color: var(--json-string);
 }
 
 .preset-manager__template-code .json-number {
-  color: #b85c00;
+  color: var(--json-number);
 }
 
 .preset-manager__template-code .json-bracket {
@@ -299,4 +357,68 @@
   margin: 0;
   line-height: 1.6;
   font-style: italic;
+}
+
+/* Filter reference (generated from PRESET_FILTER_SPEC) */
+.preset-manager__reference {
+  margin: 0 0 10px 0;
+  border: 1px solid var(--figma-color-border);
+  border-radius: 4px;
+  background: var(--figma-color-bg);
+}
+
+.preset-manager__reference-summary {
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--figma-color-text);
+  cursor: pointer;
+}
+
+.preset-manager__reference[open] .preset-manager__reference-summary {
+  border-bottom: 1px solid var(--figma-color-border);
+}
+
+.preset-manager__reference > .preset-manager__template-description {
+  margin: 8px 10px;
+}
+
+.preset-manager__reference code {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 10px;
+  color: var(--json-key);
+}
+
+.preset-manager__reference-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 10px 8px;
+}
+
+.preset-manager__reference-item {
+  padding: 8px 0;
+  border-top: 1px solid var(--figma-color-border);
+}
+
+.preset-manager__reference-item:first-child {
+  border-top: none;
+}
+
+.preset-manager__reference-types {
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.preset-manager__reference-about {
+  font-size: 11px;
+  color: var(--figma-color-text-secondary);
+  margin: 2px 0 4px;
+}
+
+.preset-manager__reference-settings {
+  margin: 0;
+  padding-left: 14px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--figma-color-text-secondary);
 }

@@ -101,21 +101,3 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
-/* Scrollbar styling for menu */
-.preset-dropdown__menu::-webkit-scrollbar {
-  width: 8px;
-}
-
-.preset-dropdown__menu::-webkit-scrollbar-track {
-  background: var(--figma-color-bg-secondary);
-}
-
-.preset-dropdown__menu::-webkit-scrollbar-thumb {
-  background: var(--figma-color-border);
-  border-radius: 4px;
-}
-
-.preset-dropdown__menu::-webkit-scrollbar-thumb:hover {
-  background: var(--figma-color-border-brand);
-}

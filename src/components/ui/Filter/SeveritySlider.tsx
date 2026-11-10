@@ -5,7 +5,7 @@
  * to 100% (complete dichromacy). Includes preset buttons for common severity levels.
  */
 
-import React from "react";
+import React, { useId } from "react";
 import "./SeveritySlider.css";
 
 export interface SeveritySliderProps {
@@ -37,6 +37,7 @@ export const SeveritySlider: React.FC<SeveritySliderProps> = ({
   disabled = false,
   showPercentage = true,
 }) => {
+  const id = useId();
   const percentage = Math.round(value * 100);
 
   const handleSliderChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,7 +59,9 @@ export const SeveritySlider: React.FC<SeveritySliderProps> = ({
   return (
     <div className="severity-slider">
       <div className="severity-slider__header">
-        <label className="severity-slider__label">{label}</label>
+        <label className="severity-slider__label" htmlFor={id}>
+          {label}
+        </label>
         <p className="severity-slider__description">
           {getSeverityDescription()}
         </p>
@@ -81,12 +84,9 @@ export const SeveritySlider: React.FC<SeveritySliderProps> = ({
           value={value}
           onChange={handleSliderChange}
           disabled={disabled}
+          id={id}
           className="severity-slider__slider"
-          aria-label={label}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={percentage}
-          aria-valuetext={`${percentage}% - ${getSeverityDescription()}`}
+          aria-valuetext={`${percentage} percent, ${getSeverityDescription()}`}
         />
         <div className="severity-slider__track-labels">
           <span className="severity-slider__track-label">Normal</span>

@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Vision Accessibility Suite cover</title>
+    <link rel="stylesheet" href="shared.css" />
+    <link rel="stylesheet" href="icons.css" />
+    <link rel="stylesheet" href="window.css" />
+    <style>
+      .canvas {
+        width: 1920px;
+        height: 960px;
+        background: radial-gradient(60% 85% at 88% 45%, #efedff 0%, rgba(239, 237, 255, 0) 62%),
+          radial-gradient(45% 70% at 0% 100%, #e7f8ef 0%, rgba(231, 248, 239, 0) 62%), var(--paper);
+      }
+
+      /* Faint halftone dot field, like the dot-eye icons */
+      .dots {
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(circle, rgba(76, 61, 242, 0.12) 1.6px, transparent 2px);
+        background-size: 34px 34px;
+        -webkit-mask-image: radial-gradient(70% 80% at 30% 40%, #000 0%, transparent 75%);
+        mask-image: radial-gradient(70% 80% at 30% 40%, #000 0%, transparent 75%);
+      }
+
+      .left {
+        position: absolute;
+        left: 140px;
+        top: 120px;
+        width: 1000px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 34px;
+      }
+      .brand .icon-wrap {
+        box-shadow: 0 18px 40px rgba(43, 29, 158, 0.25);
+      }
+      .wordmark {
+        font: 800 86px/0.98 var(--sans);
+        letter-spacing: -0.035em;
+      }
+      .tagline {
+        margin: 44px 0 0;
+        font: 400 62px/1.1 var(--serif);
+        color: var(--ink-2);
+        letter-spacing: -0.01em;
+      }
+      .tagline em {
+        font-style: italic;
+        color: var(--brand);
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 9px;
+        margin-top: 42px;
+        width: 940px;
+      }
+      .chips span {
+        font: 600 21px/1 var(--sans);
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid var(--line);
+        color: var(--ink-2);
+      }
+      .chips span.group {
+        background: var(--brand-tint);
+        border-color: #dfdcff;
+        color: var(--brand);
+      }
+      .extras {
+        margin-top: 32px;
+        font: 600 24px/1.4 var(--sans);
+        color: var(--ink-3);
+      }
+      .extras b {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .windows {
+        position: absolute;
+        left: 1150px;
+        top: 40px;
+        width: 740px;
+        height: 900px;
+      }
+      .windows .pw {
+        position: absolute;
+      }
+      .footer {
+        position: absolute;
+        left: 140px;
+        bottom: 64px;
+        font: 600 22px/1 var(--sans);
+        color: var(--ink-3);
+        letter-spacing: 0.01em;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 1920×960 Figma Community cover. Query: ?icon=1..8 -->
+    <div class="canvas" id="canvas">
+      <div class="dots"></div>
+      <div class="left">
+        <div class="brand" id="brand"><div class="wordmark">Vision<br />Accessibility Suite</div></div>
+        <p class="tagline">See your design<br />through <em>other people's eyes.</em></p>
+        <div class="chips">
+          <span class="group">Color blindness</span>
+          <span>Protanopia</span><span>Deuteranopia</span><span>Tritanopia</span><span>Achromatopsia</span>
+          <span>…and the partial -omaly types</span>
+          <span class="group">Low vision</span>
+          <span>Central loss</span><span>Tunnel vision</span><span>Blur</span><span>Double vision</span>
+          <span>Yellowing</span><span>Low contrast</span><span>Bright light</span>
+        </div>
+        <div class="extras">
+          <b>Quick simulation</b> · <b>Vision Lab stacks</b> · <b>Presets</b> · <b>Machado (2009) color model</b>
+        </div>
+      </div>
+      <div class="windows" id="windows"></div>
+      <div class="footer">For Figma Design · Simulations are approximations, not a medical tool</div>
+    </div>
+
+    <script src="lib/filters.js"></script>
+    <script src="icons.js"></script>
+    <script src="sim.js"></script>
+    <script src="window.js"></script>
+    <script>
+      const icon = Number(new URLSearchParams(location.search).get("icon") || 8);
+      document.getElementById("brand").prepend(renderIcon(icon, 168, { rounded: true }));
+
+      // Two real plugin windows: Quick simulation (light) behind, Vision Lab (dark) in front
+      // with "Aging Vision (65+)" loaded and the sample design in the preview
+      const wins = document.getElementById("windows");
+      const quick = pluginWindow({ theme: "light", icon, scale: 1.0, tab: "quick", height: 770 });
+      Object.assign(quick.style, { left: "360px", top: "0px" });
+      const lab = pluginWindow({ theme: "dark", icon, scale: 1.0, tab: "lab", preset: "aging-vision-65", height: 770 });
+      Object.assign(lab.style, { left: "0px", top: "60px" });
+      wins.append(quick, lab);
+    </script>
+  </body>
+</html>

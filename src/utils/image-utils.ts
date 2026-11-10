@@ -18,54 +18,26 @@ import {
   BrightLightConfig,
   CentralVisionLossConfig,
   PeripheralVisionLossConfig,
+  CompleteFilterConfig,
+  FilterPreset,
 } from "./vision-simulator.types";
 import {
-  TRANSFORMATION_MATRICES,
-  DEFAULT_BLUR_CONFIG,
-  DEFAULT_GHOSTING_CONFIG,
   DEFAULT_YELLOWING_CONFIG,
   DEFAULT_CONTRAST_LOSS_CONFIG,
   DEFAULT_BRIGHT_LIGHT_CONFIG,
   DEFAULT_ANOMALY_SEVERITY,
 } from "./vision-simulator.constants";
 import { ColorBlindnessType } from "./vision-simulator.types";
+import {
+  MachadoDeficiency,
+  getMachadoMatrix,
+  lerpMatrix,
+  ACHROMATOPSIA_LINEAR_MATRIX,
+} from "./machado-matrices";
 
 /**
- * Map partial color vision deficiency (anomaly) to its base dichromacy type
- *
- * Anomalies use the same transformation matrices as their complete counterparts,
- * but with reduced severity (< 1.0).
- *
- * @param type - Color blindness type (dichromacy or anomaly)
- * @returns Base dichromacy type for matrix lookup
- */
-function getBaseDichromacyType(
-  type: ColorBlindnessType
-): "protanopia" | "deuteranopia" | "tritanopia" | "achromatopsia" {
-  switch (type) {
-    case "protanomaly":
-      return "protanopia";
-    case "deuteranomaly":
-      return "deuteranopia";
-    case "tritanomaly":
-      return "tritanopia";
-    default:
-      // Already a dichromacy type, return as-is
-      return type as
-        | "protanopia"
-        | "deuteranopia"
-        | "tritanopia"
-        | "achromatopsia";
-  }
-}
-
-/**
- * Get default severity for a color blindness type
- *
- * Dichromacy types default to 1.0 (complete), anomaly types use configured defaults.
- *
- * @param type - Color blindness type
- * @returns Default severity (0-1)
+ * Default severity for a color blindness type: 1.0 for the complete forms
+ * (-opia), the configured default for the partial forms (-omaly).
  */
 function getDefaultSeverity(type: ColorBlindnessType): number {
   switch (type) {
@@ -74,150 +46,117 @@ function getDefaultSeverity(type: ColorBlindnessType): number {
     case "tritanomaly":
       return DEFAULT_ANOMALY_SEVERITY[type];
     default:
-      return 1.0; // Complete dichromacy
+      return 1.0;
+  }
+}
+
+/** Which Machado deficiency a color blindness type uses (null = achromatopsia) */
+function getMachadoDeficiency(type: ColorBlindnessType): MachadoDeficiency | null {
+  switch (type) {
+    case "protanopia":
+    case "protanomaly":
+      return "protan";
+    case "deuteranopia":
+    case "deuteranomaly":
+      return "deutan";
+    case "tritanopia":
+    case "tritanomaly":
+      return "tritan";
+    default:
+      return null;
   }
 }
 
 /**
- * Interpolate between identity matrix (normal vision) and dichromacy matrix
- *
- * This enables simulation of partial color vision deficiencies (anomalous trichromacy)
- * by linearly interpolating between normal vision and complete color blindness.
- *
- * @param severity - Severity level (0-1, where 0 = normal vision, 1 = complete dichromacy)
- * @param dichromacyMatrix - Target transformation matrix for complete color blindness
- * @returns Interpolated transformation matrix
- *
- * @example
- * // Mild deuteranomaly (30% severity)
- * const mildMatrix = interpolateColorMatrix(0.3, DEUTERANOPIA_MATRIX);
- *
- * // Moderate deuteranomaly (60% severity)
- * const moderateMatrix = interpolateColorMatrix(0.6, DEUTERANOPIA_MATRIX);
- *
- * // Complete deuteranopia (100% severity)
- * const completeMatrix = interpolateColorMatrix(1.0, DEUTERANOPIA_MATRIX);
+ * The 3×3 matrix (for linear RGB) that simulates a type at a severity.
+ * Exported for tests and tools.
  */
-export function interpolateColorMatrix(
-  severity: number,
-  dichromacyMatrix: TransformationMatrix
+export function getColorBlindnessMatrix(
+  type: ColorBlindnessType,
+  severity: number
 ): TransformationMatrix {
-  // Clamp severity to [0, 1]
-  const s = Math.max(0, Math.min(1, severity));
+  const deficiency = getMachadoDeficiency(type);
+  if (deficiency) return getMachadoMatrix(deficiency, severity);
 
-  // Identity matrix (normal vision)
-  const identityMatrix: TransformationMatrix = [
+  // Achromatopsia: blend from normal vision to luminance only
+  const s = Math.max(0, Math.min(1, severity));
+  const identity: TransformationMatrix = [
     [1, 0, 0],
     [0, 1, 0],
     [0, 0, 1],
   ];
-
-  // Linear interpolation: result = identity * (1 - s) + dichromacy * s
-  return [
-    [
-      identityMatrix[0][0] * (1 - s) + dichromacyMatrix[0][0] * s,
-      identityMatrix[0][1] * (1 - s) + dichromacyMatrix[0][1] * s,
-      identityMatrix[0][2] * (1 - s) + dichromacyMatrix[0][2] * s,
-    ],
-    [
-      identityMatrix[1][0] * (1 - s) + dichromacyMatrix[1][0] * s,
-      identityMatrix[1][1] * (1 - s) + dichromacyMatrix[1][1] * s,
-      identityMatrix[1][2] * (1 - s) + dichromacyMatrix[1][2] * s,
-    ],
-    [
-      identityMatrix[2][0] * (1 - s) + dichromacyMatrix[2][0] * s,
-      identityMatrix[2][1] * (1 - s) + dichromacyMatrix[2][1] * s,
-      identityMatrix[2][2] * (1 - s) + dichromacyMatrix[2][2] * s,
-    ],
-  ];
+  return lerpMatrix(identity, ACHROMATOPSIA_LINEAR_MATRIX, s);
 }
 
 /**
- * Apply a color transformation matrix to an RGB color
- *
- * Formula: [R', G', B'] = Matrix × [R, G, B]
- *
- * @param color - RGB color (0-255)
- * @param matrix - 3x3 transformation matrix
- * @returns Transformed RGB color
+ * sRGB ↔ linear RGB conversion. Color-blindness matrices must be applied to
+ * linear light, not to the gamma-encoded 0–255 values stored in images.
+ * Both directions use lookup tables so the per-pixel cost stays low.
  */
-export function applyColorMatrix(
-  color: RGB,
-  matrix: TransformationMatrix
-): RGB {
-  const r = color.r / 255;
-  const g = color.g / 255;
-  const b = color.b / 255;
+const SRGB_TO_LINEAR = new Float32Array(256);
+for (let i = 0; i < 256; i++) {
+  const c = i / 255;
+  SRGB_TO_LINEAR[i] =
+    c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
 
-  const r2 = matrix[0][0] * r + matrix[0][1] * g + matrix[0][2] * b;
-  const g2 = matrix[1][0] * r + matrix[1][1] * g + matrix[1][2] * b;
-  const b2 = matrix[2][0] * r + matrix[2][1] * g + matrix[2][2] * b;
+/** Linear value (0–1, quantised to 1/LINEAR_STEPS) → sRGB byte */
+const LINEAR_STEPS = 4095;
+const LINEAR_TO_SRGB = new Uint8ClampedArray(LINEAR_STEPS + 1);
+for (let i = 0; i <= LINEAR_STEPS; i++) {
+  const c = i / LINEAR_STEPS;
+  const encoded =
+    c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+  LINEAR_TO_SRGB[i] = Math.round(encoded * 255);
+}
 
-  // Clamp values to [0, 1] and convert back to [0, 255]
-  return {
-    r: Math.round(Math.max(0, Math.min(1, r2)) * 255),
-    g: Math.round(Math.max(0, Math.min(1, g2)) * 255),
-    b: Math.round(Math.max(0, Math.min(1, b2)) * 255),
-  };
+function linearToSrgbByte(value: number): number {
+  if (value <= 0) return 0;
+  if (value >= 1) return 255;
+  return LINEAR_TO_SRGB[Math.round(value * LINEAR_STEPS)];
 }
 
 /**
  * Apply color blindness simulation to image data
  *
- * Supports both complete dichromacy and partial color vision deficiencies (anomalous trichromacy).
- * Anomaly types (protanomaly, deuteranomaly, tritanomaly) automatically use appropriate severity.
+ * Uses the Machado et al. (2009) model for protan, deutan and tritan
+ * deficiencies at any severity, applied in linear RGB. Severity 1.0 is the
+ * complete form (-opia); lower values are the partial forms (-omaly).
+ * Achromatopsia uses Rec. 709 luminance.
  *
  * @param imageData - Uint8ClampedArray in RGBA format
  * @param type - Type of color blindness (dichromacy or anomaly)
- * @param severity - Optional severity override (0-1). If not provided, uses type-appropriate default.
- * @returns Modified image data
+ * @param severity - Optional severity (0-1). If not provided, uses the type's default.
+ * @returns New image data (the input is not modified)
  *
  * @example
- * // Complete deuteranopia (dichromacy) - uses severity 1.0
- * applyColorBlindness(imageData, 'deuteranopia');
- *
- * // Moderate deuteranomaly (anomaly) - uses default severity 0.6
- * applyColorBlindness(imageData, 'deuteranomaly');
- *
- * // Custom severity for any type
- * applyColorBlindness(imageData, 'deuteranopia', 0.3); // Mild
- * applyColorBlindness(imageData, 'protanomaly', 0.9);  // Severe
+ * applyColorBlindness(imageData, 'deuteranopia');       // complete, severity 1.0
+ * applyColorBlindness(imageData, 'deuteranomaly');      // default severity 0.6
+ * applyColorBlindness(imageData, 'protanomaly', 0.3);   // mild
  */
 export function applyColorBlindness(
   imageData: Uint8ClampedArray,
   type: ColorBlindnessType,
   severity?: number
 ): Uint8ClampedArray {
-  // Use provided severity, or get type-appropriate default
   const effectiveSeverity =
     severity !== undefined ? severity : getDefaultSeverity(type);
+  const m = getColorBlindnessMatrix(type, effectiveSeverity);
 
-  // Get the base dichromacy type for matrix lookup
-  const baseDichromacyType = getBaseDichromacyType(type);
-  const baseMatrix = TRANSFORMATION_MATRICES[baseDichromacyType];
-
-  // If severity is 1.0 (complete dichromacy), use the base matrix directly for performance
-  // Otherwise, interpolate between identity and dichromacy matrix
-  const matrix =
-    effectiveSeverity === 1.0
-      ? baseMatrix
-      : interpolateColorMatrix(effectiveSeverity, baseMatrix);
+  const m00 = m[0][0], m01 = m[0][1], m02 = m[0][2];
+  const m10 = m[1][0], m11 = m[1][1], m12 = m[1][2];
+  const m20 = m[2][0], m21 = m[2][1], m22 = m[2][2];
 
   const result = new Uint8ClampedArray(imageData.length);
 
-  // Process each pixel
   for (let i = 0; i < imageData.length; i += 4) {
-    const color: RGB = {
-      r: imageData[i],
-      g: imageData[i + 1],
-      b: imageData[i + 2],
-    };
+    const r = SRGB_TO_LINEAR[imageData[i]];
+    const g = SRGB_TO_LINEAR[imageData[i + 1]];
+    const b = SRGB_TO_LINEAR[imageData[i + 2]];
 
-    const transformed = applyColorMatrix(color, matrix);
-
-    result[i] = transformed.r;
-    result[i + 1] = transformed.g;
-    result[i + 2] = transformed.b;
+    result[i] = linearToSrgbByte(m00 * r + m01 * g + m02 * b);
+    result[i + 1] = linearToSrgbByte(m10 * r + m11 * g + m12 * b);
+    result[i + 2] = linearToSrgbByte(m20 * r + m21 * g + m22 * b);
     result[i + 3] = imageData[i + 3]; // Preserve alpha
   }
 
@@ -239,7 +178,7 @@ export function applyBlur(
   imageData: Uint8ClampedArray,
   width: number,
   height: number,
-  config: BlurConfig = DEFAULT_BLUR_CONFIG
+  config: BlurConfig
 ): Uint8ClampedArray {
   const { radius, iterations = 1 } = config;
   let result = new Uint8ClampedArray(imageData) as Uint8ClampedArray;
@@ -374,7 +313,7 @@ export function applyGhosting(
   imageData: Uint8ClampedArray,
   width: number,
   height: number,
-  config: GhostingConfig = DEFAULT_GHOSTING_CONFIG
+  config: GhostingConfig
 ): Uint8ClampedArray {
   const { offset, opacity } = config;
   const result = new Uint8ClampedArray(imageData);
@@ -515,8 +454,8 @@ export function applyBrightLight(
     let g2 = g + intensity * (255 - g);
     let b2 = b + intensity * (255 - b);
 
-    // Apply washout (desaturation toward white)
-    const gray = (r2 + g2 + b2) / 3;
+    // Washout: blend toward white. Glare adds a veil of light over the whole
+    // view, which lowers contrast and saturation together (veiling glare).
     r2 = r2 * (1 - washout) + 255 * washout;
     g2 = g2 * (1 - washout) + 255 * washout;
     b2 = b2 * (1 - washout) + 255 * washout;
@@ -548,8 +487,11 @@ export function applyCentralVisionLoss(
   imageData: Uint8ClampedArray,
   width: number,
   height: number,
-  config: CentralVisionLossConfig
+  config: CentralVisionLossConfig,
+  pixelScale: number = 1
 ): Uint8ClampedArray {
+  // pixelScale: size of this image relative to the full export (e.g. 0.4 for
+  // a downscaled preview), so the internal blur matches the exported result
   const { radius, severity } = config;
   
   // If severity is 0 or radius is very small, return original (no effect)
@@ -566,8 +508,8 @@ export function applyCentralVisionLoss(
   // Scale blur from 2px (small radius/severity) to 20px (large radius/severity)
   // Both radius and severity contribute to blur intensity
   const baseBlurRadius = 2 + normalizedRadius * 18;
-  const blurRadius = Math.round(baseBlurRadius * severity);
-  
+  const blurRadius = Math.round(baseBlurRadius * severity * pixelScale);
+
   // If blur radius is too small, minimal blur needed
   if (blurRadius < 2) {
     // Apply minimal processing
@@ -695,8 +637,10 @@ export function applyPeripheralVisionLoss(
   imageData: Uint8ClampedArray,
   width: number,
   height: number,
-  config: PeripheralVisionLossConfig
+  config: PeripheralVisionLossConfig,
+  pixelScale: number = 1
 ): Uint8ClampedArray {
+  // pixelScale: see applyCentralVisionLoss
   const { tunnelRadius, severity } = config;
   
   // If severity is 0, return original (no effect)
@@ -722,7 +666,7 @@ export function applyPeripheralVisionLoss(
   // Inverse relationship: smaller radius = more blur (2-20px range)
   // Both radius and severity contribute to blur intensity
   const baseBlurRadius = 2 + (1 - normalizedRadius) * 18;
-  const blurRadius = Math.round(baseBlurRadius * severity);
+  const blurRadius = Math.round(baseBlurRadius * severity * pixelScale);
   
   // If blur radius is too small, minimal blur needed
   if (blurRadius < 2) {
@@ -807,16 +751,6 @@ export function applyPeripheralVisionLoss(
 }
 
 /**
- * Convert Uint8Array (PNG/JPEG) to ImageData-compatible Uint8ClampedArray
- *
- * Note: In the Figma plugin environment, we need to use Canvas API in the UI thread
- * This function is a placeholder - actual conversion happens in UI via Canvas
- */
-export function uint8ArrayToImageData(data: Uint8Array): Uint8ClampedArray {
-  return new Uint8ClampedArray(data);
-}
-
-/**
  * Resize image data (for performance optimization)
  *
  * @param imageData - Original image data
@@ -891,101 +825,117 @@ export function calculatePreviewDimensions(
 }
 
 /**
- * Apply a filter preset (multiple filters in sequence)
+ * Export scale the plugin normally uses (2x); filter settings that are tuned
+ * in pixels assume an image at this scale.
+ */
+export const REFERENCE_EXPORT_SCALE = 2;
+
+/**
+ * Convert a blur radius to image pixels (`scale` = image pixels per unit of
+ * `radius`). Keeps at least 1px so a downscaled preview still shows blur.
+ */
+export function scaleBlurRadius(radius: number, scale: number): number {
+  if (radius <= 0) return 0;
+  return Math.max(1, Math.round(radius * scale));
+}
+
+/**
+ * Apply one filter: the single place that maps a filter config to the
+ * function that implements it. Quick simulation, Vision Lab and presets all
+ * go through here.
  *
- * This function takes a preset configuration and applies all filters
- * sequentially to the image data. Each filter's output becomes the input
- * for the next filter, creating combined effects.
+ * Config units are preset format v2: blur radius and ghosting offset in
+ * design pixels, visual field radius as a percentage of the image's smaller
+ * side. `pixelScale` is this image's pixels per design pixel: 2 for a
+ * normal 2x export, less for a downscaled preview or a very large design.
  *
- * @param imageData - Original image data (Uint8ClampedArray in RGBA format)
- * @param width - Image width in pixels
- * @param height - Image height in pixels
- * @param preset - Filter preset containing multiple filter configurations
+ * @returns New image data (the input is not modified)
+ */
+export function applyFilterConfig(
+  imageData: Uint8ClampedArray,
+  width: number,
+  height: number,
+  filter: CompleteFilterConfig,
+  pixelScale: number = REFERENCE_EXPORT_SCALE
+): Uint8ClampedArray {
+  const px = (value: number) => value * pixelScale;
+  // Percentage of the image's smaller side, in this image's pixels
+  const fieldRadius = (percent: number) =>
+    (percent / 100) * Math.min(width, height);
+  // The visual field filters' own blur is tuned for a 2x export
+  const fieldBlurScale = pixelScale / REFERENCE_EXPORT_SCALE;
+
+  switch (filter.type) {
+    case "protanopia":
+    case "deuteranopia":
+    case "tritanopia":
+    case "achromatopsia":
+    case "protanomaly":
+    case "deuteranomaly":
+    case "tritanomaly":
+      return applyColorBlindness(imageData, filter.type, filter.severity);
+    case "blurred":
+      return applyBlur(imageData, width, height, {
+        ...filter.config,
+        radius: scaleBlurRadius(filter.config.radius, pixelScale),
+      });
+    case "ghosting": {
+      const { offset } = filter.config;
+      return applyGhosting(imageData, width, height, {
+        ...filter.config,
+        offset: { x: Math.round(px(offset.x)), y: Math.round(px(offset.y)) },
+      });
+    }
+    case "yellowing":
+      return applyYellowing(imageData, filter.config);
+    case "loss-of-contrast":
+      return applyContrastLoss(imageData, filter.config);
+    case "bright-light":
+      return applyBrightLight(imageData, filter.config);
+    case "central-vision-loss":
+      return applyCentralVisionLoss(
+        imageData,
+        width,
+        height,
+        {
+          radius: fieldRadius(filter.config.radiusPercent),
+          severity: filter.config.severity,
+        },
+        fieldBlurScale
+      );
+    case "peripheral-vision-loss":
+      return applyPeripheralVisionLoss(
+        imageData,
+        width,
+        height,
+        {
+          tunnelRadius: fieldRadius(filter.config.radiusPercent),
+          severity: filter.config.severity,
+        },
+        fieldBlurScale
+      );
+    default:
+      // Unknown type (e.g. from a hand-edited file): leave the image as is
+      return new Uint8ClampedArray(imageData);
+  }
+}
+
+/**
+ * Apply a filter preset: each filter's output is the next one's input.
+ *
+ * @param pixelScale - see applyFilterConfig
  * @returns Processed image data with all filters applied
- *
- * @example
- * // Apply "Advanced Cataracts" preset (blur + yellowing + contrast loss)
- * const filteredData = applyFilterPreset(
- *   imageData,
- *   width,
- *   height,
- *   DEFAULT_PRESETS.find(p => p.id === 'advanced-cataracts')!
- * );
  */
 export function applyFilterPreset(
   imageData: Uint8ClampedArray,
   width: number,
   height: number,
-  preset: import("./vision-simulator.types").FilterPreset
+  preset: FilterPreset,
+  pixelScale: number = REFERENCE_EXPORT_SCALE
 ): Uint8ClampedArray {
-  let result = new Uint8ClampedArray(imageData) as Uint8ClampedArray;
-
-  // Apply each filter in sequence
-  for (const filterConfig of preset.filters) {
-    if (
-      filterConfig.type === "protanopia" ||
-      filterConfig.type === "deuteranopia" ||
-      filterConfig.type === "tritanopia" ||
-      filterConfig.type === "achromatopsia" ||
-      filterConfig.type === "protanomaly" ||
-      filterConfig.type === "deuteranomaly" ||
-      filterConfig.type === "tritanomaly"
-    ) {
-      // Color blindness filter
-      result = applyColorBlindness(
-        result,
-        filterConfig.type,
-        filterConfig.severity
-      ) as Uint8ClampedArray;
-    } else if (filterConfig.type === "blurred") {
-      // Blur filter
-      result = applyBlur(
-        result,
-        width,
-        height,
-        filterConfig.config
-      ) as Uint8ClampedArray;
-    } else if (filterConfig.type === "ghosting") {
-      // Ghosting filter
-      result = applyGhosting(
-        result,
-        width,
-        height,
-        filterConfig.config
-      ) as Uint8ClampedArray;
-    } else if (filterConfig.type === "yellowing") {
-      // Yellowing filter
-      result = applyYellowing(result, filterConfig.config) as Uint8ClampedArray;
-    } else if (filterConfig.type === "loss-of-contrast") {
-      // Contrast loss filter
-      result = applyContrastLoss(
-        result,
-        filterConfig.config
-      ) as Uint8ClampedArray;
-    } else if (filterConfig.type === "bright-light") {
-      // Bright light filter
-      result = applyBrightLight(
-        result,
-        filterConfig.config
-      ) as Uint8ClampedArray;
-    } else if (filterConfig.type === "central-vision-loss") {
-      // Central vision loss filter
-      result = applyCentralVisionLoss(
-        result,
-        width,
-        height,
-        filterConfig.config
-      ) as Uint8ClampedArray;
-    } else if (filterConfig.type === "peripheral-vision-loss") {
-      // Peripheral vision loss filter
-      result = applyPeripheralVisionLoss(
-        result,
-        width,
-        height,
-        filterConfig.config
-      ) as Uint8ClampedArray;
-    }
+  let result: Uint8ClampedArray = new Uint8ClampedArray(imageData);
+  for (const filter of preset.filters) {
+    result = applyFilterConfig(result, width, height, filter, pixelScale);
   }
-
   return result;
 }

@@ -9,6 +9,7 @@ import {
   HiX,
   HiOutlineClipboard,
   HiOutlineClipboardCheck,
+  HiOutlineDuplicate,
 } from "react-icons/hi";
 
 interface IconProps {
@@ -204,6 +205,7 @@ export const Icon: React.FC<IconProps> = ({
     x: <HiX size={size} color={color} />,
     clipboard: <HiOutlineClipboard size={size} color={color} />,
     "clipboard-check": <HiOutlineClipboardCheck size={size} color={color} />,
+    duplicate: <HiOutlineDuplicate size={size} color={color} />,
     edit: (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <path

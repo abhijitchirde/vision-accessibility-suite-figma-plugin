@@ -9,21 +9,31 @@
  * Note: Actual filter application happens in UI thread (Canvas API required)
  */
 
-import {
-  SimulationType,
-  GenerateOptions,
-  GeneratedNodeData,
-  SimulationResult,
-} from './vision-simulator.types';
+import { SimulationType, GeneratedNodeData } from './vision-simulator.types';
 import {
   PLUGIN_DATA_KEYS,
   IMAGE_EXPORT_SETTINGS,
   DEFAULT_COPY_SPACING,
-  LABEL_SETTINGS,
-  FILTER_METADATA,
+  MAX_EXPORT_SIDE_TARGET,
 } from './vision-simulator.constants';
 
 export class VisionSimulator {
+  /**
+   * Export scale for a node: 2x when it fits, otherwise the largest scale
+   * that keeps the image within Figma's 4096px image limit (so very large
+   * designs are exported, and simulated, at lower resolution).
+   */
+  getExportScale(node: SceneNode): number {
+    const bounds =
+      ('absoluteRenderBounds' in node && node.absoluteRenderBounds) ||
+      this.getAbsoluteBox(node);
+    const longestSide = Math.max(bounds.width, bounds.height, 1);
+    return Math.min(
+      IMAGE_EXPORT_SETTINGS.constraint.value,
+      MAX_EXPORT_SIDE_TARGET / longestSide
+    );
+  }
+
   /**
    * Export a node as an image for simulation
    *
@@ -41,7 +51,10 @@ export class VisionSimulator {
     }
 
     try {
-      const imageData = await node.exportAsync(IMAGE_EXPORT_SETTINGS);
+      const imageData = await node.exportAsync({
+        format: IMAGE_EXPORT_SETTINGS.format,
+        constraint: { type: 'SCALE', value: this.getExportScale(node) },
+      });
       return imageData;
     } catch (error) {
       console.error(`Failed to export node ${node.name}:`, error);
@@ -63,140 +76,156 @@ export class VisionSimulator {
   }
 
   /**
-   * Generate canvas copies with simulated filters
+   * Where simulations of a source node are added.
    *
-   * Creates physical copies of the selected node on the canvas,
-   * each with a different visual impairment filter applied.
-   *
-   * @param node - Node to duplicate
-   * @param filters - Filters to apply (one copy per filter)
-   * @param options - Generation options
-   * @returns Array of generated node IDs
+   * Never inside the user's frames (that would break auto layout, get
+   * clipped, or change components). If the source is inside a Section,
+   * use the nearest Section so simulations move with it; otherwise the page.
    */
-  async generateSimulations(
-    node: SceneNode,
-    filters: SimulationType[],
-    options: Partial<GenerateOptions> = {}
-  ): Promise<string[]> {
-    const {
-      position = 'right',
-      spacing = DEFAULT_COPY_SPACING,
-      includeLabel = true,
-    } = options;
-
-    const generatedIds: string[] = [];
-
-    // Export original node
-    const originalImage = await this.exportNodeAsImage(node);
-    if (!originalImage) {
-      throw new Error(`Failed to export node: ${node.name}`);
+  getSimulationContainer(source: SceneNode): PageNode | SectionNode {
+    let node = source.parent;
+    while (node && node.type !== 'PAGE' && node.type !== 'DOCUMENT') {
+      if (node.type === 'SECTION') return node;
+      node = node.parent;
     }
-
-    // Calculate positions for generated copies
-    const nodeWidth = 'width' in node ? node.width : 0;
-    const nodeHeight = 'height' in node ? node.height : 0;
-    const nodeX = 'x' in node ? node.x : 0;
-    const nodeY = 'y' in node ? node.y : 0;
-
-    // Generate a copy for each filter
-    for (let i = 0; i < filters.length; i++) {
-      const filter = filters[i];
-
-      if (filter === 'original') {
-        continue; // Skip original
-      }
-
-      try {
-        // Create frame to hold the simulated image
-        const frame = figma.createFrame();
-        frame.name = `${node.name} - ${FILTER_METADATA[filter].name}`;
-        frame.resize(nodeWidth, nodeHeight);
-
-        // Initialize with empty fills (will be replaced with filtered image)
-        frame.fills = [];
-
-        // Disable clipping
-        frame.clipsContent = false;
-
-        // Position the frame
-        if (position === 'right') {
-          frame.x = nodeX + (nodeWidth + spacing) * (i + 1);
-          frame.y = nodeY;
-        } else {
-          // below
-          frame.x = nodeX;
-          frame.y = nodeY + (nodeHeight + spacing) * (i + 1);
-        }
-
-        // Store metadata in plugin data
-        const metadata: GeneratedNodeData = {
-          isSimulation: true,
-          originalNodeId: node.id,
-          filter,
-          generatedAt: Date.now(),
-        };
-
-        frame.setPluginData(PLUGIN_DATA_KEYS.GENERATED_NODE, JSON.stringify(metadata));
-
-        // Add to current page
-        figma.currentPage.appendChild(frame);
-        generatedIds.push(frame.id);
-      } catch (error) {
-        console.error(`Failed to generate ${filter} simulation:`, error);
-      }
-    }
-
-    return generatedIds;
+    return figma.currentPage;
   }
 
   /**
-   * Add a text label below a generated frame
+   * Work out where the next simulation of a source node should go, in page
+   * (absolute) coordinates.
    *
-   * @param frame - Frame to add label to
-   * @param labelText - Label text
+   * The new frame goes to the right of the source, or to the right of the
+   * right-most simulation already made from the same source, so repeated
+   * simulations form a row instead of stacking on top of each other.
+   * Simulations directly on the page are counted too, so a row started
+   * before 0.13 (when everything went on the page) continues seamlessly.
    */
-  private addLabel(frame: FrameNode, labelText: string): void {
-    const label = figma.createText();
+  getNextSimulationPosition(
+    source: SceneNode,
+    container: PageNode | SectionNode,
+    spacing: number = DEFAULT_COPY_SPACING
+  ): { x: number; y: number } {
+    const box = this.getAbsoluteBox(source);
+    let rightEdge = box.x + box.width;
 
-    // Load default font
-    figma.loadFontAsync({ family: 'Inter', style: 'Regular' }).then(() => {
-      label.fontName = { family: 'Inter', style: 'Regular' };
-      label.fontSize = 12;
-      label.characters = labelText;
+    const candidates =
+      container.type === 'PAGE'
+        ? container.children
+        : [...container.children, ...figma.currentPage.children];
 
-      // Position label below the frame
-      label.x = frame.x;
-      label.y = frame.y + frame.height + 8;
+    for (const child of candidates) {
+      const metadata = this.getGeneratedMetadata(child);
+      if (metadata && metadata.originalNodeId === source.id) {
+        const childBox = this.getAbsoluteBox(child);
+        rightEdge = Math.max(rightEdge, childBox.x + childBox.width);
+      }
+    }
 
-      // Set text color
-      label.fills = [
-        {
-          type: 'SOLID',
-          color: { r: 0, g: 0, b: 0 },
-        },
-      ];
+    return { x: rightEdge + spacing, y: box.y };
+  }
 
-      // Add to current page (not as child of frame)
-      figma.currentPage.appendChild(label);
-    });
+  /** A node's bounds in page coordinates */
+  private getAbsoluteBox(node: SceneNode): Rect {
+    if ('absoluteBoundingBox' in node && node.absoluteBoundingBox) {
+      return node.absoluteBoundingBox;
+    }
+    return { x: node.x, y: node.y, width: node.width, height: node.height };
   }
 
   /**
-   * Check if a node is a generated simulation
-   *
-   * @param node - Node to check
-   * @returns True if node is a generated simulation
+   * Grow a Section so a frame inside it isn't left hanging over its edge.
+   * Frame coordinates are relative to the Section.
    */
-  isGeneratedSimulation(node: SceneNode): boolean {
+  private growSectionToFit(section: SectionNode, frame: FrameNode): void {
+    const neededWidth = frame.x + frame.width + DEFAULT_COPY_SPACING;
+    const neededHeight = frame.y + frame.height + DEFAULT_COPY_SPACING;
+    if (neededWidth > section.width || neededHeight > section.height) {
+      section.resizeWithoutConstraints(
+        Math.max(section.width, neededWidth),
+        Math.max(section.height, neededHeight)
+      );
+    }
+  }
+
+  /**
+   * Create a frame showing a filtered image of a source node, on the page
+   * or in the source's nearest Section (see getSimulationContainer).
+   *
+   * Called once the UI has finished filtering, so a failed filter never
+   * leaves an empty frame behind.
+   *
+   * @param sourceNodeId - Node the simulation was made from
+   * @param filter - Simulation applied ("original" when a preset was applied)
+   * @param imageData - Filtered PNG, at the export scale
+   * @param label - Name for the frame (filter or preset name)
+   * @returns The new frame
+   */
+  async createSimulationFrame(
+    sourceNodeId: string,
+    filter: SimulationType,
+    imageData: Uint8Array,
+    label: string
+  ): Promise<FrameNode> {
+    const source = await figma.getNodeByIdAsync(sourceNodeId);
+    if (!source || source.type === 'PAGE' || source.type === 'DOCUMENT') {
+      throw new Error('The original layer no longer exists');
+    }
+    const sourceNode = source as SceneNode;
+
+    let image: Image;
     try {
-      const data = node.getPluginData(PLUGIN_DATA_KEYS.GENERATED_NODE);
-      if (!data) return false;
-
-      const metadata: GeneratedNodeData = JSON.parse(data);
-      return metadata.isSimulation === true;
-    } catch {
-      return false;
+      image = figma.createImage(imageData);
+    } catch (error) {
+      // Shouldn't happen now that exports stay under the limit, but give a
+      // clearer message than Figma's if it does
+      if (String(error).includes('too large')) {
+        throw new Error('This design is too large for Figma to store as one image');
+      }
+      throw error;
     }
+    const size = await image.getSizeAsync();
+    // Same scale the source was exported at, so the frame matches its size
+    const scale = this.getExportScale(sourceNode);
+
+    const container = this.getSimulationContainer(sourceNode);
+    const position = this.getNextSimulationPosition(sourceNode, container);
+
+    const frame = figma.createFrame();
+    frame.name = `${sourceNode.name} - ${label}`;
+    frame.resize(size.width / scale, size.height / scale);
+    frame.clipsContent = false;
+    frame.fills = [
+      {
+        type: 'IMAGE',
+        imageHash: image.hash,
+        scaleMode: 'FILL',
+      },
+    ];
+
+    const metadata: GeneratedNodeData = {
+      isSimulation: true,
+      originalNodeId: sourceNode.id,
+      filter,
+      label,
+      generatedAt: Date.now(),
+    };
+    frame.setPluginData(PLUGIN_DATA_KEYS.GENERATED_NODE, JSON.stringify(metadata));
+
+    container.appendChild(frame);
+
+    // Children of a Section are positioned relative to it
+    if (container.type === 'SECTION') {
+      const origin = this.getAbsoluteBox(container);
+      frame.x = position.x - origin.x;
+      frame.y = position.y - origin.y;
+      this.growSectionToFit(container, frame);
+    } else {
+      frame.x = position.x;
+      frame.y = position.y;
+    }
+
+    return frame;
   }
 
   /**
@@ -217,22 +246,6 @@ export class VisionSimulator {
   }
 
   /**
-   * Delete all generated simulations for a given original node
-   *
-   * @param originalNodeId - Original node ID
-   */
-  deleteGeneratedSimulations(originalNodeId: string): void {
-    const allNodes = figma.currentPage.findAll();
-
-    for (const node of allNodes) {
-      const metadata = this.getGeneratedMetadata(node);
-      if (metadata && metadata.originalNodeId === originalNodeId) {
-        node.remove();
-      }
-    }
-  }
-
-  /**
    * Prepare image data for UI processing
    *
    * Exports node and returns data that UI can use with Canvas API
@@ -247,6 +260,8 @@ export class VisionSimulator {
     width: number;
     height: number;
     nodeName: string;
+    /** Scale the image was exported at (2, or less for very large designs) */
+    exportScale: number;
   } | null> {
     const node = await figma.getNodeByIdAsync(nodeId);
     if (!node || node.type === 'PAGE' || node.type === 'DOCUMENT') {
@@ -267,56 +282,7 @@ export class VisionSimulator {
       width,
       height,
       nodeName: node.name,
+      exportScale: this.getExportScale(node as SceneNode),
     };
-  }
-
-  /**
-   * Apply filtered image back to canvas
-   *
-   * Creates a new image fill from processed image data
-   *
-   * @param frameId - Frame ID to apply image to
-   * @param imageData - Processed image data (PNG)
-   */
-  async applyFilteredImage(frameId: string, imageData: Uint8Array): Promise<void> {
-    const frame = await figma.getNodeByIdAsync(frameId) as FrameNode;
-    if (!frame) {
-      console.error(`Frame not found with ID: ${frameId}`);
-      throw new Error(`Frame not found: ${frameId}`);
-    }
-
-    try {
-      // Create image from processed data
-      const image = figma.createImage(imageData);
-
-      // Apply as fill
-      frame.fills = [
-        {
-          type: 'IMAGE',
-          imageHash: image.hash,
-          scaleMode: 'FILL',
-        },
-      ];
-    } catch (error) {
-      console.error('Failed to apply filtered image:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get all nodes on current page (for selection)
-   *
-   * @returns List of exportable nodes
-   */
-  getAllExportableNodes(): Array<{ id: string; name: string; type: string }> {
-    const allNodes = figma.currentPage.findAll((node) => {
-      return 'exportAsync' in node && typeof node.exportAsync === 'function';
-    });
-
-    return allNodes.map((node) => ({
-      id: node.id,
-      name: node.name,
-      type: node.type,
-    }));
   }
 }

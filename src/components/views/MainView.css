@@ -6,21 +6,6 @@
 }
 
 /* Header */
-.main-view__header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--figma-color-border);
-  flex-shrink: 0;
-}
-
-.main-view__title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--figma-color-text);
-  margin: 0;
-}
 
 /* Tabs */
 .main-view__tabs {
@@ -65,14 +50,11 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 16px;
+  /* Bottom space so the last cards clear the fixed "Add all simulations" bar
+     (bar is 53px tall at 50px from the bottom; content already ends 56px up) */
+  padding: 16px 16px 56px;
   margin: -16px -16px 0 -16px;
   border-radius: 0;
-}
-
-.main-view__select-all {
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--figma-color-border);
 }
 
 .main-view__section {
@@ -96,11 +78,12 @@
   gap: 8px;
 }
 
+/* Descriptions live in the card's tooltip (title), so cards are one line */
 .main-view__filter-card {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
   padding: 8px 12px;
   background-color: var(--figma-color-bg);
   border: 2px solid var(--figma-color-border);
@@ -129,13 +112,6 @@
   cursor: not-allowed;
 }
 
-/* Compact variant for filters without additional info (e.g., "Other" filters) */
-.main-view__filter-card--compact {
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-}
-
 .main-view__filter-card--generating {
   background-color: var(--figma-color-bg-brand-tertiary);
   border-color: var(--figma-color-border-brand);
@@ -152,11 +128,17 @@
   gap: 8px;
 }
 
-.main-view__filter-info {
-  font-size: 9px;
+/* "-opia / -omaly" hint at the top of Quick simulation */
+.main-view__generate-note {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
   color: var(--figma-color-text-secondary);
-  margin-top: 2px;
-  font-weight: 400;
+}
+
+.main-view__generate-note strong {
+  font-weight: 600;
+  color: var(--figma-color-text);
 }
 
 /* Badge for "Most common" */
@@ -175,6 +157,12 @@
 }
 
 /* Simulation Tab */
+/* While the fixed "Add current view to Figma" bar shows, leave room for it
+   (bar is 53px tall at 50px from the bottom; content already ends 56px up) */
+.main-view__simulation--with-bar {
+  padding-bottom: 56px;
+}
+
 .main-view__simulation {
   display: flex;
   flex-direction: column;
@@ -184,15 +172,73 @@
   border-radius: 0;
 }
 
-.main-view__controls {
+/* Vision Lab: stack of simulations */
+.main-view__stack {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.main-view__controls-row {
+.main-view__stack-footer {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  align-items: flex-end;
+}
+
+.main-view__stack-status {
+  min-width: 0;
+  font-size: 11px;
+  color: var(--figma-color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.main-view__save-preset {
+  display: flex;
+  gap: 6px;
+}
+
+.main-view__save-preset-input {
+  flex: 1;
+  min-width: 120px;
+  height: 28px;
+  padding: 0 8px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--figma-color-text);
+  background-color: var(--figma-color-bg);
+  border: 1px solid var(--figma-color-border);
+  border-radius: 4px;
+}
+
+.main-view__save-preset-input:focus {
+  outline: none;
+  border-color: var(--figma-color-border-brand);
+}
+
+.main-view__save-preset-btn {
+  height: 28px;
+  padding: 0 10px;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--figma-color-text);
+  background-color: var(--figma-color-bg-secondary);
+  border: 1px solid var(--figma-color-border);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.main-view__save-preset-btn--primary {
+  color: var(--figma-color-text-onbrand);
+  background-color: var(--figma-color-bg-brand);
+  border-color: var(--figma-color-bg-brand);
+}
+
+.main-view__save-preset-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .main-view__control {
@@ -200,11 +246,6 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-}
-
-.main-view__control--simulation {
-  flex: 1;
-  min-width: 0;
 }
 
 .main-view__control-label {
@@ -215,115 +256,61 @@
   letter-spacing: 0.5px;
 }
 
-.main-view__select {
-  width: 100%;
-  padding: 6px 12px;
-  background-color: var(--figma-color-bg);
-  border: 1px solid var(--figma-color-border);
-  border-radius: 2px;
-  color: var(--figma-color-text);
-  font-size: 11px;
-  line-height: 1.2;
-  cursor: pointer;
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  background-size: 16px;
-  padding-right: 32px;
-  height: 30px;
-  box-sizing: border-box;
-}
-
-.main-view__select--simulation {
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.main-view__select:hover {
-  border-color: var(--figma-color-border-brand);
-}
-
-.main-view__select:focus {
-  outline: none;
-  border-color: var(--figma-color-border-brand);
-  box-shadow: 0 0 0 2px var(--figma-color-bg-brand-tertiary);
-}
-
-.main-view__params-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  background-color: var(--figma-color-bg);
-  border: 1px solid var(--figma-color-border);
-  border-radius: 2px;
-  color: var(--figma-color-text);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  flex-shrink: 0;
-  box-sizing: border-box;
-}
-
-.main-view__params-btn svg {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  display: block;
-}
-
-.main-view__params-btn:hover:not(:disabled) {
-  background-color: var(--figma-color-bg-hover);
-  border-color: var(--figma-color-border-brand);
-}
-
-.main-view__params-btn:disabled {
-  opacity: 0.4;
-  background-color: var(--figma-color-bg-secondary, #f5f5f5);
-  border-color: var(--figma-color-border-disabled, #e0e0e0);
-  color: var(--figma-color-text-disabled, #999);
-  cursor: not-allowed;
-}
-
-.main-view__parameters {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 12px;
-  background-color: var(--figma-color-bg-secondary);
-  border: 1px solid var(--figma-color-border);
-  border-radius: 4px;
-}
-
 /* Preview Area */
+/* Fixed-size frame: zooming happens inside it and never makes it taller */
 .main-view__preview {
-  flex: 1;
-  min-height: 360px;
+  flex-shrink: 0;
+  height: 360px;
   background-color: var(--figma-color-bg-secondary);
   border: 1px solid var(--figma-color-border);
   border-radius: 4px;
-  overflow: auto;
+  overflow: hidden;
   position: relative;
   display: flex;
   flex-direction: column;
-  margin-bottom: 80px; /* Extra space to prevent content from being hidden behind fixed export button */
+}
+
+/* Scroll area inside the frame */
+.main-view__preview-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  outline: none;
+}
+
+.main-view__preview-viewport:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--figma-color-border-brand);
+}
+
+/* Zoomed in past the frame: grab hand, grabbing while dragging */
+.main-view__preview-viewport--pannable {
+  cursor: grab;
+}
+
+.main-view__preview-viewport--panning {
+  cursor: grabbing;
+  user-select: none;
 }
 
 .main-view__preview-content {
   display: flex;
+  /* "safe" keeps a zoomed-in preview scrollable to its left/top edge */
   align-items: center;
+  align-items: safe center;
   justify-content: center;
-  flex: 1;
+  justify-content: safe center;
+  /* Fill the frame, or grow with the zoomed image so the area scrolls */
+  box-sizing: border-box;
+  min-width: 100%;
   min-height: 100%;
+  width: max-content;
   padding: 8px;
 }
 
 /* Zoom Controls in Preview */
+/* Floats over the top-left of the frame (outside the scroll area) */
 .main-view__zoom-controls {
-  position: sticky;
+  position: absolute;
   top: 8px;
   left: 8px;
   display: inline-flex;
@@ -335,7 +322,6 @@
   padding: 4px;
   z-index: 10;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin: 8px;
   align-self: flex-start;
   width: fit-content;
 }
@@ -427,20 +413,13 @@
 }
 
 .main-view__preview-image-container {
-  transform-origin: center;
-  transition: transform 0.2s ease;
+  display: block;
 }
 
 .main-view__preview-image {
   display: block;
-  max-width: 100%;
+  flex-shrink: 0;
   height: auto;
-  /* cursor: grab; */
-}
-
-.main-view__reload-container {
-  padding-top: 8px;
-  border-top: 1px solid var(--figma-color-border);
 }
 
 /* Error */
@@ -459,7 +438,7 @@
   bottom: 50px; /* Height of bottom section */
   left: 0;
   right: 0;
-  padding: 16px 16px;
+  padding: 8px 16px;
   background-color: var(--figma-color-bg);
   border-top: 1px solid var(--figma-color-border);
   z-index: 1000;

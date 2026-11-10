@@ -1,13 +1,9 @@
 /**
  * Vision Simulator Constants
  *
- * Color blindness transformation matrices based on:
- * - Brettel, Viénot, and Mollon (1997) - "Computerized simulation of color appearance for dichromats"
- * - Machado, Oliveira, and Fernandes (2009) - "A Physiologically-based Model for Simulation of Color Vision Deficiency"
- *
- * References:
- * - https://www.inf.ufrgs.br/~oliveira/pubs_files/CVD_Simulation/CVD_Simulation.html
- * - https://ixora.io/projects/colorblindness/color-blindness-simulation-research/
+ * Color blindness simulation uses the Machado, Oliveira and Fernandes (2009)
+ * model in linear RGB: see machado-matrices.ts and applyColorBlindness in
+ * image-utils.ts. This file holds filter metadata, default settings and presets.
  */
 
 import {
@@ -21,84 +17,22 @@ import {
   YellowingConfig,
   ContrastLossConfig,
   BrightLightConfig,
-  CentralVisionLossConfig,
-  PeripheralVisionLossConfig,
+  VisualFieldPresetConfig,
 } from "./vision-simulator.types";
 
 /**
- * Color blindness transformation matrices
- *
- * These matrices transform RGB values to simulate how colors appear
- * to people with different types of color vision deficiencies.
- *
- * Usage: [R', G', B'] = Matrix × [R, G, B]
- */
-
-/**
- * Protanopia (Red-blind) - Missing L-cones
- * Affects ~1% of males, 0.01% of females
- */
-export const PROTANOPIA_MATRIX: TransformationMatrix = [
-  [0.567, 0.433, 0.0],
-  [0.558, 0.442, 0.0],
-  [0.0, 0.242, 0.758],
-];
-
-/**
- * Deuteranopia (Green-blind) - Missing M-cones
- * Affects ~1% of males, 0.01% of females
- */
-export const DEUTERANOPIA_MATRIX: TransformationMatrix = [
-  [0.625, 0.375, 0.0],
-  [0.7, 0.3, 0.0],
-  [0.0, 0.3, 0.7],
-];
-
-/**
- * Tritanopia (Blue-blind) - Missing S-cones
- * Affects ~0.001% of population (very rare)
- */
-export const TRITANOPIA_MATRIX: TransformationMatrix = [
-  [0.95, 0.05, 0.0],
-  [0.0, 0.433, 0.567],
-  [0.0, 0.475, 0.525],
-];
-
-/**
- * Achromatopsia (Total color blindness) - No functional cones
- * Grayscale conversion using luminance weights
- * Affects ~0.003% of population
- */
-export const ACHROMATOPSIA_MATRIX: TransformationMatrix = [
-  [0.299, 0.587, 0.114],
-  [0.299, 0.587, 0.114],
-  [0.299, 0.587, 0.114],
-];
-
-/**
- * Map simulation types to transformation matrices
- */
-export const TRANSFORMATION_MATRICES: Record<
-  "protanopia" | "deuteranopia" | "tritanopia" | "achromatopsia",
-  TransformationMatrix
-> = {
-  protanopia: PROTANOPIA_MATRIX,
-  deuteranopia: DEUTERANOPIA_MATRIX,
-  tritanopia: TRITANOPIA_MATRIX,
-  achromatopsia: ACHROMATOPSIA_MATRIX,
-};
-
-/**
- * Default configurations for other visual impairments
+ * Default settings for Quick simulation and new Vision Lab simulations.
+ * Units follow preset format v2: blur radius and ghosting offset in design
+ * pixels, visual field radius as a percentage of the design's smaller side.
  */
 
 export const DEFAULT_BLUR_CONFIG: BlurConfig = {
-  radius: 8, // 8px blur radius (moderate blur)
+  radius: 4, // 4 design px (moderate blur)
   iterations: 2, // Apply blur twice for smoother effect
 };
 
 export const DEFAULT_GHOSTING_CONFIG: GhostingConfig = {
-  offset: { x: 10, y: 5 }, // Ghost offset in pixels
+  offset: { x: 5, y: 2.5 }, // Ghost offset in design px
   opacity: 0.5, // 50% opacity for ghost image
 };
 
@@ -117,23 +51,22 @@ export const DEFAULT_BRIGHT_LIGHT_CONFIG: BrightLightConfig = {
 };
 
 /**
- * Default central vision loss configuration (macular degeneration)
+ * Default central vision loss (macular degeneration): affected area of 30%
+ * of the design's smaller side
  */
-export const DEFAULT_CENTRAL_VISION_LOSS_CONFIG: CentralVisionLossConfig = {
-  radius: 150, // 150px radius of affected center area
+export const DEFAULT_CENTRAL_VISION_LOSS_CONFIG: VisualFieldPresetConfig = {
+  radiusPercent: 30,
   severity: 0.8, // 80% severity (significant center vision loss)
 };
 
 /**
- * Default peripheral vision loss configuration (glaucoma/tunnel vision)
- *
- * For generate mode: Uses smaller radius to ensure visible darkening
+ * Default peripheral vision loss (glaucoma/tunnel vision): clear centre of
+ * 12% of the design's smaller side (small, so the darkening is visible)
  */
-export const DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG: PeripheralVisionLossConfig =
-  {
-    tunnelRadius: 60, // 60px radius of clear center area (small for visible effect)
-    severity: 0.8, // 80% severity (strong peripheral darkening for clear demonstration)
-  };
+export const DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG: VisualFieldPresetConfig = {
+  radiusPercent: 12,
+  severity: 0.8, // 80% severity (strong peripheral darkening for clear demonstration)
+};
 
 /**
  * Default severity levels for partial color vision deficiencies
@@ -169,7 +102,7 @@ export const FILTER_METADATA: Record<
     id: "protanopia",
     name: "Protanopia",
     category: "color-blind",
-    description: "Red-blind (missing L-cones) ~1% males",
+    description: "Complete: can't see red (missing red cones). About 1% of males.",
     severity: "high",
     scientificName: "Protanopia (Red-blind)",
   },
@@ -177,7 +110,7 @@ export const FILTER_METADATA: Record<
     id: "deuteranopia",
     name: "Deuteranopia",
     category: "color-blind",
-    description: "Green-blind (missing M-cones) ~1% males",
+    description: "Complete: can't see green (missing green cones). About 1% of males.",
     severity: "high",
     scientificName: "Deuteranopia (Green-blind)",
   },
@@ -185,7 +118,7 @@ export const FILTER_METADATA: Record<
     id: "tritanopia",
     name: "Tritanopia",
     category: "color-blind",
-    description: "Blue-blind (missing S-cones) ~0.001% population",
+    description: "Complete: can't see blue (missing blue cones). Very rare, about 0.001% of people.",
     severity: "medium",
     scientificName: "Tritanopia (Blue-blind)",
   },
@@ -193,7 +126,7 @@ export const FILTER_METADATA: Record<
     id: "achromatopsia",
     name: "Achromatopsia",
     category: "color-blind",
-    description: "Total color blindness ~0.003% population",
+    description: "No color vision: everything looks grey. About 0.003% of people.",
     severity: "critical",
     scientificName: "Achromatopsia (Total color blindness)",
   },
@@ -202,7 +135,7 @@ export const FILTER_METADATA: Record<
     id: "protanomaly",
     name: "Protanomaly",
     category: "color-blind",
-    description: "Weak red (weak L-cones) ~1% males",
+    description: "Partial: red looks weaker (weak red cones). About 1% of males.",
     severity: "medium",
     scientificName: "Protanomaly (Weak red)",
   },
@@ -210,7 +143,7 @@ export const FILTER_METADATA: Record<
     id: "deuteranomaly",
     name: "Deuteranomaly",
     category: "color-blind",
-    description: "Weak green (weak M-cones) ~5-6% males - MOST COMMON!",
+    description: "Partial: green looks weaker (weak green cones). About 5-6% of males, the most common type.",
     severity: "medium",
     scientificName: "Deuteranomaly (Weak green)",
   },
@@ -218,7 +151,7 @@ export const FILTER_METADATA: Record<
     id: "tritanomaly",
     name: "Tritanomaly",
     category: "color-blind",
-    description: "Weak blue (weak S-cones) ~0.01% population",
+    description: "Partial: blue looks weaker (weak blue cones). Rare, about 0.01% of people.",
     severity: "low",
     scientificName: "Tritanomaly (Weak blue)",
   },
@@ -227,35 +160,35 @@ export const FILTER_METADATA: Record<
     id: "blurred",
     name: "Blurred",
     category: "other",
-    description: "Blurred vision (cataracts, refractive error)",
+    description: "Blurred vision, as with cataracts or uncorrected eyesight.",
     severity: "medium",
   },
   ghosting: {
     id: "ghosting",
     name: "Ghosting",
     category: "other",
-    description: "Double vision (diplopia)",
+    description: "Double vision (diplopia).",
     severity: "medium",
   },
   yellowing: {
     id: "yellowing",
     name: "Yellowing",
     category: "other",
-    description: "Yellow tint (aging lens, cataracts)",
+    description: "Yellow tint from an aging lens or cataracts.",
     severity: "low",
   },
   "loss-of-contrast": {
     id: "loss-of-contrast",
     name: "Loss of Contrast",
     category: "other",
-    description: "Reduced contrast sensitivity",
+    description: "Reduced contrast sensitivity, common with age.",
     severity: "medium",
   },
   "bright-light": {
     id: "bright-light",
     name: "Bright Light",
     category: "other",
-    description: "Light sensitivity (photophobia)",
+    description: "Light sensitivity (photophobia), or a screen in bright sunlight.",
     severity: "low",
   },
   // Visual Field Defects
@@ -263,7 +196,7 @@ export const FILTER_METADATA: Record<
     id: "central-vision-loss",
     name: "Central Loss",
     category: "visual-field",
-    description: "Macular degeneration - blurred/dark center, clear periphery",
+    description: "Macular degeneration: dark, blurry center with clearer edges.",
     severity: "high",
     scientificName: "Macular Degeneration",
   },
@@ -271,7 +204,7 @@ export const FILTER_METADATA: Record<
     id: "peripheral-vision-loss",
     name: "Peripheral Loss",
     category: "visual-field",
-    description: "Glaucoma/tunnel vision - clear center, dark/blurred edges",
+    description: "Glaucoma / tunnel vision: clear center, dark and blurry edges.",
     severity: "high",
     scientificName: "Glaucoma (Tunnel Vision)",
   },
@@ -390,6 +323,14 @@ export const IMAGE_EXPORT_SETTINGS = {
 };
 
 /**
+ * Figma can't store images larger than 4096px on a side ("Image is too
+ * large"). Designs that would exceed this at 2x are exported at a lower
+ * scale; the target leaves a little room for rounding and effects.
+ */
+export const MAX_IMAGE_SIDE = 4096;
+export const MAX_EXPORT_SIDE_TARGET = 4000;
+
+/**
  * Canvas copy label settings
  */
 export const LABEL_SETTINGS = {
@@ -420,11 +361,12 @@ export const DEFAULT_PRESETS: FilterPreset[] = [
     name: "Advanced Cataracts",
     description: "Severe cataracts: heavy blur, yellowing, and contrast loss",
     isBuiltIn: true,
+    version: 2,
     filters: [
       {
         type: "blurred",
         config: {
-          radius: 15,
+          radius: 7.5, // design px
           iterations: 3,
         },
       },
@@ -449,11 +391,12 @@ export const DEFAULT_PRESETS: FilterPreset[] = [
     description:
       "Typical age-related vision changes: mild blur, yellowing, and slight contrast loss",
     isBuiltIn: true,
+    version: 2,
     filters: [
       {
         type: "blurred",
         config: {
-          radius: 4,
+          radius: 2, // design px
           iterations: 1,
         },
       },
@@ -478,11 +421,12 @@ export const DEFAULT_PRESETS: FilterPreset[] = [
     description:
       "Advanced aging: high blur, yellowing, contrast loss, and central vision degradation",
     isBuiltIn: true,
+    version: 2,
     filters: [
       {
         type: "blurred",
         config: {
-          radius: 10,
+          radius: 5, // design px
           iterations: 2,
         },
       },
@@ -502,7 +446,7 @@ export const DEFAULT_PRESETS: FilterPreset[] = [
       {
         type: "central-vision-loss",
         config: {
-          radius: 120,
+          radiusPercent: 24, // % of the design's smaller side
           severity: 0.4,
         },
       },
@@ -514,6 +458,7 @@ export const DEFAULT_PRESETS: FilterPreset[] = [
     description:
       "Bright sunlight conditions: intense brightness, washout, and glare",
     isBuiltIn: true,
+    version: 2,
     filters: [
       {
         type: "bright-light",
@@ -535,6 +480,7 @@ export const DEFAULT_PRESETS: FilterPreset[] = [
     name: "Night Vision",
     description: "Low-light conditions: reduced contrast and mild blur",
     isBuiltIn: true,
+    version: 2,
     filters: [
       {
         type: "loss-of-contrast",
@@ -545,7 +491,7 @@ export const DEFAULT_PRESETS: FilterPreset[] = [
       {
         type: "blurred",
         config: {
-          radius: 3,
+          radius: 1.5, // design px
           iterations: 1,
         },
       },

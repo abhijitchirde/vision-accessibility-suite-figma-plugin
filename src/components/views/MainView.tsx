@@ -1,52 +1,163 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import "./MainView.css";
-import { Icon } from "../ui/Icon/Icon";
 import { Button } from "../ui/Button/Button";
 import { FilterIcon } from "../ui/Filter/FilterIcon";
-import { SeveritySlider } from "../ui/Filter/SeveritySlider";
-import { RadiusSlider } from "../ui/Filter/RadiusSlider";
 import { PresetSelector } from "../ui/Presets/PresetSelector";
 import { PresetManager } from "../ui/Presets/PresetManager";
-import { FilterParameterSlider } from "../ui/Filter/FilterParameterSlider";
-import { FilterDropdown } from "../ui/Filter/FilterDropdown";
-import { useFigmaMessage } from "../../hooks/useFigmaMessage";
+import { SimulationStack, StackEntry } from "../ui/Stack/SimulationStack";
+import {
+  useFigmaMessage,
+  waitForPluginMessage,
+} from "../../hooks/useFigmaMessage";
 import { FaPlus } from "react-icons/fa6";
 import { FaMinus } from "react-icons/fa6";
 import { GoScreenFull } from "react-icons/go";
 import {
   SimulationType,
-  VisionSimulatorState,
-  ColorBlindnessType,
-  VisualFieldDefectType,
-  CentralVisionLossConfig,
-  PeripheralVisionLossConfig,
   FilterPreset,
+  PRESET_FORMAT_VERSION,
 } from "../../utils/vision-simulator.types";
 import {
   FILTER_METADATA,
   COLOR_BLIND_FILTERS,
   VISUAL_FIELD_FILTERS,
   OTHER_FILTERS,
-  ZOOM_LEVELS,
   DEFAULT_ZOOM,
-  COLOR_BLIND_FILTERS as ALL_COLOR_BLIND_FILTERS,
-  DEFAULT_CENTRAL_VISION_LOSS_CONFIG,
-  DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG,
   DEFAULT_PRESETS,
 } from "../../utils/vision-simulator.constants";
 import {
-  applyColorBlindness,
-  applyBlur,
-  applyGhosting,
-  applyYellowing,
-  applyContrastLoss,
-  applyBrightLight,
-  applyCentralVisionLoss,
-  applyPeripheralVisionLoss,
-  applyFilterPreset,
-} from "../../utils/image-utils";
+  imagePixelsPerDesignPixel,
+  renderQuickSimulation,
+  renderStack,
+  defaultStackConfig,
+} from "../../utils/simulation-render";
 
 type Tab = "generate" | "simulation";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "generate", label: "Quick simulation" },
+  { id: "simulation", label: "Vision Lab" },
+];
+
+/** Sections and cards shown in the Quick simulation tab, in display order */
+const QUICK_SIMULATION_SECTIONS: {
+  title: string;
+  badge?: string;
+  filters: SimulationType[];
+}[] = [
+  { title: "Red deficiency (Protan)", filters: ["protanopia", "protanomaly"] },
+  {
+    title: "Green deficiency (Deutan)",
+    badge: "Most common",
+    filters: ["deuteranopia", "deuteranomaly"],
+  },
+  { title: "Blue deficiency (Tritan)", filters: ["tritanopia", "tritanomaly"] },
+  { title: "Total color blindness", filters: ["achromatopsia"] },
+  { title: "Visual field defects", filters: VISUAL_FIELD_FILTERS },
+  { title: "Other", filters: OTHER_FILTERS },
+];
+
+/** Every simulation offered in Quick simulation, in display order */
+const ALL_QUICK_FILTERS: SimulationType[] = ([] as SimulationType[]).concat(
+  ...QUICK_SIMULATION_SECTIONS.map((section) => section.filters)
+);
+
+/** Show a Figma toast */
+function notifyInFigma(message: string) {
+  parent.postMessage(
+    { pluginMessage: { type: "SHOW_NOTIFICATION", message } },
+    "*"
+  );
+}
+
+/** Decode PNG bytes into an image element */
+function loadPngImage(bytes: Uint8Array): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(
+      new Blob([bytes as any], { type: "image/png" })
+    );
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Couldn't read the exported image"));
+    };
+    img.src = url;
+  });
+}
+
+/**
+ * Apply one Quick simulation filter, with its default settings, and return
+ * the result as PNG bytes. `pixelScale` scales pixel-based settings (see
+ * imagePixelsPerDesignPixel).
+ */
+async function renderQuickSimulationPng(
+  img: HTMLImageElement,
+  filter: SimulationType,
+  pixelScale: number = 2
+): Promise<Uint8Array> {
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas isn't available");
+
+  ctx.drawImage(img, 0, 0);
+  const { width, height } = canvas;
+  const source = ctx.getImageData(0, 0, width, height).data;
+  const filtered = renderQuickSimulation(source, width, height, filter, pixelScale);
+
+  ctx.putImageData(new ImageData(filtered as any, width, height), 0, 0);
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/png")
+  );
+  if (!blob) throw new Error("Couldn't encode the filtered image");
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
+/**
+ * Longest side of the live Vision Lab preview, in pixels. Large designs are
+ * filtered on a copy this size instead of the full 2x export (a 1440px-wide
+ * frame drops from ~5M to under 1M pixels per change). "Add current view to
+ * Figma" still filters the full-size image.
+ */
+const MAX_PREVIEW_SIDE = 1200;
+
+/** Pixel data of an image, optionally scaled down to fit `maxSide` */
+interface ImagePixels {
+  data: Uint8ClampedArray;
+  width: number;
+  height: number;
+  /** Size relative to the full image (1 = full size) */
+  scale: number;
+}
+
+function getImagePixels(img: HTMLImageElement, maxSide?: number): ImagePixels {
+  const fit = maxSide
+    ? Math.min(1, maxSide / Math.max(img.width, img.height))
+    : 1;
+  const width = Math.max(1, Math.round(img.width * fit));
+  const height = Math.max(1, Math.round(img.height * fit));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas isn't available");
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, 0, 0, width, height);
+
+  return {
+    data: ctx.getImageData(0, 0, width, height).data,
+    width,
+    height,
+    scale: width / img.width,
+  };
+}
 
 export const MainView: React.FC<{}> = ({}) => {
   // Tab state
@@ -55,52 +166,55 @@ export const MainView: React.FC<{}> = ({}) => {
   // Generate mode state
   const [generatingFilter, setGeneratingFilter] =
     useState<SimulationType | null>(null);
+  // Set while "Add all simulations" runs: how many are done out of how many
+  const [generateProgress, setGenerateProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
+  const isGenerating = generatingFilter !== null || generateProgress !== null;
 
-  // Simulation mode state
-  const [currentFilter, setCurrentFilter] =
-    useState<SimulationType>("original");
-  const [currentSeverity, setCurrentSeverity] = useState<number>(1.0); // Default to complete (100%)
-  const [currentRadius, setCurrentRadius] = useState<number>(0.3); // Default radius as percentage (30% of image dimension)
+  // Vision Lab: a stack of simulations applied top to bottom
+  const [stack, setStack] = useState<StackEntry[]>([]);
+  // The entry whose sliders are shown (one at a time)
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  // Preset the stack was started from, and whether it changed since
+  const [selectedPreset, setSelectedPreset] = useState<FilterPreset | null>(
+    null
+  );
+  const [stackEdited, setStackEdited] = useState(false);
+  // Name typed in the inline "Save as preset" form (null = form closed)
+  const [savingPresetName, setSavingPresetName] = useState<string | null>(
+    null
+  );
   const [zoom, setZoom] = useState<number>(DEFAULT_ZOOM);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  // Size of the preview image in pixels
+  const [previewPixelSize, setPreviewPixelSize] = useState({ width: 0, height: 0 });
+  // Size of the preview's scroll area (the fixed-size frame)
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+  const [panning, setPanning] = useState(false);
+  // True when a design is loaded into the Vision Lab preview
+  const [hasPreview, setHasPreview] = useState(false);
+  // Bumped each time a new design is loaded, to trigger a redraw
+  const [imageVersion, setImageVersion] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  // Other filter parameters
-  const [blurRadius, setBlurRadius] = useState<number>(8);
-  const [blurIterations, setBlurIterations] = useState<number>(2);
-  const [ghostingOffsetX, setGhostingOffsetX] = useState<number>(10);
-  const [ghostingOffsetY, setGhostingOffsetY] = useState<number>(5);
-  const [ghostingOpacity, setGhostingOpacity] = useState<number>(0.5);
-  const [yellowingIntensity, setYellowingIntensity] = useState<number>(0.6);
-  const [yellowingTemperature, setYellowingTemperature] =
-    useState<number>(2500);
-  const [contrastReduction, setContrastReduction] = useState<number>(0.5);
-  const [brightLightIntensity, setBrightLightIntensity] = useState<number>(0.7);
-  const [brightLightWashout, setBrightLightWashout] = useState<number>(0.4);
-
-  // Preset state
-  const [selectedPreset, setSelectedPreset] = useState<FilterPreset | null>(
-    null
-  );
+  // Presets
   const [customPresets, setCustomPresets] = useState<FilterPreset[]>([]);
   const [showPresetManager, setShowPresetManager] = useState(false);
 
-  // Parameters panel state
-  const [showParameters, setShowParameters] = useState(false);
-
-  // Canvas refs for image processing
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const originalImageRef = useRef<HTMLImageElement | null>(null);
-
-  // Store original node dimensions (not the exported image dimensions which may be 2x)
-  const [originalNodeWidth, setOriginalNodeWidth] = useState<number | null>(
-    null
-  );
-  const [originalNodeHeight, setOriginalNodeHeight] = useState<number | null>(
-    null
-  );
+  // Vision Lab preview
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null); // visible preview
+  const originalImageRef = useRef<HTMLImageElement | null>(null); // full-size export
+  const previewSourceRef = useRef<ImagePixels | null>(null); // downscaled pixels
+  const renderFrameRef = useRef<number | null>(null); // pending redraw
+  const viewportRef = useRef<HTMLDivElement>(null); // preview scroll area
+  // Drag-to-pan: where the drag started and the scroll position then
+  const panRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
+  // Point (as a fraction of the content) to keep centred across a zoom change
+  const zoomCenterRef = useRef<{ x: number; y: number } | null>(null);
+  const pixelsPerDesignPixelRef = useRef(2); // see imagePixelsPerDesignPixel
 
   const { sendMessage } = useFigmaMessage();
 
@@ -122,21 +236,13 @@ export const MainView: React.FC<{}> = ({}) => {
     const handleMessage = (event: MessageEvent) => {
       const msg = event.data.pluginMessage;
       if (msg?.type === "VISION_SIMULATOR_PRESETS_LOADED") {
-        // console.log("[UI] Loaded presets:", msg.presets);
         setCustomPresets(msg.presets || []);
       } else if (msg?.type === "VISION_SIMULATOR_SELECTED_PRESET_LOADED") {
-        // console.log("[UI] Loaded selected preset ID:", msg.presetId);
         if (msg.presetId) {
           setPendingPresetId(msg.presetId);
         }
       } else if (msg?.type === "VISION_SIMULATOR_PRESETS_SAVED") {
-        if (msg.success) {
-          // console.log(
-          //   "[UI] ✓ Presets saved successfully to Figma storage:",
-          //   msg.count,
-          //   "presets"
-          // );
-        } else {
+        if (!msg.success) {
           console.error("[UI] ✗ Failed to save presets:", msg.error);
         }
       }
@@ -151,228 +257,130 @@ export const MainView: React.FC<{}> = ({}) => {
     if (pendingPresetId && allPresets.length > 0) {
       const preset = allPresets.find((p) => p.id === pendingPresetId);
       if (preset) {
-        // console.log("Restoring preset:", preset.name);
-        setSelectedPreset(preset);
+        loadPresetIntoStack(preset);
         setPendingPresetId(null);
       }
     }
   }, [pendingPresetId, allPresets]);
 
   /**
-   * Check if a filter is a color blindness type (supports severity adjustment)
+   * Quick simulation, step 2: filter the exported image for each requested
+   * simulation and send the results to Figma one at a time. Waiting for each
+   * frame to be created before sending the next keeps them in a neat row.
+   * Called when the plugin sends VISION_SIMULATOR_PROCESS_FILTER.
    */
-  const isColorBlindnessFilter = (filter: SimulationType): boolean => {
-    return ALL_COLOR_BLIND_FILTERS.includes(filter);
-  };
-
-  /**
-   * Check if a filter is a visual field defect type (supports radius and severity)
-   */
-  const isVisualFieldDefect = (filter: SimulationType): boolean => {
-    return VISUAL_FIELD_FILTERS.includes(filter);
-  };
-
-  /**
-   * Process filter for generated frame (background processing)
-   * Called when plugin sends VISION_SIMULATOR_PROCESS_FILTER message
-   */
-  const processFilterForGenerate = async (
-    frameId: string,
-    filter: SimulationType,
-    imageData: { imageData: Uint8Array; width: number; height: number }
+  const runQuickSimulations = async (
+    sourceNodeId: string,
+    filters: SimulationType[],
+    exported: { imageData: Uint8Array; exportScale?: number }
   ) => {
     try {
-      // Create a temporary canvas for processing
-      const tempCanvas = document.createElement("canvas");
-      const ctx = tempCanvas.getContext("2d");
-      if (!ctx) {
-        console.error("Failed to get 2d context");
-        return;
-      }
+      const img = await loadPngImage(exported.imageData);
 
-      // Load image
-      const blob = new Blob([imageData.imageData as any], {
-        type: "image/png",
-      });
-      const url = URL.createObjectURL(blob);
-      const img = new Image();
-
-      img.onload = () => {
-        // Set canvas size
-        tempCanvas.width = img.width;
-        tempCanvas.height = img.height;
-
-        // Draw original image
-        ctx.drawImage(img, 0, 0);
-
-        // Apply filter
-        if (filter !== "original") {
-          const imgData = ctx.getImageData(
-            0,
-            0,
-            tempCanvas.width,
-            tempCanvas.height
-          );
-          let filteredData: Uint8ClampedArray;
-
-          if (
-            filter === "protanopia" ||
-            filter === "deuteranopia" ||
-            filter === "tritanopia" ||
-            filter === "achromatopsia" ||
-            filter === "protanomaly" ||
-            filter === "deuteranomaly" ||
-            filter === "tritanomaly"
-          ) {
-            // For generate mode, use type-appropriate default severity
-            // (complete dichromacy = 1.0, anomalies = 0.6)
-            filteredData = applyColorBlindness(
-              imgData.data,
-              filter as ColorBlindnessType
-            );
-          } else if (filter === "blurred") {
-            filteredData = applyBlur(
-              imgData.data,
-              tempCanvas.width,
-              tempCanvas.height
-            );
-          } else if (filter === "ghosting") {
-            filteredData = applyGhosting(
-              imgData.data,
-              tempCanvas.width,
-              tempCanvas.height
-            );
-          } else if (filter === "yellowing") {
-            filteredData = applyYellowing(imgData.data);
-          } else if (filter === "loss-of-contrast") {
-            filteredData = applyContrastLoss(imgData.data);
-          } else if (filter === "bright-light") {
-            filteredData = applyBrightLight(imgData.data);
-          } else if (filter === "central-vision-loss") {
-            // Calculate proportional radius based on image dimensions
-            // This ensures the effect scales properly with different image sizes
-            const imageSize = Math.min(tempCanvas.width, tempCanvas.height);
-            const proportionalRadius = DEFAULT_CENTRAL_VISION_LOSS_CONFIG.radius / 500 * imageSize;
-            filteredData = applyCentralVisionLoss(
-              imgData.data,
-              tempCanvas.width,
-              tempCanvas.height,
-              {
-                radius: proportionalRadius,
-                severity: DEFAULT_CENTRAL_VISION_LOSS_CONFIG.severity,
-              }
-            );
-          } else if (filter === "peripheral-vision-loss") {
-            filteredData = applyPeripheralVisionLoss(
-              imgData.data,
-              tempCanvas.width,
-              tempCanvas.height,
-              DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG
-            );
-          } else {
-            filteredData = imgData.data;
-          }
-
-          const newImageData = new ImageData(
-            filteredData as any,
-            tempCanvas.width,
-            tempCanvas.height
-          );
-          ctx.putImageData(newImageData, 0, 0);
+      for (let i = 0; i < filters.length; i++) {
+        const filter = filters[i];
+        if (filters.length > 1) {
+          setGenerateProgress({ done: i, total: filters.length });
         }
+        const png = await renderQuickSimulationPng(
+          img,
+          filter,
+          imagePixelsPerDesignPixel(exported.exportScale)
+        );
 
-        // Convert canvas to blob then to Uint8Array
-        tempCanvas.toBlob(async (blob) => {
-          if (blob) {
-            const arrayBuffer = await blob.arrayBuffer();
-            const uint8Array = new Uint8Array(arrayBuffer);
-
-            // Send filtered image back to plugin
-            sendMessage("VISION_SIMULATOR_APPLY_FILTERED_IMAGE", {
-              frameId,
-              imageData: uint8Array,
-            });
-          } else {
-            console.error("Failed to create blob from canvas");
-          }
-        }, "image/png");
-
-        URL.revokeObjectURL(url);
-      };
-
-      img.onerror = () => {
-        console.error("Failed to load image for filter processing");
-        URL.revokeObjectURL(url);
-      };
-
-      img.src = url;
-    } catch (error) {
-      console.error("Error processing filter:", error);
+        const applied = waitForPluginMessage("VISION_SIMULATOR_IMAGE_APPLIED");
+        sendMessage("VISION_SIMULATOR_APPLY_FILTERED_IMAGE", {
+          sourceNodeId,
+          filter,
+          imageData: png,
+          label: FILTER_METADATA[filter].name,
+        });
+        const result = await applied;
+        if (!result.success) {
+          throw new Error(result.error || "Failed to add simulation");
+        }
+      }
+      setError(null);
+      if (filters.length > 1) {
+        notifyInFigma(`Added ${filters.length} simulations`);
+      }
+    } catch (err) {
+      console.error("Quick simulation failed:", err);
+      const message =
+        err instanceof Error ? err.message : "Failed to add simulation";
+      setError(message);
+      notifyInFigma(message);
+    } finally {
+      setGeneratingFilter(null);
+      setGenerateProgress(null);
     }
   };
 
-  // Listen for messages from plugin code
-  useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      const msg = event.data.pluginMessage;
+  /**
+   * Add every Quick simulation for the selected layer, in one row.
+   */
+  const handleAddAllSimulations = () => {
+    setError(null);
+    setGenerateProgress({ done: 0, total: ALL_QUICK_FILTERS.length });
+    sendMessage("VISION_SIMULATOR_GENERATE", { filters: ALL_QUICK_FILTERS });
+  };
 
-      if (msg?.type === "VISION_SIMULATOR_GENERATE_RESULT") {
+  // Messages from the plugin code. The listener is registered once and calls
+  // the latest handler through a ref, so it isn't removed and re-added on every
+  // render (the handler reads current state and functions).
+  const handleMessageRef = useRef<(event: MessageEvent) => void>(() => {});
+  handleMessageRef.current = async (event: MessageEvent) => {
+    const msg = event.data.pluginMessage;
+
+    if (msg?.type === "VISION_SIMULATOR_GENERATE_RESULT") {
+      // Only sent when generation can't start (no selection, export failed)
+      if (!msg.success) {
         setGeneratingFilter(null);
-        if (msg.success) {
-          setError(null);
-        } else {
-          setError(msg.error || "Failed to generate simulation");
-        }
-      } else if (msg?.type === "VISION_SIMULATOR_PREVIEW_DATA") {
-        if (msg.success && msg.data) {
-          // Convert image data to canvas
-          setError(null);
-          loadImageForPreview(
-            msg.data.imageData,
-            msg.data.width,
-            msg.data.height
-          );
-        } else if (msg.error === null) {
-          // No selection, clear preview
-          setPreviewImage(null);
-          setOriginalNodeWidth(null);
-          setOriginalNodeHeight(null);
-          setError(null);
-          setLoading(false);
-        } else {
-          // Actual error occurred
-          setPreviewImage(null);
-          setOriginalNodeWidth(null);
-          setOriginalNodeHeight(null);
-          setError(null); // Don't show error in UI
-          setLoading(false);
-          // Show figma notification instead
-          parent.postMessage(
-            {
-              pluginMessage: {
-                type: "SHOW_NOTIFICATION",
-                message: msg.error || "Failed to load preview",
-              },
-            },
-            "*"
-          );
-        }
-      } else if (msg?.type === "VISION_SIMULATOR_PROCESS_FILTER") {
-        // Process filter and send back filtered image
-        await processFilterForGenerate(msg.frameId, msg.filter, msg.imageData);
-      } else if (msg?.type === "VISION_SIMULATOR_EXPORT_TO_CANVAS_RESULT") {
-        setExporting(false);
-        if (msg.success) {
-          setError(null);
-        } else {
-          setError(msg.error || "Failed to export to canvas");
-        }
+        setGenerateProgress(null);
+        setError(msg.error || "Failed to generate simulation");
       }
-    };
+    } else if (msg?.type === "VISION_SIMULATOR_PREVIEW_DATA") {
+      if (msg.success && msg.data) {
+        setError(null);
+        loadImageForPreview(msg.data.imageData, msg.data.exportScale);
+      } else if (msg.error === null) {
+        // No selection, clear preview
+        clearPreview();
+        setError(null);
+        setLoading(false);
+      } else {
+        // Actual error occurred
+        clearPreview();
+        setError(null); // Don't show error in UI
+        setLoading(false);
+        // Show figma notification instead
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: "SHOW_NOTIFICATION",
+              message: msg.error || "Failed to load preview",
+            },
+          },
+          "*"
+        );
+      }
+    } else if (msg?.type === "VISION_SIMULATOR_PROCESS_FILTER") {
+      await runQuickSimulations(msg.sourceNodeId, msg.filters, msg.imageData);
+    } else if (msg?.type === "VISION_SIMULATOR_EXPORT_TO_CANVAS_RESULT") {
+      setExporting(false);
+      if (msg.success) {
+        setError(null);
+      } else {
+        setError(msg.error || "Failed to export to canvas");
+      }
+    }
+  };
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [processFilterForGenerate]);
+  useEffect(() => {
+    const listener = (event: MessageEvent) => handleMessageRef.current(event);
+    window.addEventListener("message", listener);
+    return () => window.removeEventListener("message", listener);
+  }, []);
 
   // Notify plugin when Vision Lab tab becomes active/inactive
   useEffect(() => {
@@ -383,186 +391,294 @@ export const MainView: React.FC<{}> = ({}) => {
     }
   }, [activeTab, sendMessage]);
 
-  // Apply filter when currentFilter, currentSeverity, currentRadius, or selectedPreset changes
+  // Current Vision Lab simulations (used by the preview and by "Add to Figma")
+  const stackConfigs = stack.map((entry) => entry.config);
+
+  // Redraw the preview when the design or the stack changes. Changes are
+  // coalesced to at most one redraw per animation frame, so dragging a
+  // slider doesn't queue up work. The downscaled copy is drawn straight into
+  // the visible canvas (no PNG encoding).
   useEffect(() => {
-    if (originalImageRef.current && activeTab === "simulation") {
-      applyFilterToPreview(currentFilter);
+    if (activeTab !== "simulation" || !previewSourceRef.current) return;
+
+    const configs = stackConfigs;
+    if (renderFrameRef.current !== null) {
+      cancelAnimationFrame(renderFrameRef.current);
     }
-  }, [
-    currentFilter,
-    currentSeverity,
-    currentRadius,
-    selectedPreset,
-    activeTab,
-    blurRadius,
-    blurIterations,
-    ghostingOffsetX,
-    ghostingOffsetY,
-    ghostingOpacity,
-    yellowingIntensity,
-    yellowingTemperature,
-    contrastReduction,
-    brightLightIntensity,
-    brightLightWashout,
-  ]); // Re-apply when any parameter changes
+    renderFrameRef.current = requestAnimationFrame(() => {
+      renderFrameRef.current = null;
+      const source = previewSourceRef.current;
+      const canvas = previewCanvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      if (!source || !canvas || !ctx) return;
+
+      const filtered = renderStack(
+        source.data,
+        source.width,
+        source.height,
+        configs,
+        source.scale
+      );
+      canvas.width = source.width;
+      canvas.height = source.height;
+      ctx.putImageData(
+        new ImageData(filtered as any, source.width, source.height),
+        0,
+        0
+      );
+    });
+    // stackConfigs is rebuilt every render; stack is what changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageVersion, activeTab, stack]);
+
+  // Cancel a pending redraw when the view unmounts
+  useEffect(() => {
+    return () => {
+      if (renderFrameRef.current !== null) {
+        cancelAnimationFrame(renderFrameRef.current);
+      }
+    };
+  }, []);
 
   /**
-   * Load image data into canvas for preview
+   * Load an exported design into the preview: keep the full-size image for
+   * "Add to Figma", and a downscaled copy for the live preview.
    */
   const loadImageForPreview = async (
     imageData: Uint8Array,
-    width: number,
-    height: number
+    exportScale?: number
   ) => {
     try {
-      // Store original node dimensions (these are the actual node dimensions, not the exported image size)
-      setOriginalNodeWidth(width);
-      setOriginalNodeHeight(height);
-
-      // Create blob from image data
-      const blob = new Blob([imageData as any], { type: "image/png" });
-      const url = URL.createObjectURL(blob);
-
-      // Load image
-      const img = new Image();
-      img.onload = () => {
-        originalImageRef.current = img;
-        applyFilterToPreview(currentFilter);
-        setLoading(false);
-        URL.revokeObjectURL(url); // Clean up
-      };
-      img.onerror = () => {
-        setError("Failed to load image");
-        setLoading(false);
-        URL.revokeObjectURL(url);
-      };
-      img.src = url;
+      const img = await loadPngImage(imageData);
+      originalImageRef.current = img;
+      pixelsPerDesignPixelRef.current = imagePixelsPerDesignPixel(exportScale);
+      const preview = getImagePixels(img, MAX_PREVIEW_SIDE);
+      // Preview pixels per design pixel = downscale × export scale
+      preview.scale *= pixelsPerDesignPixelRef.current;
+      previewSourceRef.current = preview;
+      setPreviewPixelSize({ width: preview.width, height: preview.height });
+      setHasPreview(true);
+      setImageVersion((v) => v + 1);
     } catch (err) {
       console.error("Failed to load preview image:", err);
       setError("Failed to load preview");
+    } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Apply the current filter or preset to the preview image
-   */
-  const applyFilterToPreview = (filter: SimulationType) => {
-    const img = originalImageRef.current;
-    const canvas = canvasRef.current;
+  /** Forget the current design (e.g. nothing is selected) */
+  const clearPreview = () => {
+    originalImageRef.current = null;
+    previewSourceRef.current = null;
+    setHasPreview(false);
+  };
 
-    if (!img || !canvas) return;
+  // Track the preview frame's size (it only exists in the Vision Lab tab)
+  useEffect(() => {
+    const element = viewportRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) =>
+      setViewportSize({
+        width: entry.contentRect.width,
+        height: entry.contentRect.height,
+      })
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [activeTab]);
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+  // On-screen size of the preview. 100% = the whole design fits inside the
+  // frame (never larger than its natural size); zoom scales from there.
+  const PREVIEW_PADDING = 16;
+  const fitScale =
+    previewPixelSize.width > 0 && viewportSize.width > 0
+      ? Math.min(
+          1,
+          (viewportSize.width - PREVIEW_PADDING) / previewPixelSize.width,
+          (viewportSize.height - PREVIEW_PADDING) / previewPixelSize.height
+        )
+      : 1;
+  const displayWidth = Math.max(1, Math.round(previewPixelSize.width * fitScale * zoom));
+  const displayHeight = Math.max(1, Math.round(previewPixelSize.height * fitScale * zoom));
+  // Larger than the frame: show the grab hand and allow dragging
+  const canPan =
+    hasPreview &&
+    (displayWidth > viewportSize.width - PREVIEW_PADDING + 1 ||
+      displayHeight > viewportSize.height - PREVIEW_PADDING + 1);
 
-    // Set canvas size
-    canvas.width = img.width;
-    canvas.height = img.height;
-
-    // Draw original image
-    ctx.drawImage(img, 0, 0);
-
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    let filteredData: Uint8ClampedArray = imageData.data;
-
-    // Check if a preset is selected
-    if (selectedPreset) {
-      // Apply preset (multiple filters in sequence)
-      filteredData = applyFilterPreset(
-        imageData.data,
-        canvas.width,
-        canvas.height,
-        selectedPreset
-      );
-    } else if (filter !== "original") {
-      // Apply single filter
-      // Apply the appropriate filter
-      if (
-        filter === "protanopia" ||
-        filter === "deuteranopia" ||
-        filter === "tritanopia" ||
-        filter === "achromatopsia" ||
-        filter === "protanomaly" ||
-        filter === "deuteranomaly" ||
-        filter === "tritanomaly"
-      ) {
-        // Apply color blindness with current severity
-        filteredData = applyColorBlindness(
-          imageData.data,
-          filter as ColorBlindnessType,
-          currentSeverity
-        );
-      } else if (filter === "blurred") {
-        filteredData = applyBlur(imageData.data, canvas.width, canvas.height, {
-          radius: blurRadius,
-          iterations: blurIterations,
-        });
-      } else if (filter === "ghosting") {
-        filteredData = applyGhosting(
-          imageData.data,
-          canvas.width,
-          canvas.height,
-          {
-            offset: { x: ghostingOffsetX, y: ghostingOffsetY },
-            opacity: ghostingOpacity,
-          }
-        );
-      } else if (filter === "yellowing") {
-        filteredData = applyYellowing(imageData.data, {
-          intensity: yellowingIntensity,
-          temperature: yellowingTemperature,
-        });
-      } else if (filter === "loss-of-contrast") {
-        filteredData = applyContrastLoss(imageData.data, {
-          reduction: contrastReduction,
-        });
-      } else if (filter === "bright-light") {
-        filteredData = applyBrightLight(imageData.data, {
-          intensity: brightLightIntensity,
-          washout: brightLightWashout,
-        });
-      } else if (filter === "central-vision-loss") {
-        // Calculate pixel radius from percentage: use smaller dimension to ensure proportional effect
-        const imageSize = Math.min(canvas.width, canvas.height);
-        const pixelRadius = currentRadius * imageSize;
-        filteredData = applyCentralVisionLoss(
-          imageData.data,
-          canvas.width,
-          canvas.height,
-          {
-            radius: pixelRadius,
-            severity: currentSeverity,
-          }
-        );
-      } else if (filter === "peripheral-vision-loss") {
-        // Calculate pixel radius from percentage: use smaller dimension to ensure proportional effect
-        const imageSize = Math.min(canvas.width, canvas.height);
-        const pixelRadius = currentRadius * imageSize;
-        filteredData = applyPeripheralVisionLoss(
-          imageData.data,
-          canvas.width,
-          canvas.height,
-          {
-            tunnelRadius: pixelRadius,
-            severity: currentSeverity,
-          }
-        );
-      }
+  /** Change zoom, keeping the point at the centre of the frame in view */
+  const zoomTo = (next: number) => {
+    const clamped = Math.max(0.25, Math.min(4, next));
+    const element = viewportRef.current;
+    if (element && element.scrollWidth > 0) {
+      zoomCenterRef.current = {
+        x: (element.scrollLeft + element.clientWidth / 2) / element.scrollWidth,
+        y: (element.scrollTop + element.clientHeight / 2) / element.scrollHeight,
+      };
     }
+    setZoom(clamped);
+  };
 
-    // Update canvas with filtered data (only if not original and no errors)
-    if (filter !== "original" || selectedPreset) {
-      const newImageData = new ImageData(
-        filteredData as any,
-        canvas.width,
-        canvas.height
-      );
-      ctx.putImageData(newImageData, 0, 0);
+  useLayoutEffect(() => {
+    const center = zoomCenterRef.current;
+    const element = viewportRef.current;
+    if (!center || !element) return;
+    zoomCenterRef.current = null;
+    element.scrollLeft = center.x * element.scrollWidth - element.clientWidth / 2;
+    element.scrollTop = center.y * element.scrollHeight - element.clientHeight / 2;
+  }, [zoom]);
+
+  const handlePanStart = (event: React.PointerEvent<HTMLDivElement>) => {
+    const element = viewportRef.current;
+    if (!canPan || !element || event.button !== 0) return;
+    // Leave clicks on the frame's own scrollbars alone
+    const rect = element.getBoundingClientRect();
+    if (
+      event.clientX - rect.left >= element.clientWidth ||
+      event.clientY - rect.top >= element.clientHeight
+    ) {
+      return;
     }
+    event.preventDefault();
+    element.setPointerCapture(event.pointerId);
+    panRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      left: element.scrollLeft,
+      top: element.scrollTop,
+    };
+    setPanning(true);
+  };
 
-    // Convert canvas to preview image
-    setPreviewImage(canvas.toDataURL());
+  const handlePanMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const start = panRef.current;
+    const element = viewportRef.current;
+    if (!start || !element) return;
+    element.scrollLeft = start.left - (event.clientX - start.x);
+    element.scrollTop = start.top - (event.clientY - start.y);
+  };
+
+  const handlePanEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!panRef.current) return;
+    panRef.current = null;
+    viewportRef.current?.releasePointerCapture(event.pointerId);
+    setPanning(false);
+  };
+
+  /** Keyboard on the focused preview: + / − zoom, 0 fits; arrows scroll natively */
+  const handlePreviewKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "+" || event.key === "=") zoomTo(zoom + 0.25);
+    else if (event.key === "-" || event.key === "_") zoomTo(zoom - 0.25);
+    else if (event.key === "0") zoomTo(1);
+    else return;
+    event.preventDefault();
+  };
+
+  /** Tabs: ←/→ move between tabs (wrapping), Home/End jump to the ends */
+  const handleTabKeyDown = (event: React.KeyboardEvent) => {
+    const index = TABS.findIndex((tab) => tab.id === activeTab);
+    let next = index;
+    if (event.key === "ArrowRight") next = (index + 1) % TABS.length;
+    else if (event.key === "ArrowLeft") next = (index - 1 + TABS.length) % TABS.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = TABS.length - 1;
+    else return;
+    event.preventDefault();
+    setActiveTab(TABS[next].id);
+    document.getElementById(`tab-${TABS[next].id}`)?.focus();
+  };
+
+  /** Unique id for a stack entry */
+  const newEntryId = () =>
+    `e${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+
+  /** Replace the stack with a copy of a preset's simulations (or empty) */
+  const loadPresetIntoStack = (preset: FilterPreset | null) => {
+    setSelectedPreset(preset);
+    setStack(
+      preset
+        ? preset.filters.map((config) => ({ id: newEntryId(), config }))
+        : []
+    );
+    setExpandedId(null);
+    setStackEdited(false);
+    setSavingPresetName(null);
+  };
+
+  /** "Start from" dropdown: load a preset (remembered per user) */
+  const handleStartFrom = (preset: FilterPreset | null) => {
+    loadPresetIntoStack(preset);
+    sendMessage("VISION_SIMULATOR_SAVE_SELECTED_PRESET", {
+      presetId: preset?.id || null,
+    });
+  };
+
+  /** Change the stack and mark it as edited */
+  const editStack = (update: (entries: StackEntry[]) => StackEntry[]) => {
+    setStack(update);
+    setStackEdited(true);
+  };
+
+  const handleAddSimulation = (filter: SimulationType) => {
+    const config = defaultStackConfig(filter);
+    if (!config) return;
+    const entry = { id: newEntryId(), config };
+    editStack((entries) => [...entries, entry]);
+    setExpandedId(entry.id);
+  };
+
+  const handleMoveSimulation = (id: string, direction: -1 | 1) => {
+    editStack((entries) => {
+      const from = entries.findIndex((e) => e.id === id);
+      const to = from + direction;
+      if (from < 0 || to < 0 || to >= entries.length) return entries;
+      const next = [...entries];
+      [next[from], next[to]] = [next[to], next[from]];
+      return next;
+    });
+  };
+
+  const handleRemoveSimulation = (id: string) => {
+    editStack((entries) => entries.filter((e) => e.id !== id));
+    if (expandedId === id) setExpandedId(null);
+  };
+
+  /** Name shown for the current stack (preset name, or the simulations) */
+  const stackLabel =
+    selectedPreset && !stackEdited
+      ? selectedPreset.name
+      : stack
+          .map((entry) => FILTER_METADATA[entry.config.type]?.name ?? entry.config.type)
+          .join(" + ");
+
+  /** Save the current stack as a custom preset */
+  const handleSavePreset = () => {
+    const name = (savingPresetName ?? "").trim();
+    if (!name || stack.length === 0) return;
+    const now = Date.now();
+    const preset: FilterPreset = {
+      version: PRESET_FORMAT_VERSION,
+      id: `custom-${now.toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+      name,
+      description: `Made in Vision Lab: ${stack
+        .map((entry) => FILTER_METADATA[entry.config.type]?.name ?? entry.config.type)
+        .join(", ")}`,
+      filters: stack.map((entry) => entry.config),
+      isBuiltIn: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setCustomPresets((prev) => {
+      const updated = [...prev, preset];
+      sendMessage("VISION_SIMULATOR_SAVE_PRESETS", { presets: updated });
+      return updated;
+    });
+    setSelectedPreset(preset);
+    setStackEdited(false);
+    setSavingPresetName(null);
+    sendMessage("VISION_SIMULATOR_SAVE_SELECTED_PRESET", { presetId: preset.id });
+    notifyInFigma(`Saved preset "${name}"`);
   };
 
   /**
@@ -572,14 +688,7 @@ export const MainView: React.FC<{}> = ({}) => {
     setGeneratingFilter(filter);
     setError(null);
 
-    sendMessage("VISION_SIMULATOR_GENERATE", {
-      filter,
-      options: {
-        position: "right",
-        spacing: 50,
-        includeLabel: false,
-      },
-    });
+    sendMessage("VISION_SIMULATOR_GENERATE", { filters: [filter] });
   };
 
   /**
@@ -605,13 +714,10 @@ export const MainView: React.FC<{}> = ({}) => {
    * Handle preset import
    */
   const handleImportPresets = (importedPresets: FilterPreset[]) => {
-    // console.log("[UI] handleImportPresets called with:", importedPresets);
-    // console.log("[UI] Current customPresets state:", customPresets);
 
     // Add imported presets to custom presets
     // Only modify ID if it already exists to avoid duplicates
     const existingIds = new Set(customPresets.map((p) => p.id));
-    // console.log("[UI] Existing preset IDs:", Array.from(existingIds));
 
     const newPresets = importedPresets.map((preset) => {
       let finalId = preset.id;
@@ -619,9 +725,6 @@ export const MainView: React.FC<{}> = ({}) => {
       // If preset ID already exists, append timestamp to make it unique
       if (existingIds.has(preset.id)) {
         finalId = `${preset.id}-${Date.now()}`;
-        // console.log(
-        //   `[UI] Preset ID ${preset.id} already exists, using ${finalId}`
-        // );
       }
 
       return {
@@ -633,17 +736,9 @@ export const MainView: React.FC<{}> = ({}) => {
       };
     });
 
-    // console.log("[UI] New presets to add:", newPresets);
 
     setCustomPresets((prev) => {
-      // console.log("[UI] setCustomPresets updater - prev:", prev);
       const updated = [...prev, ...newPresets];
-      // console.log("[UI] setCustomPresets updater - updated:", updated);
-      // console.log(
-      //   "[UI] About to send SAVE message with:",
-      //   updated.length,
-      //   "presets"
-      // );
 
       // Save to persistent storage via code.ts
       sendMessage("VISION_SIMULATOR_SAVE_PRESETS", {
@@ -652,6 +747,40 @@ export const MainView: React.FC<{}> = ({}) => {
 
       return updated;
     });
+  };
+
+  /** Copy a preset (built-in or custom) as a new custom preset */
+  const handleDuplicatePreset = (preset: FilterPreset) => {
+    const now = Date.now();
+    const copy: FilterPreset = {
+      ...preset,
+      version: PRESET_FORMAT_VERSION,
+      id: `custom-${now.toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+      name: `${preset.name} copy`.slice(0, 100),
+      isBuiltIn: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setCustomPresets((prev) => {
+      const updated = [...prev, copy];
+      sendMessage("VISION_SIMULATOR_SAVE_PRESETS", { presets: updated });
+      return updated;
+    });
+    notifyInFigma(`Added "${copy.name}" to your presets`);
+  };
+
+  /** Rename a custom preset */
+  const handleRenamePreset = (presetId: string, name: string) => {
+    setCustomPresets((prev) => {
+      const updated = prev.map((p) =>
+        p.id === presetId ? { ...p, name, updatedAt: Date.now() } : p
+      );
+      sendMessage("VISION_SIMULATOR_SAVE_PRESETS", { presets: updated });
+      return updated;
+    });
+    if (selectedPreset?.id === presetId) {
+      setSelectedPreset({ ...selectedPreset, name });
+    }
   };
 
   /**
@@ -669,24 +798,41 @@ export const MainView: React.FC<{}> = ({}) => {
   };
 
   /**
-   * Export current preview to Figma canvas
+   * Add the current view to the Figma canvas. The preview is downscaled, so
+   * this filters the full-size export once with the same settings.
    */
   const handleExportToCanvas = async () => {
-    const canvas = canvasRef.current;
-    if (!canvas || !previewImage) return;
+    const img = originalImageRef.current;
+    if (!img || !hasPreview) return;
 
-    // Use original node dimensions instead of canvas dimensions
-    // Canvas dimensions may be 2x due to export scale, but we want the actual node size
-    if (originalNodeWidth === null || originalNodeHeight === null) {
-      setError("Original node dimensions not available");
-      return;
-    }
-
+    const configs = stackConfigs;
     setExporting(true);
     setError(null);
 
+    // Let "Adding to Figma..." show before the (blocking) full-size filter runs
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
     try {
-      // Convert canvas to blob
+      const full = getImagePixels(img);
+      const filtered = renderStack(
+        full.data,
+        full.width,
+        full.height,
+        configs,
+        pixelsPerDesignPixelRef.current
+      );
+
+      const canvas = document.createElement("canvas");
+      canvas.width = full.width;
+      canvas.height = full.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas isn't available");
+      ctx.putImageData(
+        new ImageData(filtered as any, full.width, full.height),
+        0,
+        0
+      );
+
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((blob) => {
           if (blob) resolve(blob);
@@ -698,21 +844,11 @@ export const MainView: React.FC<{}> = ({}) => {
       const arrayBuffer = await blob.arrayBuffer();
       const imageData = new Uint8Array(arrayBuffer);
 
-      // Determine the label for the frame
-      let label = "";
-      if (selectedPreset) {
-        label = selectedPreset.name;
-      } else if (currentFilter !== "original") {
-        label = FILTER_METADATA[currentFilter].name;
-      }
-
-      // Send message to create frame and apply image
-      // Use original node dimensions, not canvas dimensions (which may be 2x)
+      // Figma sizes the frame from the image itself (image size / export scale)
       sendMessage("VISION_SIMULATOR_EXPORT_TO_CANVAS", {
         imageData,
-        width: originalNodeWidth,
-        height: originalNodeHeight,
-        label,
+        label: stackLabel || "Vision Simulation",
+        filter: stack.length === 1 ? stack[0].config.type : "original",
       });
     } catch (err) {
       console.error("Failed to export to canvas:", err);
@@ -721,14 +857,8 @@ export const MainView: React.FC<{}> = ({}) => {
     }
   };
 
-  // Prepare filter options for dropdown
+  // Simulations that can be added to the Vision Lab stack
   const filterOptions = [
-    {
-      value: "original" as SimulationType,
-      label: "Original",
-      groupLabel: "None",
-      showIcon: false,
-    },
     ...COLOR_BLIND_FILTERS.map((filter) => ({
       value: filter,
       label: FILTER_METADATA[filter].name,
@@ -751,531 +881,195 @@ export const MainView: React.FC<{}> = ({}) => {
 
   return (
     <div className="main-view">
-      {/* Tabs */}
-      <div className="main-view__tabs">
-        <button
-          className={`main-view__tab ${
-            activeTab === "generate"
-              ? "main-view__tab--active"
-              : ""
-          }`}
-          onClick={() => setActiveTab("generate")}
-        >
-          Quick simulation
-        </button>
-        <button
-          className={`main-view__tab ${
-            activeTab === "simulation"
-              ? "main-view__tab--active"
-              : ""
-          }`}
-          onClick={() => setActiveTab("simulation")}
-        >
-          Vision Lab
-        </button>
+      {/* Tabs (ARIA tabs pattern: arrow keys switch, one tab stop) */}
+      <div
+        className="main-view__tabs"
+        role="tablist"
+        aria-label="Simulation mode"
+        onKeyDown={handleTabKeyDown}
+      >
+        {TABS.map((tab) => {
+          const selected = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              id={`tab-${tab.id}`}
+              role="tab"
+              aria-selected={selected}
+              aria-controls={`tabpanel-${tab.id}`}
+              tabIndex={selected ? 0 : -1}
+              className={`main-view__tab ${
+                selected ? "main-view__tab--active" : ""
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab Content */}
-      <div className="main-view__content">
-        {/* Generate Tab */}
+      <div
+        className="main-view__content"
+        role="tabpanel"
+        id={`tabpanel-${activeTab}`}
+        aria-labelledby={`tab-${activeTab}`}
+      >
+        {/* Quick simulation tab */}
         {activeTab === "generate" && (
           <div className="main-view__generate">
-            {/* Red Deficiency Section */}
-            <div className="main-view__section">
-              <h3 className="main-view__section-title">
-                Red deficiency (Protan)
-              </h3>
-              <div className="main-view__filters">
-                <button
-                  key="protanopia"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "protanopia"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("protanopia")}
-                  disabled={generatingFilter !== null}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="protanopia" size="tiny" />
-                    Protanopia
-                  </span>
-                  <span className="main-view__filter-info">
-                    Complete • ~1% males
-                  </span>
-                </button>
-                <button
-                  key="protanomaly"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "protanomaly"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("protanomaly")}
-                  disabled={generatingFilter !== null}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="protanomaly" size="tiny" />
-                    Protanomaly
-                  </span>
-                  <span className="main-view__filter-info">
-                    Partial • ~1% males
-                  </span>
-                </button>
-              </div>
-            </div>
+            <p className="main-view__generate-note">
+              <strong>-opia</strong>: can't see that color at all ·{" "}
+              <strong>-omaly</strong>: sees it weakly
+            </p>
 
-            {/* Green Deficiency Section - MOST COMMON */}
-            <div className="main-view__section">
-              <h3 className="main-view__section-title">
-                Green deficiency (Deutan)
-                <span className="main-view__badge">
-                  Most common
-                </span>
-              </h3>
-              <div className="main-view__filters">
-                <button
-                  key="deuteranopia"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "deuteranopia"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("deuteranopia")}
-                  disabled={generatingFilter !== null}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="deuteranopia" size="tiny" />
-                    Deuteranopia
-                  </span>
-                  <span className="main-view__filter-info">
-                    Complete • ~1% males
-                  </span>
-                </button>
-                <button
-                  key="deuteranomaly"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "deuteranomaly"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("deuteranomaly")}
-                  disabled={generatingFilter !== null}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="deuteranomaly" size="tiny" />
-                    Deuteranomaly
-                  </span>
-                  <span className="main-view__filter-info">
-                    Partial • ~5-6% males
-                  </span>
-                </button>
+            {QUICK_SIMULATION_SECTIONS.map((section) => (
+              <div className="main-view__section" key={section.title}>
+                <h3 className="main-view__section-title">
+                  {section.title}
+                  {section.badge && (
+                    <span className="main-view__badge">{section.badge}</span>
+                  )}
+                </h3>
+                <div className="main-view__filters">
+                  {section.filters.map((filter) => (
+                    <button
+                      key={filter}
+                      className={`main-view__filter-card ${
+                        generatingFilter === filter
+                          ? "main-view__filter-card--generating"
+                          : ""
+                      }`}
+                      onClick={() => handleFilterClick(filter)}
+                      disabled={isGenerating}
+                      title={FILTER_METADATA[filter].description}
+                    >
+                      <span className="main-view__filter-label">
+                        <FilterIcon filterId={filter} size="tiny" decorative />
+                        {FILTER_METADATA[filter].name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-
-            {/* Blue Deficiency Section */}
-            <div className="main-view__section">
-              <h3 className="main-view__section-title">
-                Blue deficiency (Tritan)
-              </h3>
-              <div className="main-view__filters">
-                <button
-                  key="tritanopia"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "tritanopia"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("tritanopia")}
-                  disabled={generatingFilter !== null}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="tritanopia" size="tiny" />
-                    Tritanopia
-                  </span>
-                  <span className="main-view__filter-info">
-                    Complete • ~0.001%
-                  </span>
-                </button>
-                <button
-                  key="tritanomaly"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "tritanomaly"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("tritanomaly")}
-                  disabled={generatingFilter !== null}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="tritanomaly" size="tiny" />
-                    Tritanomaly
-                  </span>
-                  <span className="main-view__filter-info">
-                    Partial • ~0.01%
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Total Color Blindness Section */}
-            <div className="main-view__section">
-              <h3 className="main-view__section-title">
-                Total color blindness
-              </h3>
-              <div className="main-view__filters">
-                <button
-                  key="achromatopsia"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "achromatopsia"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("achromatopsia")}
-                  disabled={generatingFilter !== null}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="achromatopsia" size="tiny" />
-                    Achromatopsia
-                  </span>
-                  <span className="main-view__filter-info">
-                    Grayscale • ~0.003%
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Visual Field Defects Section */}
-            <div className="main-view__section">
-              <h3 className="main-view__section-title">
-                Visual field defects
-              </h3>
-              <div className="main-view__filters">
-                <button
-                  key="central-vision-loss"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "central-vision-loss"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("central-vision-loss")}
-                  disabled={generatingFilter !== null}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="central-vision-loss" size="tiny" />
-                    Central Loss
-                  </span>
-                  <span className="main-view__filter-info">
-                    Macular degeneration
-                  </span>
-                </button>
-                <button
-                  key="peripheral-vision-loss"
-                  className={`main-view__filter-card ${
-                    generatingFilter === "peripheral-vision-loss"
-                      ? "main-view__filter-card--generating"
-                      : ""
-                  }`}
-                  onClick={() => handleFilterClick("peripheral-vision-loss")}
-                  disabled={generatingFilter !== null}
-                >
-                  <span className="main-view__filter-label">
-                    <FilterIcon filterId="peripheral-vision-loss" size="tiny" />
-                    Peripheral Loss
-                  </span>
-                  <span className="main-view__filter-info">
-                    Glaucoma / Tunnel vision
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Other Section */}
-            <div className="main-view__section">
-              <h3 className="main-view__section-title">Other</h3>
-              <div className="main-view__filters">
-                {OTHER_FILTERS.map((filter) => (
-                  <button
-                    key={filter}
-                    className={`main-view__filter-card main-view__filter-card--compact ${
-                      generatingFilter === filter
-                        ? "main-view__filter-card--generating"
-                        : ""
-                    }`}
-                    onClick={() => handleFilterClick(filter)}
-                    disabled={generatingFilter !== null}
-                  >
-                    <span className="main-view__filter-label">
-                      <FilterIcon filterId={filter} size="tiny" />
-                      {FILTER_METADATA[filter].name}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
         )}
 
         {/* Simulation Tab */}
         {activeTab === "simulation" && (
-          <div className="main-view__simulation">
-            {/* Preset Selector */}
+          <div
+            className={`main-view__simulation ${
+              hasPreview && stack.length > 0
+                ? "main-view__simulation--with-bar"
+                : ""
+            }`}
+          >
+            {/* Start from a preset (loads an editable copy) */}
             <PresetSelector
+              label="Start from"
               presets={allPresets}
               selectedPreset={selectedPreset}
-              onSelectPreset={(preset) => {
-                // console.log("Preset selected:", preset?.name || "none");
-                setSelectedPreset(preset);
-                // Save selected preset ID to storage
-                sendMessage("VISION_SIMULATOR_SAVE_SELECTED_PRESET", {
-                  presetId: preset?.id || null,
-                });
-                // When a preset is selected, reset to "original" single filter
-                if (preset) {
-                  setCurrentFilter("original");
-                }
-              }}
+              onSelectPreset={handleStartFrom}
               onManagePresets={() => setShowPresetManager(true)}
             />
 
-            {/* Controls - Always show simulation dropdown */}
-            <div className="main-view__controls-row">
-              {/* Simulation Dropdown */}
-              <div className="main-view__control main-view__control--simulation">
-                <label className="main-view__control-label">
-                  Simulation
-                </label>
-                <FilterDropdown
-                  value={currentFilter}
-                  onChange={(value) => {
-                    // If a preset was selected, reset it when a simulation is chosen
-                    if (selectedPreset) {
-                      setSelectedPreset(null);
-                      // Save cleared preset to storage
-                      sendMessage("VISION_SIMULATOR_SAVE_SELECTED_PRESET", {
-                        presetId: null,
-                      });
-                    }
-                    setCurrentFilter(value);
-                    // Set appropriate default severity based on filter type
-                    if (
-                      value === "protanomaly" ||
-                      value === "deuteranomaly" ||
-                      value === "tritanomaly"
-                    ) {
-                      // Partial color blindness defaults to 60%
-                      setCurrentSeverity(0.6);
-                    } else if (
-                      isColorBlindnessFilter(value) ||
-                      isVisualFieldDefect(value)
-                    ) {
-                      // Complete color blindness and visual field defects default to 100%
-                      setCurrentSeverity(1.0);
-                    }
-                    // Reset radius to default (30%) when switching to visual field defects
-                    if (isVisualFieldDefect(value)) {
-                      setCurrentRadius(0.3);
-                    }
-                    // Reset parameters panel visibility when changing filter
-                    setShowParameters(false);
-                  }}
-                  options={filterOptions}
-                  placeholder="preset is applied"
-                  showPlaceholder={!!selectedPreset}
-                />
-              </div>
+            {/* Simulations, applied top to bottom */}
+            <div className="main-view__stack">
+              <div className="main-view__control-label">Simulations</div>
+              <SimulationStack
+                entries={stack}
+                expandedId={expandedId}
+                onToggle={(id) =>
+                  setExpandedId((current) => (current === id ? null : id))
+                }
+                onChange={(id, config) =>
+                  editStack((entries) =>
+                    entries.map((e) => (e.id === id ? { ...e, config } : e))
+                  )
+                }
+                onMove={handleMoveSimulation}
+                onRemove={handleRemoveSimulation}
+                onAdd={handleAddSimulation}
+                addOptions={filterOptions}
+              />
 
-              {/* Parameters Button - Only show if no preset is selected */}
-              {!selectedPreset && (
-                <button
-                  className="main-view__params-btn"
-                  onClick={() => setShowParameters(!showParameters)}
-                  disabled={currentFilter === "original"}
-                  title="Change parameters"
-                >
-                  <Icon name="parameters" size={16} />
-                </button>
-              )}
-            </div>
-
-            {/* Parameters Panel - Collapsible */}
-            {!selectedPreset &&
-              showParameters &&
-              currentFilter !== "original" && (
-                <div className="main-view__parameters">
-                  {/* Severity Slider - only show for color blindness filters */}
-                  {isColorBlindnessFilter(currentFilter) && (
-                    <SeveritySlider
-                      value={currentSeverity}
-                      onChange={setCurrentSeverity}
-                      label="Severity"
-                      showPercentage={true}
-                    />
-                  )}
-
-                  {/* Visual Field Defect Controls */}
-                  {isVisualFieldDefect(currentFilter) && (
-                    <>
-                      <RadiusSlider
-                        value={Math.round(currentRadius * 100)}
-                        onChange={(value) => setCurrentRadius(value / 100)}
-                        label={
-                          currentFilter === "central-vision-loss"
-                            ? "Affected Area Radius"
-                            : "Clear Center Radius"
+              {stack.length > 0 &&
+                (savingPresetName === null ? (
+                  <div className="main-view__stack-footer">
+                    <span className="main-view__stack-status">
+                      {selectedPreset
+                        ? `${selectedPreset.name}${stackEdited ? " · edited" : ""}`
+                        : `${stack.length} simulation${stack.length === 1 ? "" : "s"}`}
+                    </span>
+                    <Button
+                      variant="secondary"
+                      size="small"
+                      onClick={() =>
+                        setSavingPresetName(
+                          selectedPreset
+                            ? `${selectedPreset.name} (edited)`
+                            : "My preset"
+                        )
+                      }
+                    >
+                      Save as preset
+                    </Button>
+                  </div>
+                ) : (
+                  <div
+                    className="main-view__save-preset"
+                    role="group"
+                    aria-label="Save as preset"
+                  >
+                    <input
+                      className="main-view__save-preset-input"
+                      value={savingPresetName}
+                      onChange={(e) => setSavingPresetName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleSavePreset();
+                        } else if (e.key === "Escape") {
+                          setSavingPresetName(null);
                         }
-                        min={10}
-                        max={90}
-                        showValue={true}
-                        unit="%"
-                      />
-                      <div style={{ marginTop: "16px" }}>
-                        <SeveritySlider
-                          value={currentSeverity}
-                          onChange={setCurrentSeverity}
-                          label="Severity"
-                          showPercentage={true}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {/* Blurred Filter Controls */}
-                  {currentFilter === "blurred" && (
-                    <>
-                      <FilterParameterSlider
-                        label="Blur Radius"
-                        value={blurRadius}
-                        onChange={setBlurRadius}
-                        min={1}
-                        max={30}
-                        step={1}
-                        unit="px"
-                        description="Blur strength (higher = more blur)"
-                      />
-                      <div style={{ marginTop: "16px" }}>
-                        <FilterParameterSlider
-                          label="Iterations"
-                          value={blurIterations}
-                          onChange={setBlurIterations}
-                          min={1}
-                          max={5}
-                          step={1}
-                          description="Number of blur passes (higher = smoother)"
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {/* Ghosting Filter Controls */}
-                  {currentFilter === "ghosting" && (
-                    <>
-                      <FilterParameterSlider
-                        label="Horizontal Offset"
-                        value={ghostingOffsetX}
-                        onChange={setGhostingOffsetX}
-                        min={0}
-                        max={30}
-                        step={1}
-                        unit="px"
-                        description="Ghost image horizontal displacement"
-                      />
-                      <FilterParameterSlider
-                        label="Vertical Offset"
-                        value={ghostingOffsetY}
-                        onChange={setGhostingOffsetY}
-                        min={0}
-                        max={30}
-                        step={1}
-                        unit="px"
-                        description="Ghost image vertical displacement"
-                      />
-                      <FilterParameterSlider
-                        label="Ghost Opacity"
-                        value={ghostingOpacity}
-                        onChange={setGhostingOpacity}
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        description="Ghost image transparency"
-                      />
-                    </>
-                  )}
-
-                  {/* Yellowing Filter Controls */}
-                  {currentFilter === "yellowing" && (
-                    <>
-                      <FilterParameterSlider
-                        label="Intensity"
-                        value={yellowingIntensity}
-                        onChange={setYellowingIntensity}
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        description="Yellow tint strength"
-                      />
-                      <FilterParameterSlider
-                        label="Temperature"
-                        value={yellowingTemperature}
-                        onChange={setYellowingTemperature}
-                        min={1000}
-                        max={4000}
-                        step={100}
-                        unit="K"
-                        description="Color temperature (warmer = more yellow)"
-                      />
-                    </>
-                  )}
-
-                  {/* Loss of Contrast Filter Controls */}
-                  {currentFilter === "loss-of-contrast" && (
-                    <FilterParameterSlider
-                      label="Contrast Reduction"
-                      value={contrastReduction}
-                      onChange={setContrastReduction}
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      description="Amount of contrast loss (higher = less contrast)"
+                      }}
+                      maxLength={100}
+                      aria-label="Preset name"
+                      autoFocus
+                      onFocus={(e) => e.target.select()}
                     />
-                  )}
-
-                  {/* Bright Light Filter Controls */}
-                  {currentFilter === "bright-light" && (
-                    <>
-                      <FilterParameterSlider
-                        label="Brightness Intensity"
-                        value={brightLightIntensity}
-                        onChange={setBrightLightIntensity}
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        description="Brightness increase amount"
-                      />
-                      <FilterParameterSlider
-                        label="Color Washout"
-                        value={brightLightWashout}
-                        onChange={setBrightLightWashout}
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        description="Color desaturation amount"
-                      />
-                    </>
-                  )}
-                </div>
-              )}
+                    <button
+                      type="button"
+                      className="main-view__save-preset-btn main-view__save-preset-btn--primary"
+                      disabled={!savingPresetName.trim()}
+                      onClick={handleSavePreset}
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      className="main-view__save-preset-btn"
+                      onClick={() => setSavingPresetName(null)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ))}
+            </div>
 
             {/* Preview Area */}
             <div className="main-view__preview">
               {/* Zoom Controls */}
-              {previewImage && (
+              {hasPreview && (
                 <div className="main-view__zoom-controls">
                   <button
                     className="main-view__zoom-btn"
-                    onClick={() => setZoom(Math.max(0.25, zoom - 0.25))}
+                    onClick={() => zoomTo(zoom - 0.25)}
                     disabled={zoom <= 0.25}
                     title="Zoom out"
+                    aria-label="Zoom out"
                   >
                     <FaMinus size={12} />
                   </button>
@@ -1284,24 +1078,45 @@ export const MainView: React.FC<{}> = ({}) => {
                   </span>
                   <button
                     className="main-view__zoom-btn"
-                    onClick={() => setZoom(Math.min(4, zoom + 0.25))}
+                    onClick={() => zoomTo(zoom + 0.25)}
                     disabled={zoom >= 4}
                     title="Zoom in"
+                    aria-label="Zoom in"
                   >
                     <FaPlus size={12} />
                   </button>
                   <button
                     className="main-view__zoom-fit-btn"
-                    onClick={() => setZoom(1)}
+                    onClick={() => zoomTo(1)}
                     title="Fit to view (100%)"
+                    aria-label="Fit to view"
                   >
                     <GoScreenFull size={12} />
                   </button>
                 </div>
               )}
 
+              {/* Scroll area: zoom happens inside the fixed-size frame;
+                  drag (grab hand) or scroll to move around */}
+              <div
+                ref={viewportRef}
+                className={`main-view__preview-viewport ${
+                  canPan ? "main-view__preview-viewport--pannable" : ""
+                } ${panning ? "main-view__preview-viewport--panning" : ""}`}
+                tabIndex={hasPreview ? 0 : -1}
+                aria-label={
+                  hasPreview
+                    ? "Preview. When zoomed in, drag or use the arrow keys to move around; + and − zoom, 0 fits."
+                    : undefined
+                }
+                onPointerDown={handlePanStart}
+                onPointerMove={handlePanMove}
+                onPointerUp={handlePanEnd}
+                onPointerCancel={handlePanEnd}
+                onKeyDown={handlePreviewKeyDown}
+              >
               <div className="main-view__preview-content">
-                {!previewImage && !loading && (
+                {!hasPreview && !loading && (
                   <div className="main-view__preview-empty">
                     <p>Select a node to view simulation</p>
                   </div>
@@ -1313,32 +1128,53 @@ export const MainView: React.FC<{}> = ({}) => {
                   </div>
                 )}
 
-                {previewImage && (
-                  <div
-                    className="main-view__preview-image-container"
-                    style={{ transform: `scale(${zoom})` }}
-                  >
-                    <img
-                      src={previewImage}
-                      alt="Simulated preview"
-                      className="main-view__preview-image"
-                    />
-                  </div>
-                )}
+                {/* Always mounted so the redraw effect has a canvas to draw
+                    into; hidden until a design is loaded */}
+                <div
+                  className="main-view__preview-image-container"
+                  style={{ display: hasPreview ? undefined : "none" }}
+                >
+                  {/* Display size from fitScale × zoom (see above) */}
+                  <canvas
+                    ref={previewCanvasRef}
+                    className="main-view__preview-image"
+                    style={{ width: displayWidth, height: displayHeight }}
+                    draggable={false}
+                    role="img"
+                    aria-label={`Preview: ${stackLabel || "Original"}`}
+                  />
+                </div>
 
                 {error && (
                   <div className="main-view__error">{error}</div>
                 )}
+              </div>
               </div>
             </div>
           </div>
         )}
       </div>
 
+      {/* Add all simulations - Fixed at bottom of Quick simulation */}
+      {activeTab === "generate" && (
+        <div className="main-view__export-button-container">
+          <Button
+            variant="primary"
+            size="medium"
+            onClick={handleAddAllSimulations}
+            disabled={isGenerating}
+          >
+            {generateProgress
+              ? `Adding ${generateProgress.done + 1} of ${generateProgress.total}…`
+              : "Add all simulations"}
+          </Button>
+        </div>
+      )}
+
       {/* Export to Canvas Button - Fixed at bottom, above bottom section */}
       {activeTab === "simulation" &&
-        previewImage &&
-        (currentFilter !== "original" || selectedPreset !== null) && (
+        hasPreview &&
+        stack.length > 0 && (
           <div className="main-view__export-button-container">
             <Button
               variant="primary"
@@ -1351,9 +1187,6 @@ export const MainView: React.FC<{}> = ({}) => {
           </div>
         )}
 
-      {/* Hidden canvas for image processing */}
-      <canvas ref={canvasRef} style={{ display: "none" }} />
-
       {/* Preset Manager Modal */}
       {showPresetManager && (
         <PresetManager
@@ -1362,6 +1195,8 @@ export const MainView: React.FC<{}> = ({}) => {
           onDeletePreset={handleDeletePreset}
           onImportPresets={handleImportPresets}
           onExportPreset={handleExportPreset}
+          onDuplicatePreset={handleDuplicatePreset}
+          onRenamePreset={handleRenamePreset}
         />
       )}
     </div>

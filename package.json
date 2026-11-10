@@ -1,12 +1,14 @@
 {
   "name": "Vision Accessibility Suite",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Vision Accessibility Suite is a Figma plugin that helps designers and developers understand how their designs appear to users with various visual impairments through realistic simulations of color blindness, blur, visual field defects, and other vision conditions.",
   "main": "code.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test tests/*.test.mjs",
     "dev": "webpack --mode=development --watch",
-    "build": "webpack --mode=production"
+    "build": "webpack --mode=production",
+    "typecheck": "tsc --noEmit",
+    "community": "node documentation/community/render.mjs"
   },
   "author": "Abhijit Chirde",
   "license": "ISC",

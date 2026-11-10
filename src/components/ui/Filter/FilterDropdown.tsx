@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useDropdownKeyboard } from "../../../hooks/useDropdownKeyboard";
 import "./FilterDropdown.css";
 import { FilterIcon } from "./FilterIcon";
 import { SimulationType } from "../../../utils/vision-simulator.types";
 import { FILTER_METADATA } from "../../../utils/vision-simulator.constants";
 
-interface FilterOption {
+export interface FilterOption {
   value: SimulationType;
   label: string;
   groupLabel?: string;
@@ -57,15 +58,13 @@ export const FilterDropdown: React.FC<FilterDropdownProps> = ({
     };
   }, [isOpen]);
 
-  // Handle keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      setIsOpen(false);
-      buttonRef.current?.focus();
-    } else if (e.key === "ArrowDown" && !isOpen) {
-      setIsOpen(true);
-    }
-  };
+  // Keyboard: arrows move between options, Escape closes (shared hook)
+  const handleKeyDown = useDropdownKeyboard(
+    dropdownRef,
+    buttonRef,
+    isOpen,
+    setIsOpen
+  );
 
   const handleOptionClick = (option: FilterOption) => {
     onChange(option.value);
