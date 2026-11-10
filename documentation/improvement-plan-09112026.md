@@ -15,10 +15,10 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
-- **Working on:** Phase 6 done. Remaining: Phase 8 docs, 3.2 Web Worker, low-priority items (2.3, 2.4, 3.7, 3.8, 5.6, 5.8, 5.9, 7.x). Batch A/B/C, v2, reference, keyboard, zoom and window Figma tests not all confirmed
-- **Next step:** Figma tests for today's batches (needs you); code-wise next: Phase 8 doc fixes
+- **Working on:** 9.1 Community assets (icon options, cover, slides, description)
+- **Next step:** 9.1 Community assets; then the cleanup batch (1.6 tick, 1.7, 2.3, 5.8) and 9.3 docs
 - **Last completed:** 6.8 zoom and pan inside the preview; 6.4 resizable window reverted at the user's request (2026-11-10). Before that 6.2, 6.3, 6.5, 7.16, 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
-- **In progress / half done:** —
+- **In progress / half done:** 9.1. Plan (one commit per step): (1) shared styles + 4 icon options + icon renders; (2) a sample design page and `make-lib.mjs`, which bundles the plugin's filter modules for the browser; (3) cover with real plugin windows (Quick simulation light, Vision Lab dark with a preset loaded, answered by `src/window.js`); (4) 4 slides; (5) description.md + README.md; `npm run community` script.
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -50,6 +50,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | 6. UX & plugin accessibility | 8     | 7    |
 | 7. New features              | 15    | 4    |
 | 8. Documentation accuracy    | 9     | 0    |
+| 9. Community release         | 4     | 0    |
 
 ---
 
@@ -267,6 +268,15 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 - [ ] 🟢 **8.9 Versions and dates.** React 18.3 → 19, and the "Last updated" date.
 
 ---
+
+## Phase 9 — Figma Community release
+
+Everything needed to publish on the Figma Community. Assets live in `documentation/community/` (same approach as desi-ipsum and the Indian user data generator: HTML/CSS sources rendered to PNG with headless Edge by `render.mjs`).
+
+- [ ] 🔴 **9.1 Community assets.** 4 icon options (128 px to upload, 512 px preview, overview sheet at 64/32/16 px on light and dark), a 1920×960 cover with the real plugin UI, 4 carousel slides (1920×1080), and `description.md` (tagline options, tags, full description to paste). Simulated images come from the plugin's own filter code run on a sample design, so they show real output (requested 2026-11-10).
+- [ ] 🟠 **9.2 Pick the icon** (user) and set it in the plugin/README; re-render the cover and slides with it (`npm run community -- --icon N`).
+- [ ] 🟠 **9.3 Docs for release:** README, and implementation.md rewritten to describe the plugin as it is now (covers Phase 8).
+- [ ] 🟠 **9.4 Version bump** in package.json, and a short changelog of what's new.
 
 ## Change log
 
