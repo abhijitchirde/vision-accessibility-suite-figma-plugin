@@ -15,10 +15,10 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
-- **Working on:** ready to publish once the user picks the icon (9.2) and finishes the open Figma test groups (Batch A/B/C, v2, reference, stack polish keyboard check, keyboard)
-- **Next step:** user: pick the icon, run the open Batch tests, publish. Code-wise left (post-release): 3.2 Web Worker, 3.4 faster blur, 5.2/5.4/5.6/5.9 code health, 7.x features, 7.14 website guide
-- **Last completed:** 9.4 version 2.0.0 + changelog (2026-11-10). Before that 9.3 docs, the cleanup batch, 9.1 community assets, 6.8, 6.2, 6.3, 6.5, 7.16, 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
-- **In progress / half done:** —
+- **Working on:** ⏸ Paused. Version 2.0 was published to the Figma Community on 2026-11-10; the user will come back to the remaining improvements later.
+- **Next step:** when resuming, start with "⏭ Next steps (after the 2.0 release)" below: housekeeping first, then pick a group.
+- **Last completed:** 2.0 published (2026-11-10). Before that 9.4 version 2.0.0, 9.3 docs, the cleanup batch, 9.1 community assets, 6.8, 6.2, 6.3, 6.5, 7.16, 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
+- **In progress / half done:** — (nothing half done; the branch is clean)
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -33,10 +33,53 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 - **Filters (after 5.1):** `applyFilterConfig(data, w, h, config, pixelScale)` in image-utils.ts is the only place that maps a `CompleteFilterConfig` to a filter function; `applyFilterPreset` loops over it. `src/utils/simulation-render.ts` builds configs: `quickSimulationConfig` (Quick simulation defaults) and `visionLabConfig` (Vision Lab settings). Config units are preset format v2 (see below); `pixelScale` = image pixels per design pixel (2 at a normal export).
 - **Preset format v2 (after 7.17):** presets have `"version": 2`; visual field `radiusPercent` (% of the design's smaller side), blur `radius` and ghosting `offset` in design pixels. No version = v1 (2×-export pixels, fixed-pixel visual field radii), converted by `upgradePreset` in preset-validation.ts on import and load. `PRESET_FILTER_SPEC` there lists every setting with its range — build 7.13's reference from it.
 - **Vision Lab (after 7.15):** state is `stack: StackEntry[]` (`{id, config}`), `expandedId`, `selectedPreset` (the "Start from" preset) and `stackEdited`. `components/ui/Stack/SimulationStack.tsx` renders the list and each entry's sliders; `renderStack` (simulation-render.ts) applies it; `defaultStackConfig` gives a new entry's settings; `describeFilterConfig` the one-line summary. "Save as preset" builds a v2 preset in `handleSavePreset` (MainView).
-- **Notes for whoever resumes:** Work on branch `sandbox`. **Don't merge into `master` or push:** all changes stay on `sandbox` until they are published to the Figma Community; merge to `master` after publishing (decided 2026-11-09). Commit after each item. Messages follow the style of the other plugin repos: `type(area): plain summary` (no plan numbers in the subject), an optional line on why, then bullets saying what changed, ending with `- Plan items: 4.1, 4.2`. Find an item's commits with `git log --grep "Plan items:.*4.1"`. (All earlier commits were reworded into this style on 2026-11-10; the old messages and hashes are kept on the local branch `sandbox-before-reword` (safe to delete once the user is happy).) Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build`, `npm run typecheck` (no errors) and `npm test` (all pass) to check a change. `npm run community` re-renders the Community images.
+- **Notes for whoever resumes:** Work on branch `sandbox`. 2.0 was published on 2026-11-10, so merging `sandbox` into `master` is now due (the user does it; see Next steps → Housekeeping). For new work after that, keep using a working branch and don't push or merge without the user's OK. Commit after each item. Messages follow the style of the other plugin repos: `type(area): plain summary` (no plan numbers in the subject), an optional line on why, then bullets saying what changed, ending with `- Plan items: 4.1, 4.2`. Find an item's commits with `git log --grep "Plan items:.*4.1"`. (All earlier commits were reworded into this style on 2026-11-10; the old messages and hashes are kept on the local branch `sandbox-before-reword` (safe to delete once the user is happy).) Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build`, `npm run typecheck` (no errors) and `npm test` (all pass) to check a change. `npm run community` re-renders the Community images.
 
 ---
 
+## ⏭ Next steps (after the 2.0 release)
+
+Paused on 2026-11-10 after publishing 2.0. Nothing below is started. Pick a group when there's time; each item links to its full description further down.
+
+**0. Housekeeping first (a few minutes)**
+- [ ] Merge `sandbox` into `master` now that 2.0 is published (planned: `master` matches what's on the Community), and push. On 2026-11-10 `sandbox` was 9 commits ahead of GitHub; a normal push is fine (no force needed).
+- [ ] Note which icon option went live (9.2) in `documentation/community/README.md`.
+- [ ] The "Batch tests" groups still unticked (Batch A, B, C, preset format v2, Preset Manager reference, stack polish keyboard check, plugin keyboard access): tick what was checked before publishing, or re-run them.
+
+**1. Performance** — big designs and "Add all" stay responsive
+- 3.2 Move image processing into a Web Worker (needs a webpack setup that inlines the worker into Figma's single-file UI)
+- 3.4 Faster blur (box blur / stack blur instead of the Gaussian loop)
+- 3.7 Cache exported images by node
+- 3.8 WebGL shaders, only if the above isn't enough
+
+**2. Features** — suggested order
+- 7.2 Before/after comparison slider in Vision Lab
+- 7.7 Presets in Quick simulation
+- 7.1 Text labels under generated frames ("Add all" already makes the row)
+- 7.9 Download the filtered image as PNG
+- 7.4 Contrast check under each simulation (WCAG)
+- 7.5 Multiple selected layers
+- 7.6 Quick simulation using the last Vision Lab settings
+- 7.10 More conditions (diabetic retinopathy, halos/glare)
+- 7.11 Preset categories
+- 7.12 Refresh the preview when the selected layer is edited
+
+**3. Accuracy**
+- 2.4 Premultiplied alpha in blur (no dark fringes on transparent edges)
+
+**4. Code health**
+- 5.2 Split `MainView.tsx` into the two tabs and hooks
+- 5.4 One typed union for plugin ↔ UI messages
+- 5.6 TypeScript `strict`, pin `@figma/plugin-typings`
+- 5.9 ESLint (with `react-hooks/exhaustive-deps`)
+- Remove the unused `ZOOM_TO_NODE` handler in `code.ts` (found while writing `architecture.md`)
+
+**5. Docs**
+- 7.14 Full preset guide for abhijitchirde.com
+
+When resuming: read this block and the resume notes above, run `npm install`, `npm run build`, `npm run typecheck` and `npm test`, then record the chosen item as "in progress" before starting.
+
+---
 ## Progress
 
 | Phase                        | Items | Done |
@@ -50,7 +93,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | 6. UX & plugin accessibility | 8     | 7    |
 | 7. New features              | 15    | 4    |
 | 8. Documentation accuracy    | 9     | 9    |
-| 9. Community release         | 4     | 3    |
+| 9. Community release         | 4     | 4    |
 
 ---
 
@@ -275,7 +318,7 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 Everything needed to publish on the Figma Community. Assets live in `documentation/community/` (same approach as desi-ipsum and the Indian user data generator: HTML/CSS sources rendered to PNG with headless Edge by `render.mjs`).
 
 - [x] 🔴 **9.1 Community assets.** 4 icon options (128 px to upload, 512 px preview, overview sheet at 64/32/16 px on light and dark), a 1920×960 cover with the real plugin UI, 4 carousel slides (1920×1080), and `description.md` (tagline options, tags, full description to paste). Simulated images come from the plugin's own filter code run on a sample design, so they show real output (requested 2026-11-10). Done 2026-11-10: 8 icon options (5–8 after the original dot-eye icon), cover, 4 slides, description.md, README; `npm run community`.
-- [ ] 🟠 **9.2 Pick the icon** (user) and set it in the plugin/README; re-render the cover and slides with it (`npm run community -- --icon N`). Cover and slides use option 8 (dot iris) for now (user, 2026-11-10); final pick still open.
+- [x] 🟠 **9.2 Pick the icon** (user) and set it in the plugin/README; re-render the cover and slides with it (`npm run community -- --icon N`). Cover and slides use option 8 (dot iris) for now (user, 2026-11-10); final pick still open. Published 2026-11-10; which option went live isn't recorded here yet (see Next steps → Housekeeping).
 - [x] 🟠 **9.3 Docs for release:** README, and implementation.md rewritten to describe the plugin as it is now (covers Phase 8). Done 2026-11-10: README.md, `documentation/architecture.md`, old docs archived in `documentation/archive-2025-12/`.
 - [x] 🟠 **9.4 Version bump** in package.json, and a short changelog of what's new. Done 2026-11-10: 2.0.0, CHANGELOG.md, version notes in description.md.
 
@@ -285,3 +328,4 @@ Everything needed to publish on the Figma Community. Assets live in `documentati
 | ---------- | ---------------------- | ------------------------------------------------ | ----------- |
 | 2026-11-09 | —                      | Plan created                                     | 3b87c18     |
 | 2026-11-09 | 3.7–3.8, 7.7–7.12, 8.x | Added items from implementation.md; renamed file | —           |
+| 2026-11-10 | Phases 0–9 | Version 2.0 published to the Figma Community; remaining items listed under "Next steps" | — |
