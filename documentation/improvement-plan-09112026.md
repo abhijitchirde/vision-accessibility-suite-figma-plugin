@@ -18,7 +18,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 - **Working on:** Phase 6 plugin accessibility (6.2–6.5). Batch A/B/C, v2, reference and stack-polish Figma tests not yet confirmed
 - **Next step:** 6.2 Accessible tabs
 - **Last completed:** 7.16 stack polish (2026-11-10). Before that 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
-- **In progress / half done:** —
+- **In progress / half done:** Phase 6. Plan, in this order (one commit each): 6.2 tabs with role=tablist/tab/tabpanel, aria-selected, roving tabIndex, ←/→/Home/End; 6.3 sliders get <label htmlFor> + id (useId) and aria-valuetext with unit, zoom buttons get aria-labels, both dropdowns get ↑/↓/Home/End between options; 6.5 zoom changes the canvas width (CSS min(px, %)) instead of transform, preview centred with `safe center` so a zoomed preview scrolls; 6.4 keep 770px default, add a bottom-right resize handle, size saved per user in clientStorage (min 320×480, max 800×1200); 6.6 already covered by 0.3/0.4 (generating state, progress, toasts) — tick with a note.
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
