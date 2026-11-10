@@ -202,7 +202,7 @@
 
 .main-view__save-preset-input {
   flex: 1;
-  min-width: 0;
+  min-width: 120px;
   height: 28px;
   padding: 0 8px;
   font-family: inherit;

@@ -313,7 +313,12 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
             {customPresets.length > 0 ? (
               <div className="preset-manager__list">
                 {customPresets.map((preset) => (
-                  <div key={preset.id} className="preset-manager__item">
+                  <div
+                    key={preset.id}
+                    className={`preset-manager__item ${
+                      renamingId === preset.id ? "preset-manager__item--renaming" : ""
+                    }`}
+                  >
                     <div className="preset-manager__item-info">
                       {renamingId === preset.id ? (
                         <div className="preset-manager__rename" role="group" aria-label="Rename preset">
@@ -364,6 +369,7 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
                         {preset.filters.length !== 1 ? "s" : ""}
                       </div>
                     </div>
+                    {renamingId !== preset.id && (
                     <div className="preset-manager__item-actions">
                       <button
                         className="preset-manager__export-btn"
@@ -402,6 +408,7 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
                         <Icon name="trash" size={16} />
                       </button>
                     </div>
+                    )}
                   </div>
                 ))}
               </div>
