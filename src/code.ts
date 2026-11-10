@@ -1,5 +1,11 @@
 import { VisionSimulator } from "./utils/vision-simulator";
 import { SelectionService } from "./services/selection.service";
+import {
+  loadCustomPresets,
+  saveCustomPresets,
+  loadSelectedPresetId,
+  saveSelectedPresetId,
+} from "./services/preset-store";
 
 // Show the plugin UI. themeColors injects Figma's real --figma-color-* values
 // for the user's light/dark theme, so "Auto" follows Figma.
@@ -97,17 +103,22 @@ figma.ui.onmessage = async (msg) => {
         visionSimulatorPanelActive = false;
         break;
 
-      case "VISION_SIMULATOR_LOAD_PRESETS":
-        // Load custom presets from storage
+      case "VISION_SIMULATOR_LOAD_PRESETS": {
+        // Custom presets are saved per user (clientStorage); presets saved in
+        // this file by older versions are imported once
         try {
-          const presetsData = figma.root.getPluginData(
-            "vision-simulator-presets"
-          );
-          const presets = presetsData ? JSON.parse(presetsData) : [];
+          const { presets, importedFromFile } = await loadCustomPresets();
           figma.ui.postMessage({
             type: "VISION_SIMULATOR_PRESETS_LOADED",
-            presets: presets,
+            presets,
           });
+          if (importedFromFile > 0) {
+            figma.notify(
+              `Imported ${importedFromFile} preset${
+                importedFromFile === 1 ? "" : "s"
+              } saved in this file into your presets`
+            );
+          }
         } catch (error) {
           console.error("[code.ts] Failed to load presets:", error);
           figma.ui.postMessage({
@@ -116,22 +127,15 @@ figma.ui.onmessage = async (msg) => {
           });
         }
         break;
+      }
 
       case "VISION_SIMULATOR_SAVE_PRESETS":
-        // Save custom presets to storage
         try {
-          const presetsToSave = msg.data?.presets || []; // FIX: Use msg.data.presets
-
-          figma.root.setPluginData(
-            "vision-simulator-presets",
-            JSON.stringify(presetsToSave)
-          );
-
-          // Send confirmation back to UI
+          const count = await saveCustomPresets(msg.data?.presets ?? []);
           figma.ui.postMessage({
             type: "VISION_SIMULATOR_PRESETS_SAVED",
             success: true,
-            count: presetsToSave.length,
+            count,
           });
         } catch (error) {
           console.error("[code.ts] Failed to save presets:", error);
@@ -144,14 +148,10 @@ figma.ui.onmessage = async (msg) => {
         break;
 
       case "VISION_SIMULATOR_LOAD_SELECTED_PRESET":
-        // Load the last selected preset ID from storage
         try {
-          const selectedPresetId = figma.root.getPluginData(
-            "vision-simulator-selected-preset"
-          );
           figma.ui.postMessage({
             type: "VISION_SIMULATOR_SELECTED_PRESET_LOADED",
-            presetId: selectedPresetId || null,
+            presetId: await loadSelectedPresetId(),
           });
         } catch (error) {
           console.error("Failed to load selected preset:", error);
@@ -163,13 +163,8 @@ figma.ui.onmessage = async (msg) => {
         break;
 
       case "VISION_SIMULATOR_SAVE_SELECTED_PRESET":
-        // Save the selected preset ID to storage
         try {
-          const presetId = msg.data?.presetId || ""; // FIX: Use msg.data.presetId
-          figma.root.setPluginData(
-            "vision-simulator-selected-preset",
-            presetId
-          );
+          await saveSelectedPresetId(msg.data?.presetId || null);
         } catch (error) {
           console.error("[code.ts] Failed to save selected preset:", error);
         }
