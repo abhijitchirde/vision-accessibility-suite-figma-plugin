@@ -548,8 +548,11 @@ export function applyCentralVisionLoss(
   imageData: Uint8ClampedArray,
   width: number,
   height: number,
-  config: CentralVisionLossConfig
+  config: CentralVisionLossConfig,
+  pixelScale: number = 1
 ): Uint8ClampedArray {
+  // pixelScale: size of this image relative to the full export (e.g. 0.4 for
+  // a downscaled preview), so the internal blur matches the exported result
   const { radius, severity } = config;
   
   // If severity is 0 or radius is very small, return original (no effect)
@@ -566,8 +569,8 @@ export function applyCentralVisionLoss(
   // Scale blur from 2px (small radius/severity) to 20px (large radius/severity)
   // Both radius and severity contribute to blur intensity
   const baseBlurRadius = 2 + normalizedRadius * 18;
-  const blurRadius = Math.round(baseBlurRadius * severity);
-  
+  const blurRadius = Math.round(baseBlurRadius * severity * pixelScale);
+
   // If blur radius is too small, minimal blur needed
   if (blurRadius < 2) {
     // Apply minimal processing
@@ -695,8 +698,10 @@ export function applyPeripheralVisionLoss(
   imageData: Uint8ClampedArray,
   width: number,
   height: number,
-  config: PeripheralVisionLossConfig
+  config: PeripheralVisionLossConfig,
+  pixelScale: number = 1
 ): Uint8ClampedArray {
+  // pixelScale: see applyCentralVisionLoss
   const { tunnelRadius, severity } = config;
   
   // If severity is 0, return original (no effect)
@@ -722,7 +727,7 @@ export function applyPeripheralVisionLoss(
   // Inverse relationship: smaller radius = more blur (2-20px range)
   // Both radius and severity contribute to blur intensity
   const baseBlurRadius = 2 + (1 - normalizedRadius) * 18;
-  const blurRadius = Math.round(baseBlurRadius * severity);
+  const blurRadius = Math.round(baseBlurRadius * severity * pixelScale);
   
   // If blur radius is too small, minimal blur needed
   if (blurRadius < 2) {
@@ -881,6 +886,15 @@ export function calculatePreviewDimensions(
 }
 
 /**
+ * Scale a blur radius for an image that is `scale` times the full export
+ * size. Keeps at least 1px so a downscaled preview still shows some blur.
+ */
+export function scaleBlurRadius(radius: number, scale: number): number {
+  if (radius <= 0) return 0;
+  return Math.max(1, Math.round(radius * scale));
+}
+
+/**
  * Apply a filter preset (multiple filters in sequence)
  *
  * This function takes a preset configuration and applies all filters
@@ -906,8 +920,13 @@ export function applyFilterPreset(
   imageData: Uint8ClampedArray,
   width: number,
   height: number,
-  preset: import("./vision-simulator.types").FilterPreset
+  preset: import("./vision-simulator.types").FilterPreset,
+  pixelScale: number = 1
 ): Uint8ClampedArray {
+  // pixelScale: size of this image relative to the full export. Pixel-based
+  // settings (blur radius, ghost offset, visual-field radius) are scaled by it
+  // so a downscaled preview matches the exported result.
+  const px = (value: number) => value * pixelScale;
   let result = new Uint8ClampedArray(imageData) as Uint8ClampedArray;
 
   // Apply each filter in sequence
@@ -929,20 +948,17 @@ export function applyFilterPreset(
       ) as Uint8ClampedArray;
     } else if (filterConfig.type === "blurred") {
       // Blur filter
-      result = applyBlur(
-        result,
-        width,
-        height,
-        filterConfig.config
-      ) as Uint8ClampedArray;
+      result = applyBlur(result, width, height, {
+        ...filterConfig.config,
+        radius: scaleBlurRadius(filterConfig.config.radius, pixelScale),
+      }) as Uint8ClampedArray;
     } else if (filterConfig.type === "ghosting") {
       // Ghosting filter
-      result = applyGhosting(
-        result,
-        width,
-        height,
-        filterConfig.config
-      ) as Uint8ClampedArray;
+      const { offset } = filterConfig.config;
+      result = applyGhosting(result, width, height, {
+        ...filterConfig.config,
+        offset: { x: Math.round(px(offset.x)), y: Math.round(px(offset.y)) },
+      }) as Uint8ClampedArray;
     } else if (filterConfig.type === "yellowing") {
       // Yellowing filter
       result = applyYellowing(result, filterConfig.config) as Uint8ClampedArray;
@@ -964,7 +980,8 @@ export function applyFilterPreset(
         result,
         width,
         height,
-        filterConfig.config
+        { ...filterConfig.config, radius: px(filterConfig.config.radius) },
+        pixelScale
       ) as Uint8ClampedArray;
     } else if (filterConfig.type === "peripheral-vision-loss") {
       // Peripheral vision loss filter
@@ -972,7 +989,11 @@ export function applyFilterPreset(
         result,
         width,
         height,
-        filterConfig.config
+        {
+          ...filterConfig.config,
+          tunnelRadius: px(filterConfig.config.tunnelRadius),
+        },
+        pixelScale
       ) as Uint8ClampedArray;
     }
   }
