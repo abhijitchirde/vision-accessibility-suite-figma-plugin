@@ -187,6 +187,8 @@ export const MainView: React.FC<{}> = ({}) => {
     null
   );
   const [zoom, setZoom] = useState<number>(DEFAULT_ZOOM);
+  // Width of the preview image in pixels (sets its on-screen size at 100%)
+  const [previewPixelWidth, setPreviewPixelWidth] = useState(0);
   // True when a design is loaded into the Vision Lab preview
   const [hasPreview, setHasPreview] = useState(false);
   // Bumped each time a new design is loaded, to trigger a redraw
@@ -442,6 +444,7 @@ export const MainView: React.FC<{}> = ({}) => {
       // Preview pixels per design pixel = downscale × export scale
       preview.scale *= pixelsPerDesignPixelRef.current;
       previewSourceRef.current = preview;
+      setPreviewPixelWidth(preview.width);
       setHasPreview(true);
       setImageVersion((v) => v + 1);
     } catch (err) {
@@ -997,14 +1000,18 @@ export const MainView: React.FC<{}> = ({}) => {
                     into; hidden until a design is loaded */}
                 <div
                   className="main-view__preview-image-container"
-                  style={{
-                    transform: `scale(${zoom})`,
-                    display: hasPreview ? undefined : "none",
-                  }}
+                  style={{ display: hasPreview ? undefined : "none" }}
                 >
+                  {/* Zoom sets the real width (not a visual transform), so a
+                      zoomed-in preview makes the area scroll instead of
+                      being cut off. 100% = natural size, at most the width
+                      of the preview area. */}
                   <canvas
                     ref={previewCanvasRef}
                     className="main-view__preview-image"
+                    style={{
+                      width: `min(${previewPixelWidth * zoom}px, ${zoom * 100}%)`,
+                    }}
                     role="img"
                     aria-label={`Preview: ${stackLabel || "Original"}`}
                   />

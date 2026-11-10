@@ -271,8 +271,11 @@
 
 .main-view__preview-content {
   display: flex;
+  /* "safe" keeps a zoomed-in preview scrollable to its left/top edge */
   align-items: center;
+  align-items: safe center;
   justify-content: center;
+  justify-content: safe center;
   flex: 1;
   min-height: 100%;
   padding: 8px;
@@ -384,15 +387,17 @@
 }
 
 .main-view__preview-image-container {
-  transform-origin: center;
-  transition: transform 0.2s ease;
+  /* Lets the canvas's % width refer to the preview area */
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  justify-content: safe center;
 }
 
 .main-view__preview-image {
   display: block;
-  max-width: 100%;
+  flex-shrink: 0;
   height: auto;
-  /* cursor: grab; */
 }
 
 /* Error */
