@@ -117,24 +117,24 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
   - [ ] Achromatopsia is grey, with brightness that looks natural (yellows light, blues dark).
   - [ ] Optional: compare one screenshot against another simulator that uses Machado (e.g. Chrome DevTools → Rendering → Emulate vision deficiencies). Results should look very close.
 
-- [ ] **Stack of simulations (Vision Lab)**
-  - [ ] Vision Lab shows "Start from" and "Simulations"; the old Simulation dropdown and gear-parameters button are gone.
-  - [ ] "+ Add a simulation" adds one with its sliders open; adding a second collapses nothing else but opens the new one; clicking a header opens/closes it.
-  - [ ] ↑ / ↓ reorder (e.g. Blur then Contrast vs Contrast then Blur looks different); ✕ removes; first ↑ and last ↓ are disabled.
-  - [ ] "Start from" a built-in preset: its simulations appear in the list; changing a slider shows "· edited" in the status line; the saved built-in preset itself is unchanged when you pick it again.
-  - [ ] "Save as preset": type a name, Save → toast, it appears in the dropdown and in Manage presets, and survives closing the plugin. Cancel closes the field.
-  - [ ] "Add current view to Figma" appears once there's at least one simulation; the frame is named after the preset or e.g. "Blurred + Yellowing", and matches the preview.
-  - [ ] The clear (✕ Reset) button next to "Start from" empties the list.
-  - [ ] With a long list, nothing is hidden behind the bottom bar (you can scroll to the preview).
+- [x] **Stack of simulations (Vision Lab)** ✅ tested 2026-11-10
+  - [x] Vision Lab shows "Start from" and "Simulations"; the old Simulation dropdown and gear-parameters button are gone.
+  - [x] "+ Add a simulation" adds one with its sliders open; adding a second collapses nothing else but opens the new one; clicking a header opens/closes it.
+  - [x] ↑ / ↓ reorder (e.g. Blur then Contrast vs Contrast then Blur looks different); ✕ removes; first ↑ and last ↓ are disabled.
+  - [x] "Start from" a built-in preset: its simulations appear in the list; changing a slider shows "· edited" in the status line; the saved built-in preset itself is unchanged when you pick it again.
+  - [x] "Save as preset": type a name, Save → toast, it appears in the dropdown and in Manage presets, and survives closing the plugin. Cancel closes the field.
+  - [x] "Add current view to Figma" appears once there's at least one simulation; the frame is named after the preset or e.g. "Blurred + Yellowing", and matches the preview.
+  - [x] The clear (✕ Reset) button next to "Start from" empties the list.
+  - [x] With a long list, nothing is hidden behind the bottom bar (you can scroll to the preview).
 
 - [ ] **Preset Manager reference**
   - [ ] Manage presets shows "Preset file format" with a short example; Copy puts valid JSON on the clipboard, and importing that JSON works.
   - [ ] "Filter reference" opens and lists the color blindness group plus 7 other filters, each with settings and ranges; readable in light and dark mode.
 
-- [ ] **Scrollbars**
-  - [ ] Vision Lab with nothing selected (and with a preset chosen in "Start from"): no vertical scrollbar at the default window size.
-  - [ ] With a design selected and a simulation added, the preview isn't hidden behind the "Add current view to Figma" bar.
-  - [ ] Where something does scroll (long stack, dropdown menus, Preset Manager), the scrollbar is slim and rounded, in light and dark mode.
+- [x] **Scrollbars** ✅ tested 2026-11-10
+  - [x] Vision Lab with nothing selected (and with a preset chosen in "Start from"): no vertical scrollbar at the default window size.
+  - [x] With a design selected and a simulation added, the preview isn't hidden behind the "Add current view to Figma" bar.
+  - [x] Where something does scroll (long stack, dropdown menus, Preset Manager), the scrollbar is slim and rounded, in light and dark mode.
 
 ## Phase 1 — Correctness bugs
 
