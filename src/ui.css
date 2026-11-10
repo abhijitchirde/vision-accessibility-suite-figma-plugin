@@ -270,31 +270,3 @@ a:hover {
 .credit-text a:hover {
   color: var(--figma-color-text-secondary);
 }
-
-/* Window resize grip (bottom-right corner, above the footer) */
-.resize-handle {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  width: 16px;
-  height: 16px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  padding: 2px;
-  box-sizing: border-box;
-  color: var(--figma-color-text-tertiary);
-  cursor: nwse-resize;
-  z-index: 2000;
-  touch-action: none;
-}
-
-.resize-handle:hover {
-  color: var(--figma-color-text-secondary);
-}
-
-.resize-handle:focus-visible {
-  outline: 2px solid var(--figma-color-border-brand);
-  outline-offset: -2px;
-  border-radius: 2px;
-}

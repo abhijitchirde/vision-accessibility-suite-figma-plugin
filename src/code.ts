@@ -9,43 +9,7 @@ import {
 
 // Show the plugin UI. themeColors injects Figma's real --figma-color-* values
 // for the user's light/dark theme, so "Auto" follows Figma.
-const DEFAULT_WINDOW_SIZE = { width: 360, height: 770 };
-figma.showUI(__html__, { ...DEFAULT_WINDOW_SIZE, themeColors: true });
-
-/**
- * Window size: the user can resize the window with the grip in its
- * bottom-right corner; the size is kept within these limits and
- * remembered per user.
- */
-const WINDOW_SIZE_KEY = "windowSize";
-const WINDOW_LIMITS = { minWidth: 320, maxWidth: 800, minHeight: 480, maxHeight: 1200 };
-let currentWindowSize = { ...DEFAULT_WINDOW_SIZE };
-
-function clampWindowSize(width: unknown, height: unknown) {
-  const clamp = (value: unknown, min: number, max: number, fallback: number) =>
-    typeof value === "number" && Number.isFinite(value)
-      ? Math.round(Math.max(min, Math.min(max, value)))
-      : fallback;
-  return {
-    width: clamp(width, WINDOW_LIMITS.minWidth, WINDOW_LIMITS.maxWidth, currentWindowSize.width),
-    height: clamp(height, WINDOW_LIMITS.minHeight, WINDOW_LIMITS.maxHeight, currentWindowSize.height),
-  };
-}
-
-function resizeWindow(width: unknown, height: unknown) {
-  currentWindowSize = clampWindowSize(width, height);
-  figma.ui.resize(currentWindowSize.width, currentWindowSize.height);
-}
-
-// Restore the size the user chose last time
-figma.clientStorage
-  .getAsync(WINDOW_SIZE_KEY)
-  .then((saved) => {
-    if (saved && typeof saved === "object") {
-      resizeWindow((saved as any).width, (saved as any).height);
-    }
-  })
-  .catch(() => undefined);
+figma.showUI(__html__, { width: 360, height: 770, themeColors: true });
 
 /** Theme override chosen in the footer (Auto / Light / Dark), saved per user */
 const THEME_KEY = "themePreference";
@@ -325,16 +289,6 @@ figma.ui.onmessage = async (msg) => {
         }
         break;
       }
-
-      case "resize-window":
-        resizeWindow(msg.width, msg.height);
-        break;
-
-      case "save-window-size":
-        await figma.clientStorage
-          .setAsync(WINDOW_SIZE_KEY, currentWindowSize)
-          .catch(() => undefined);
-        break;
 
       case "get-theme-pref": {
         const value = await figma.clientStorage
