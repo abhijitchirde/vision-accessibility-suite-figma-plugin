@@ -9,6 +9,79 @@
   // Unique ids per rendered icon, so many copies on one page don't share gradients/clips
   let uid = 0;
 
+  // ---- Dot-eye style (options 5-8), after the plugin's original icon: an eye drawn in
+  // halftone dots, coloured round a colour wheel, bigger towards the middle of the eye.
+
+  function hslToRgb(h, s, l) {
+    const k = (n) => (n + h / 30) % 12;
+    const a = s * Math.min(l, 1 - l);
+    const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+    return [f(0), f(8), f(4)].map((v) => Math.round(v * 255));
+  }
+  const toHex = (rgb) => "#" + rgb.map((v) => v.toString(16).padStart(2, "0")).join("");
+
+  /** Colour as someone with deuteranopia sees it (plugin's own model, if loaded) */
+  function deut(rgb) {
+    if (!window.VAS) return rgb;
+    const px = new Uint8ClampedArray([rgb[0], rgb[1], rgb[2], 255]);
+    return Array.from(window.VAS.applyColorBlindness(px, "deuteranopia").slice(0, 3));
+  }
+
+  /**
+   * Dots in rings round the centre, kept inside an almond eye shape.
+   * opts: { light (0-1 lightness), sat, simulateRight, irisRadius }
+   */
+  function eyeDots(opts) {
+    const cx = 50, cy = 50, halfWidth = 46, halfHeight = 34;
+    const irisR = opts.irisRadius || 14.5;
+    const edge = (x) => halfHeight * (1 - Math.pow((x - cx) / halfWidth, 2)); // eye half-height at x
+    const dots = [];
+    for (let r = irisR + 4.8; r <= halfWidth; r += 4.7) {
+      const count = Math.max(8, Math.round((2 * Math.PI * r) / 4.9));
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2 + (r % 2) * 0.18;
+        const x = cx + Math.cos(angle) * r;
+        const y = cy + Math.sin(angle) * r;
+        const limit = edge(x);
+        if (limit <= 0) continue;
+        const depth = 1 - Math.abs(y - cy) / limit; // 1 on the centre line, 0 at the lid
+        if (depth < 0.1) continue;
+        const radius = 0.8 + 1.65 * Math.min(1, depth * 1.3) * (1 - 0.3 * (r / halfWidth));
+        const hue = ((angle * 180) / Math.PI + 300) % 360;
+        let rgb = hslToRgb(hue, opts.sat ?? 0.78, opts.light ?? 0.56);
+        if (opts.simulateRight && x > cx) rgb = deut(rgb);
+        dots.push(`<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${radius.toFixed(2)}" fill="${toHex(rgb)}" />`);
+      }
+    }
+    return dots.join("");
+  }
+
+  /** Dark iris with a blue ring and a highlight, like the original icon */
+  function iris(r, opts) {
+    return `
+      <circle cx="50" cy="50" r="${r}" fill="url(#ir-ID)" />
+      <circle cx="50" cy="50" r="${(r * 0.55).toFixed(2)}" fill="${(opts && opts.pupil) || "#0d1030"}" />
+      <circle cx="${(50 - r * 0.32).toFixed(2)}" cy="${(50 - r * 0.32).toFixed(2)}" r="${(r * 0.17).toFixed(2)}" fill="#fff" opacity="0.9" />`;
+  }
+  const irisGradient = `
+    <radialGradient id="ir-ID" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.5" stop-color="#1b2a6b" /><stop offset="0.8" stop-color="#2f6bff" /><stop offset="1" stop-color="#22b8ff" />
+    </radialGradient>`;
+
+  /** An iris made only of dot rings (option 8) */
+  function dotIris(r) {
+    const dots = [];
+    for (let ring = 9.5; ring <= r; ring += 3.4) {
+      const count = Math.round((2 * Math.PI * ring) / 3.5);
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2;
+        const hue = ((angle * 180) / Math.PI + 300) % 360;
+        dots.push(`<circle cx="${(50 + Math.cos(angle) * ring).toFixed(2)}" cy="${(50 + Math.sin(angle) * ring).toFixed(2)}" r="1.45" fill="${toHex(hslToRgb(hue, 0.85, 0.55))}" />`);
+      }
+    }
+    return dots.join("");
+  }
+
   const OPTIONS = [
     {
       id: 1,
@@ -102,6 +175,61 @@
         <rect width="100" height="100" fill="url(#vig-ID)" />`,
     },
   ];
+
+  OPTIONS.push(
+    {
+      id: 5,
+      name: "Dot eye",
+      note: "Your original icon, refined: an eye in halftone dots coloured round a colour wheel, on warm light paper.",
+      svg: () => `
+        <defs>${irisGradient}</defs>
+        <rect width="100" height="100" fill="#f7f3ea" />
+        ${eyeDots({ light: 0.56 })}
+        ${iris(14.5)}`,
+    },
+    {
+      id: 6,
+      name: "Dot eye, half simulated",
+      note: "The dot eye with its right half as someone with deuteranopia sees it (the plugin's own model). The original idea plus 'see through other eyes'.",
+      svg: () => `
+        <defs>${irisGradient}</defs>
+        <rect width="100" height="100" fill="#f7f3ea" />
+        ${eyeDots({ light: 0.56, simulateRight: true })}
+        ${iris(14.5)}`,
+    },
+    {
+      id: 7,
+      name: "Dot eye, night",
+      note: "The dot eye glowing on deep navy: the colours pop, and it stands out in Figma's dark menus.",
+      svg: () => `
+        <defs>
+          ${irisGradient}
+          <linearGradient id="bg-ID" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1d2152" /><stop offset="1" stop-color="#0a0c24" />
+          </linearGradient>
+        </defs>
+        <rect width="100" height="100" fill="url(#bg-ID)" />
+        ${eyeDots({ light: 0.62, sat: 0.9 })}
+        ${iris(14.5, { pupil: "#05061a" })}`,
+    },
+    {
+      id: 8,
+      name: "Dot iris",
+      note: "A bold white eye on violet with an iris made of colour-wheel dots. Keeps the dot idea and reads clearly at 16 px.",
+      svg: () => `
+        <defs>
+          <linearGradient id="bg-ID" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#6a5bff" /><stop offset="1" stop-color="#2b1d9e" />
+          </linearGradient>
+        </defs>
+        <rect width="100" height="100" fill="url(#bg-ID)" />
+        <circle cx="16" cy="6" r="56" fill="#fff" opacity="0.08" />
+        <path d="M8 50 C24 22 76 22 92 50 C76 78 24 78 8 50 Z" fill="#fff" />
+        ${dotIris(21)}
+        <circle cx="50" cy="50" r="7.5" fill="#111633" />
+        <circle cx="47" cy="47" r="2.3" fill="#fff" opacity="0.9" />`,
+    }
+  );
 
   window.ICON_OPTIONS = OPTIONS;
 

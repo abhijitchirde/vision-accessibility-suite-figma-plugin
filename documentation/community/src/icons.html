@@ -65,16 +65,20 @@
     </style>
   </head>
   <body>
-    <!-- 1920×1080 sheet comparing the icon options at 240, 64, 32 and 16 px -->
+    <!-- 1920×1080 sheet comparing four icon options at 240, 64, 32 and 16 px. Query: ?page=1|2 -->
     <div class="canvas slide" id="canvas">
-      <div class="kicker">Icon options</div>
+      <div class="kicker" id="kicker">Icon options</div>
       <h1 class="title">Pick one, <em>or mix ideas.</em></h1>
       <div class="options" id="options"></div>
     </div>
+    <script src="lib/filters.js"></script>
     <script src="icons.js"></script>
     <script>
+      const page = Number(new URLSearchParams(location.search).get("page") || 1);
+      const first = (page - 1) * 4 + 1;
+      document.getElementById("kicker").textContent = `Icon options ${first}–${first + 3}`;
       const options = document.getElementById("options");
-      ICON_OPTIONS.forEach((o) => {
+      ICON_OPTIONS.filter((o) => o.id >= first && o.id < first + 4).forEach((o) => {
         const card = document.createElement("div");
         card.className = "card opt";
         card.innerHTML = `<div class="big"></div><h3><span>${o.id}</span>${o.name}</h3><p>${o.note}</p>

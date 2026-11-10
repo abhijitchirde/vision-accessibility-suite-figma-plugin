@@ -70,16 +70,27 @@ function shot(page, query, width, height, file, scale = 1) {
   console.log("✓", path.relative(here, target));
 }
 
-const iconNames = { 1: "split-eye", 2: "before-after", 3: "light-lenses", 4: "field-of-view" };
+// The plugin's filters, bundled for the browser pages (icon 6 and all simulated images use them)
+execFileSync(process.execPath, [path.join(here, "make-lib.mjs")], { stdio: "inherit" });
+
+const iconNames = {
+  1: "split-eye",
+  2: "before-after",
+  3: "light-lenses",
+  4: "field-of-view",
+  5: "dot-eye",
+  6: "dot-eye-simulated",
+  7: "dot-eye-night",
+  8: "dot-iris",
+};
 for (const [id, name] of Object.entries(iconNames)) {
   shot("icon.html", { option: id, size: 128 }, 128, 128, `icons/icon-${id}-${name}-128.png`);
   shot("icon.html", { option: id, size: 512 }, 512, 512, `icons/icon-${id}-${name}-512.png`);
 }
-shot("icons.html", {}, 1920, 1080, "icons/icon-options-overview.png");
+shot("icons.html", { page: 1 }, 1920, 1080, "icons/icon-options-1-4.png");
+shot("icons.html", { page: 2 }, 1920, 1080, "icons/icon-options-5-8.png");
 
 if (!iconsOnly) {
-  // The plugin's filters, bundled for the browser pages
-  execFileSync(process.execPath, [path.join(here, "make-lib.mjs")], { stdio: "inherit" });
   // The sample design, at 2x like the plugin's export
   shot("sample-design.html", {}, 520, 720, "sample-design.png", 2);
 
