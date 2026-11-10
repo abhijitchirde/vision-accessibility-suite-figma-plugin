@@ -2,35 +2,29 @@
  * Simulation rendering (pure: no DOM, no Figma API)
  *
  * Turns what the user picked (a Quick simulation card, or the Vision Lab
- * settings) into filtered pixels. Kept separate from the React view so it
- * can be tested on its own.
+ * settings) into a filter config, and applies it with applyFilterConfig,
+ * the single filter registry in image-utils.ts. Kept separate from the
+ * React view so it can be tested on its own.
  */
 
 import {
   SimulationType,
   ColorBlindnessType,
+  CompleteFilterConfig,
   FilterPreset,
 } from "./vision-simulator.types";
 import {
   COLOR_BLIND_FILTERS,
   DEFAULT_BLUR_CONFIG,
   DEFAULT_GHOSTING_CONFIG,
+  DEFAULT_YELLOWING_CONFIG,
+  DEFAULT_CONTRAST_LOSS_CONFIG,
+  DEFAULT_BRIGHT_LIGHT_CONFIG,
   DEFAULT_CENTRAL_VISION_LOSS_CONFIG,
   DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG,
   IMAGE_EXPORT_SETTINGS,
 } from "./vision-simulator.constants";
-import {
-  applyColorBlindness,
-  applyBlur,
-  applyGhosting,
-  applyYellowing,
-  applyContrastLoss,
-  applyBrightLight,
-  applyCentralVisionLoss,
-  applyPeripheralVisionLoss,
-  applyFilterPreset,
-  scaleBlurRadius,
-} from "./image-utils";
+import { applyFilterConfig, applyFilterPreset } from "./image-utils";
 
 /**
  * Pixel-based settings (blur radius, ghosting offset, ...) are tuned for a
@@ -39,6 +33,66 @@ import {
  */
 export function exportPixelFactor(exportScale: number | undefined): number {
   return exportScale ? exportScale / IMAGE_EXPORT_SETTINGS.constraint.value : 1;
+}
+
+/**
+ * The visual-field defaults are tuned for a 500px image; this keeps the
+ * effect the same relative size on any image. Returned in 2x-export pixels
+ * (the unit filter configs use), hence the division by pixelScale.
+ */
+function relativeRadius(
+  defaultRadius: number,
+  width: number,
+  height: number,
+  pixelScale: number
+): number {
+  return ((defaultRadius / 500) * Math.min(width, height)) / pixelScale;
+}
+
+/**
+ * Filter config for a Quick simulation card (default settings), or null
+ * for "original".
+ */
+export function quickSimulationConfig(
+  filter: SimulationType,
+  width: number,
+  height: number,
+  pixelScale: number = 1
+): CompleteFilterConfig | null {
+  if (COLOR_BLIND_FILTERS.includes(filter)) {
+    // No severity: type-appropriate default (complete = 1.0, anomalies = 0.6)
+    return { type: filter as ColorBlindnessType };
+  }
+  switch (filter) {
+    case "blurred":
+      return { type: "blurred", config: DEFAULT_BLUR_CONFIG };
+    case "ghosting":
+      return { type: "ghosting", config: DEFAULT_GHOSTING_CONFIG };
+    case "yellowing":
+      return { type: "yellowing", config: DEFAULT_YELLOWING_CONFIG };
+    case "loss-of-contrast":
+      return { type: "loss-of-contrast", config: DEFAULT_CONTRAST_LOSS_CONFIG };
+    case "bright-light":
+      return { type: "bright-light", config: DEFAULT_BRIGHT_LIGHT_CONFIG };
+    case "central-vision-loss":
+      return {
+        type: "central-vision-loss",
+        config: {
+          radius: relativeRadius(DEFAULT_CENTRAL_VISION_LOSS_CONFIG.radius, width, height, pixelScale),
+          severity: DEFAULT_CENTRAL_VISION_LOSS_CONFIG.severity,
+        },
+      };
+    case "peripheral-vision-loss":
+      return {
+        type: "peripheral-vision-loss",
+        config: {
+          tunnelRadius: relativeRadius(DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG.tunnelRadius, width, height, pixelScale),
+          severity: DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG.severity,
+        },
+      };
+    default:
+      return null;
+  }
 }
 
 /**
@@ -52,63 +106,10 @@ export function renderQuickSimulation(
   filter: SimulationType,
   pixelScale: number = 1
 ): Uint8ClampedArray {
-  let filtered: Uint8ClampedArray = source;
-
-  if (COLOR_BLIND_FILTERS.includes(filter)) {
-    // Type-appropriate default severity (complete = 1.0, anomalies = 0.6)
-    filtered = applyColorBlindness(source, filter as ColorBlindnessType);
-  } else if (filter === "blurred") {
-    filtered = applyBlur(source, width, height, {
-      ...DEFAULT_BLUR_CONFIG,
-      radius: scaleBlurRadius(DEFAULT_BLUR_CONFIG.radius, pixelScale),
-    });
-  } else if (filter === "ghosting") {
-    const { offset } = DEFAULT_GHOSTING_CONFIG;
-    filtered = applyGhosting(source, width, height, {
-      ...DEFAULT_GHOSTING_CONFIG,
-      offset: {
-        x: Math.round(offset.x * pixelScale),
-        y: Math.round(offset.y * pixelScale),
-      },
-    });
-  } else if (filter === "yellowing") {
-    filtered = applyYellowing(source);
-  } else if (filter === "loss-of-contrast") {
-    filtered = applyContrastLoss(source);
-  } else if (filter === "bright-light") {
-    filtered = applyBrightLight(source);
-  } else if (filter === "central-vision-loss") {
-    // Scale the radius with the image so the effect looks the same at any size
-    // (default radii are tuned for a 500px image)
-    const imageSize = Math.min(width, height);
-    filtered = applyCentralVisionLoss(
-      source,
-      width,
-      height,
-      {
-        radius: (DEFAULT_CENTRAL_VISION_LOSS_CONFIG.radius / 500) * imageSize,
-        severity: DEFAULT_CENTRAL_VISION_LOSS_CONFIG.severity,
-      },
-      pixelScale
-    );
-  } else if (filter === "peripheral-vision-loss") {
-    // Same scaling as central vision loss
-    const imageSize = Math.min(width, height);
-    filtered = applyPeripheralVisionLoss(
-      source,
-      width,
-      height,
-      {
-        tunnelRadius:
-          (DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG.tunnelRadius / 500) *
-          imageSize,
-        severity: DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG.severity,
-      },
-      pixelScale
-    );
-  }
-
-  return filtered;
+  const config = quickSimulationConfig(filter, width, height, pixelScale);
+  return config
+    ? applyFilterConfig(source, width, height, config, pixelScale)
+    : source;
 }
 
 /** Everything Vision Lab needs to render one view */
@@ -131,6 +132,70 @@ export interface VisionLabSettings {
 }
 
 /**
+ * Filter config for the Vision Lab single-simulation settings, or null for
+ * "original". Pixel values come out in 2x-export pixels (see
+ * applyFilterConfig); `scale` is this image's size relative to that.
+ */
+export function visionLabConfig(
+  s: VisionLabSettings,
+  width: number,
+  height: number,
+  scale: number
+): CompleteFilterConfig | null {
+  const filter = s.filter;
+  if (COLOR_BLIND_FILTERS.includes(filter)) {
+    return { type: filter as ColorBlindnessType, severity: s.severity };
+  }
+  // The radius slider is a fraction of the image's smaller side
+  const fieldRadius = (s.radius * Math.min(width, height)) / scale;
+  switch (filter) {
+    case "blurred":
+      return {
+        type: "blurred",
+        config: { radius: s.blurRadius, iterations: s.blurIterations },
+      };
+    case "ghosting":
+      return {
+        type: "ghosting",
+        config: {
+          offset: { x: s.ghostingOffsetX, y: s.ghostingOffsetY },
+          opacity: s.ghostingOpacity,
+        },
+      };
+    case "yellowing":
+      return {
+        type: "yellowing",
+        config: {
+          intensity: s.yellowingIntensity,
+          temperature: s.yellowingTemperature,
+        },
+      };
+    case "loss-of-contrast":
+      return { type: "loss-of-contrast", config: { reduction: s.contrastReduction } };
+    case "bright-light":
+      return {
+        type: "bright-light",
+        config: {
+          intensity: s.brightLightIntensity,
+          washout: s.brightLightWashout,
+        },
+      };
+    case "central-vision-loss":
+      return {
+        type: "central-vision-loss",
+        config: { radius: fieldRadius, severity: s.severity },
+      };
+    case "peripheral-vision-loss":
+      return {
+        type: "peripheral-vision-loss",
+        config: { tunnelRadius: fieldRadius, severity: s.severity },
+      };
+    default:
+      return null;
+  }
+}
+
+/**
  * Apply the Vision Lab filter or preset. `scale` is the image size relative
  * to the full export; pixel-based settings are scaled by it so the
  * downscaled preview matches what "Add current view to Figma" produces.
@@ -146,60 +211,6 @@ export function renderVisionLab(
   if (s.preset) {
     return applyFilterPreset(source, width, height, s.preset, scale);
   }
-
-  const filter = s.filter;
-  if (filter === "original") return source;
-
-  if (COLOR_BLIND_FILTERS.includes(filter)) {
-    return applyColorBlindness(source, filter as ColorBlindnessType, s.severity);
-  }
-
-  switch (filter) {
-    case "blurred":
-      return applyBlur(source, width, height, {
-        radius: scaleBlurRadius(s.blurRadius, scale),
-        iterations: s.blurIterations,
-      });
-    case "ghosting":
-      return applyGhosting(source, width, height, {
-        offset: {
-          x: Math.round(s.ghostingOffsetX * scale),
-          y: Math.round(s.ghostingOffsetY * scale),
-        },
-        opacity: s.ghostingOpacity,
-      });
-    case "yellowing":
-      return applyYellowing(source, {
-        intensity: s.yellowingIntensity,
-        temperature: s.yellowingTemperature,
-      });
-    case "loss-of-contrast":
-      return applyContrastLoss(source, { reduction: s.contrastReduction });
-    case "bright-light":
-      return applyBrightLight(source, {
-        intensity: s.brightLightIntensity,
-        washout: s.brightLightWashout,
-      });
-    case "central-vision-loss":
-      return applyCentralVisionLoss(
-        source,
-        width,
-        height,
-        { radius: s.radius * Math.min(width, height), severity: s.severity },
-        scale
-      );
-    case "peripheral-vision-loss":
-      return applyPeripheralVisionLoss(
-        source,
-        width,
-        height,
-        {
-          tunnelRadius: s.radius * Math.min(width, height),
-          severity: s.severity,
-        },
-        scale
-      );
-    default:
-      return source;
-  }
+  const config = visionLabConfig(s, width, height, scale);
+  return config ? applyFilterConfig(source, width, height, config, scale) : source;
 }

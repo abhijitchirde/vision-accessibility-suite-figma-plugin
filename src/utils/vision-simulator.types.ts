@@ -230,7 +230,7 @@ export type OtherFilterConfig =
  * with its parameters. Used by the preset system.
  */
 export type CompleteFilterConfig =
-  | { type: ColorBlindnessType; severity: number }
+  | { type: ColorBlindnessType; severity?: number } // default: 1.0 for -opia, 0.6 for -omaly
   | { type: "central-vision-loss"; config: CentralVisionLossConfig }
   | { type: "peripheral-vision-loss"; config: PeripheralVisionLossConfig }
   | { type: "blurred"; config: BlurConfig }

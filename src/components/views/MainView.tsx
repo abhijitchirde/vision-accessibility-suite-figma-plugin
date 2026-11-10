@@ -18,11 +18,6 @@ import { FaMinus } from "react-icons/fa6";
 import { GoScreenFull } from "react-icons/go";
 import {
   SimulationType,
-  VisionSimulatorState,
-  ColorBlindnessType,
-  VisualFieldDefectType,
-  CentralVisionLossConfig,
-  PeripheralVisionLossConfig,
   FilterPreset,
 } from "../../utils/vision-simulator.types";
 import {
@@ -32,25 +27,8 @@ import {
   OTHER_FILTERS,
   DEFAULT_ZOOM,
   COLOR_BLIND_FILTERS as ALL_COLOR_BLIND_FILTERS,
-  DEFAULT_CENTRAL_VISION_LOSS_CONFIG,
-  DEFAULT_PERIPHERAL_VISION_LOSS_CONFIG,
   DEFAULT_PRESETS,
-  DEFAULT_BLUR_CONFIG,
-  DEFAULT_GHOSTING_CONFIG,
-  IMAGE_EXPORT_SETTINGS,
 } from "../../utils/vision-simulator.constants";
-import {
-  applyColorBlindness,
-  applyBlur,
-  applyGhosting,
-  applyYellowing,
-  applyContrastLoss,
-  applyBrightLight,
-  applyCentralVisionLoss,
-  applyPeripheralVisionLoss,
-  applyFilterPreset,
-  scaleBlurRadius,
-} from "../../utils/image-utils";
 import {
   exportPixelFactor,
   renderQuickSimulation,

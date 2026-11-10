@@ -18,6 +18,8 @@ import {
   BrightLightConfig,
   CentralVisionLossConfig,
   PeripheralVisionLossConfig,
+  CompleteFilterConfig,
+  FilterPreset,
 } from "./vision-simulator.types";
 import {
   DEFAULT_BLUR_CONFIG,
@@ -834,108 +836,90 @@ export function scaleBlurRadius(radius: number, scale: number): number {
 }
 
 /**
- * Apply a filter preset (multiple filters in sequence)
+ * Apply one filter: the single place that maps a filter config to the
+ * function that implements it. Quick simulation, Vision Lab and presets all
+ * go through here.
  *
- * This function takes a preset configuration and applies all filters
- * sequentially to the image data. Each filter's output becomes the input
- * for the next filter, creating combined effects.
+ * Pixel values in the config (blur radius, ghosting offset, visual-field
+ * radius) are in pixels of a 2x export of the design; `pixelScale` converts
+ * them to this image's pixels (e.g. 0.4 for a downscaled preview).
  *
- * @param imageData - Original image data (Uint8ClampedArray in RGBA format)
- * @param width - Image width in pixels
- * @param height - Image height in pixels
- * @param preset - Filter preset containing multiple filter configurations
+ * @returns New image data (the input is not modified)
+ */
+export function applyFilterConfig(
+  imageData: Uint8ClampedArray,
+  width: number,
+  height: number,
+  filter: CompleteFilterConfig,
+  pixelScale: number = 1
+): Uint8ClampedArray {
+  const px = (value: number) => value * pixelScale;
+
+  switch (filter.type) {
+    case "protanopia":
+    case "deuteranopia":
+    case "tritanopia":
+    case "achromatopsia":
+    case "protanomaly":
+    case "deuteranomaly":
+    case "tritanomaly":
+      return applyColorBlindness(imageData, filter.type, filter.severity);
+    case "blurred":
+      return applyBlur(imageData, width, height, {
+        ...filter.config,
+        radius: scaleBlurRadius(filter.config.radius, pixelScale),
+      });
+    case "ghosting": {
+      const { offset } = filter.config;
+      return applyGhosting(imageData, width, height, {
+        ...filter.config,
+        offset: { x: Math.round(px(offset.x)), y: Math.round(px(offset.y)) },
+      });
+    }
+    case "yellowing":
+      return applyYellowing(imageData, filter.config);
+    case "loss-of-contrast":
+      return applyContrastLoss(imageData, filter.config);
+    case "bright-light":
+      return applyBrightLight(imageData, filter.config);
+    case "central-vision-loss":
+      return applyCentralVisionLoss(
+        imageData,
+        width,
+        height,
+        { ...filter.config, radius: px(filter.config.radius) },
+        pixelScale
+      );
+    case "peripheral-vision-loss":
+      return applyPeripheralVisionLoss(
+        imageData,
+        width,
+        height,
+        { ...filter.config, tunnelRadius: px(filter.config.tunnelRadius) },
+        pixelScale
+      );
+    default:
+      // Unknown type (e.g. from a hand-edited file): leave the image as is
+      return new Uint8ClampedArray(imageData);
+  }
+}
+
+/**
+ * Apply a filter preset: each filter's output is the next one's input.
+ *
+ * @param pixelScale - see applyFilterConfig
  * @returns Processed image data with all filters applied
- *
- * @example
- * // Apply "Advanced Cataracts" preset (blur + yellowing + contrast loss)
- * const filteredData = applyFilterPreset(
- *   imageData,
- *   width,
- *   height,
- *   DEFAULT_PRESETS.find(p => p.id === 'advanced-cataracts')!
- * );
  */
 export function applyFilterPreset(
   imageData: Uint8ClampedArray,
   width: number,
   height: number,
-  preset: import("./vision-simulator.types").FilterPreset,
+  preset: FilterPreset,
   pixelScale: number = 1
 ): Uint8ClampedArray {
-  // pixelScale: size of this image relative to the full export. Pixel-based
-  // settings (blur radius, ghost offset, visual-field radius) are scaled by it
-  // so a downscaled preview matches the exported result.
-  const px = (value: number) => value * pixelScale;
-  let result = new Uint8ClampedArray(imageData) as Uint8ClampedArray;
-
-  // Apply each filter in sequence
-  for (const filterConfig of preset.filters) {
-    if (
-      filterConfig.type === "protanopia" ||
-      filterConfig.type === "deuteranopia" ||
-      filterConfig.type === "tritanopia" ||
-      filterConfig.type === "achromatopsia" ||
-      filterConfig.type === "protanomaly" ||
-      filterConfig.type === "deuteranomaly" ||
-      filterConfig.type === "tritanomaly"
-    ) {
-      // Color blindness filter
-      result = applyColorBlindness(
-        result,
-        filterConfig.type,
-        filterConfig.severity
-      ) as Uint8ClampedArray;
-    } else if (filterConfig.type === "blurred") {
-      // Blur filter
-      result = applyBlur(result, width, height, {
-        ...filterConfig.config,
-        radius: scaleBlurRadius(filterConfig.config.radius, pixelScale),
-      }) as Uint8ClampedArray;
-    } else if (filterConfig.type === "ghosting") {
-      // Ghosting filter
-      const { offset } = filterConfig.config;
-      result = applyGhosting(result, width, height, {
-        ...filterConfig.config,
-        offset: { x: Math.round(px(offset.x)), y: Math.round(px(offset.y)) },
-      }) as Uint8ClampedArray;
-    } else if (filterConfig.type === "yellowing") {
-      // Yellowing filter
-      result = applyYellowing(result, filterConfig.config) as Uint8ClampedArray;
-    } else if (filterConfig.type === "loss-of-contrast") {
-      // Contrast loss filter
-      result = applyContrastLoss(
-        result,
-        filterConfig.config
-      ) as Uint8ClampedArray;
-    } else if (filterConfig.type === "bright-light") {
-      // Bright light filter
-      result = applyBrightLight(
-        result,
-        filterConfig.config
-      ) as Uint8ClampedArray;
-    } else if (filterConfig.type === "central-vision-loss") {
-      // Central vision loss filter
-      result = applyCentralVisionLoss(
-        result,
-        width,
-        height,
-        { ...filterConfig.config, radius: px(filterConfig.config.radius) },
-        pixelScale
-      ) as Uint8ClampedArray;
-    } else if (filterConfig.type === "peripheral-vision-loss") {
-      // Peripheral vision loss filter
-      result = applyPeripheralVisionLoss(
-        result,
-        width,
-        height,
-        {
-          ...filterConfig.config,
-          tunnelRadius: px(filterConfig.config.tunnelRadius),
-        },
-        pixelScale
-      ) as Uint8ClampedArray;
-    }
+  let result: Uint8ClampedArray = new Uint8ClampedArray(imageData);
+  for (const filter of preset.filters) {
+    result = applyFilterConfig(result, width, height, filter, pixelScale);
   }
-
   return result;
 }
