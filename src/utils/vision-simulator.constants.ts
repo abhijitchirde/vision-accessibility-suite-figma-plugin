@@ -1,13 +1,9 @@
 /**
  * Vision Simulator Constants
  *
- * Color blindness transformation matrices based on:
- * - Brettel, Viénot, and Mollon (1997) - "Computerized simulation of color appearance for dichromats"
- * - Machado, Oliveira, and Fernandes (2009) - "A Physiologically-based Model for Simulation of Color Vision Deficiency"
- *
- * References:
- * - https://www.inf.ufrgs.br/~oliveira/pubs_files/CVD_Simulation/CVD_Simulation.html
- * - https://ixora.io/projects/colorblindness/color-blindness-simulation-research/
+ * Color blindness simulation uses the Machado, Oliveira and Fernandes (2009)
+ * model in linear RGB: see machado-matrices.ts and applyColorBlindness in
+ * image-utils.ts. This file holds filter metadata, default settings and presets.
  */
 
 import {
@@ -24,69 +20,6 @@ import {
   CentralVisionLossConfig,
   PeripheralVisionLossConfig,
 } from "./vision-simulator.types";
-
-/**
- * Color blindness transformation matrices
- *
- * These matrices transform RGB values to simulate how colors appear
- * to people with different types of color vision deficiencies.
- *
- * Usage: [R', G', B'] = Matrix × [R, G, B]
- */
-
-/**
- * Protanopia (Red-blind) - Missing L-cones
- * Affects ~1% of males, 0.01% of females
- */
-export const PROTANOPIA_MATRIX: TransformationMatrix = [
-  [0.567, 0.433, 0.0],
-  [0.558, 0.442, 0.0],
-  [0.0, 0.242, 0.758],
-];
-
-/**
- * Deuteranopia (Green-blind) - Missing M-cones
- * Affects ~1% of males, 0.01% of females
- */
-export const DEUTERANOPIA_MATRIX: TransformationMatrix = [
-  [0.625, 0.375, 0.0],
-  [0.7, 0.3, 0.0],
-  [0.0, 0.3, 0.7],
-];
-
-/**
- * Tritanopia (Blue-blind) - Missing S-cones
- * Affects ~0.001% of population (very rare)
- */
-export const TRITANOPIA_MATRIX: TransformationMatrix = [
-  [0.95, 0.05, 0.0],
-  [0.0, 0.433, 0.567],
-  [0.0, 0.475, 0.525],
-];
-
-/**
- * Achromatopsia (Total color blindness) - No functional cones
- * Grayscale conversion using luminance weights
- * Affects ~0.003% of population
- */
-export const ACHROMATOPSIA_MATRIX: TransformationMatrix = [
-  [0.299, 0.587, 0.114],
-  [0.299, 0.587, 0.114],
-  [0.299, 0.587, 0.114],
-];
-
-/**
- * Map simulation types to transformation matrices
- */
-export const TRANSFORMATION_MATRICES: Record<
-  "protanopia" | "deuteranopia" | "tritanopia" | "achromatopsia",
-  TransformationMatrix
-> = {
-  protanopia: PROTANOPIA_MATRIX,
-  deuteranopia: DEUTERANOPIA_MATRIX,
-  tritanopia: TRITANOPIA_MATRIX,
-  achromatopsia: ACHROMATOPSIA_MATRIX,
-};
 
 /**
  * Default configurations for other visual impairments
