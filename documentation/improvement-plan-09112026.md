@@ -16,8 +16,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
 - **Working on:** Phase 6 plugin accessibility (6.2–6.5). Batch A/B/C, v2, reference and stack-polish Figma tests not yet confirmed
-- **Next step:** 6.2 Accessible tabs
-- **Last completed:** 7.16 stack polish (2026-11-10). Before that 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
+- **Next step:** 6.5 Scrollable zoom, then 6.4 resizable window, then tick 6.6
+- **Last completed:** 6.2 tabs and 6.3 labels/keyboard (2026-11-10); rename fixes (no forms; full-width field). Before that 7.16, 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
 - **In progress / half done:** Phase 6. Plan, in this order (one commit each): 6.2 tabs with role=tablist/tab/tabpanel, aria-selected, roving tabIndex, ←/→/Home/End; 6.3 sliders get <label htmlFor> + id (useId) and aria-valuetext with unit, zoom buttons get aria-labels, both dropdowns get ↑/↓/Home/End between options; 6.5 zoom changes the canvas width (CSS min(px, %)) instead of transform, preview centred with `safe center` so a zoomed preview scrolls; 6.4 keep 770px default, add a bottom-right resize handle, size saved per user in clientStorage (min 320×480, max 800×1200); 6.6 already covered by 0.3/0.4 (generating state, progress, toasts) — tick with a note.
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
@@ -47,7 +47,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | 3. Performance               | 8     | 4    |
 | 4. Storage                   | 3     | 3    |
 | 5. Code health               | 9     | 4    |
-| 6. UX & plugin accessibility | 7     | 2    |
+| 6. UX & plugin accessibility | 7     | 4    |
 | 7. New features              | 15    | 4    |
 | 8. Documentation accuracy    | 9     | 0    |
 
@@ -138,8 +138,13 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 
 - [ ] **Stack polish**
   - [x] Manage presets: Duplicate on a built-in preset adds "… copy" under Custom presets, and it can be picked in Start from. ✅ 2026-11-10
-  - [ ] Rename a custom preset (pencil icon): Enter saves, Escape or Cancel keeps the old name; if it's the preset loaded in Vision Lab, the status line shows the new name. ❌ 2026-11-10: rename did nothing (the field was an HTML form, which Figma's sandbox blocks). Fixed; please retest.
+  - [ ] Rename a custom preset (pencil icon): Enter saves, Escape or Cancel keeps the old name; if it's the preset loaded in Vision Lab, the status line shows the new name. ❌ 2026-11-10: rename did nothing (the field was an HTML form, which Figma's sandbox blocks). Fixed; then the field was squeezed to ~0 width (screenshot) — also fixed: full-width field while renaming. Please retest.
   - [ ] Keyboard only (Tab / Enter / Space) in the stack: after ↑ or ↓ focus stays on that entry's arrow; after ✕ it moves to the next entry (or "+ Add" when empty); after adding, it's on the new entry.
+
+- [ ] **Plugin accessibility (keyboard)**
+  - [ ] Tab to the tabs: only the selected tab is a stop; ← / → switch tabs.
+  - [ ] Dropdowns (Start from, + Add a simulation): ↓ opens with the current option focused, ↑ / ↓ / Home / End move, Enter picks, Esc closes back to the dropdown.
+  - [ ] Every slider can be reached with Tab and changed with the arrow keys.
 
 ## Phase 1 — Correctness bugs
 
@@ -210,8 +215,8 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 ## Phase 6 — UX & accessibility of the plugin UI
 
 - [x] 🟠 **6.1 Use Figma's theme.** Pass `themeColors: true` to `showUI` and use Figma's CSS variables. Remove the hard-coded `get-theme` → `"light"` handler and the manual toggle.
-- [ ] 🟠 **6.2 Make the tabs accessible:** `role="tablist"` / `role="tab"`, `aria-selected`, and arrow-key navigation.
-- [ ] 🟠 **6.3 Give sliders accessible labels**, and give the preview image alt text that names the active filter.
+- [x] 🟠 **6.2 Make the tabs accessible:** `role="tablist"` / `role="tab"`, `aria-selected`, and arrow-key navigation.
+- [x] 🟠 **6.3 Give sliders accessible labels**, and give the preview image alt text that names the active filter.
 - [ ] 🟠 **6.4 Fix the window height.** 770px doesn't fit on many laptops; make it shorter or resizable.
 - [ ] 🟢 **6.5 Make zoom scrollable.** It uses `transform: scale()` with no scroll container, so a zoomed preview gets cut off.
 - [ ] 🟢 **6.6 Show feedback while a Quick simulation is generating**, and a clear message when the selection can't be exported.
