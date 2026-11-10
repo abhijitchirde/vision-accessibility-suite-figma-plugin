@@ -100,6 +100,9 @@ interface PresetManagerProps {
   onDeletePreset: (presetId: string) => void;
   onImportPresets: (presets: FilterPreset[]) => void;
   onExportPreset: (preset: FilterPreset) => void;
+  /** Make an editable custom copy (works for built-in presets too) */
+  onDuplicatePreset: (preset: FilterPreset) => void;
+  onRenamePreset: (presetId: string, name: string) => void;
 }
 
 /**
@@ -117,11 +120,26 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
   onDeletePreset,
   onImportPresets,
   onExportPreset,
+  onDuplicatePreset,
+  onRenamePreset,
 }) => {
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Custom preset being renamed, and the name typed so far
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+
+  const startRename = (preset: FilterPreset) => {
+    setRenamingId(preset.id);
+    setRenameValue(preset.name);
+  };
+  const finishRename = () => {
+    const name = renameValue.trim();
+    if (renamingId && name) onRenamePreset(renamingId, name);
+    setRenamingId(null);
+  };
 
   // Separate built-in and custom presets
   const builtInPresets = presets.filter((p) => p.isBuiltIn);
@@ -259,13 +277,24 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
                       {preset.filters.length !== 1 ? "s" : ""}
                     </div>
                   </div>
-                  <button
-                    className="preset-manager__export-btn"
-                    onClick={() => onExportPreset(preset)}
-                    title="Export this preset"
-                  >
-                    <Icon name="download" size={16} />
-                  </button>
+                  <div className="preset-manager__item-actions">
+                    <button
+                      className="preset-manager__export-btn"
+                      onClick={() => onDuplicatePreset(preset)}
+                      title="Duplicate as a custom preset you can change"
+                      aria-label={`Duplicate ${preset.name}`}
+                    >
+                      <Icon name="duplicate" size={16} />
+                    </button>
+                    <button
+                      className="preset-manager__export-btn"
+                      onClick={() => onExportPreset(preset)}
+                      title="Export this preset"
+                      aria-label={`Export ${preset.name}`}
+                    >
+                      <Icon name="download" size={16} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -279,16 +308,56 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
             <p className="preset-manager__section-description">
               {customPresets.length === 0
                 ? "No custom presets yet. Import presets from a JSON file."
-                : "Your custom presets can be edited or deleted."}
+                : "Rename, duplicate, export or delete your presets. To change a preset's simulations, pick it in Start from, edit, and Save as preset."}
             </p>
             {customPresets.length > 0 ? (
               <div className="preset-manager__list">
                 {customPresets.map((preset) => (
                   <div key={preset.id} className="preset-manager__item">
                     <div className="preset-manager__item-info">
-                      <div className="preset-manager__item-name">
-                        {preset.name}
-                      </div>
+                      {renamingId === preset.id ? (
+                        <form
+                          className="preset-manager__rename"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            finishRename();
+                          }}
+                        >
+                          <input
+                            className="preset-manager__rename-input"
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Escape") {
+                                e.stopPropagation();
+                                setRenamingId(null);
+                              }
+                            }}
+                            maxLength={100}
+                            aria-label="Preset name"
+                            autoFocus
+                            onFocus={(e) => e.target.select()}
+                          />
+                          <button
+                            type="submit"
+                            className="preset-manager__rename-btn"
+                            disabled={!renameValue.trim()}
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            className="preset-manager__rename-btn"
+                            onClick={() => setRenamingId(null)}
+                          >
+                            Cancel
+                          </button>
+                        </form>
+                      ) : (
+                        <div className="preset-manager__item-name">
+                          {preset.name}
+                        </div>
+                      )}
                       <div className="preset-manager__item-description">
                         {preset.description}
                       </div>
@@ -300,8 +369,25 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
                     <div className="preset-manager__item-actions">
                       <button
                         className="preset-manager__export-btn"
+                        onClick={() => startRename(preset)}
+                        title="Rename"
+                        aria-label={`Rename ${preset.name}`}
+                      >
+                        <Icon name="edit" size={16} />
+                      </button>
+                      <button
+                        className="preset-manager__export-btn"
+                        onClick={() => onDuplicatePreset(preset)}
+                        title="Duplicate"
+                        aria-label={`Duplicate ${preset.name}`}
+                      >
+                        <Icon name="duplicate" size={16} />
+                      </button>
+                      <button
+                        className="preset-manager__export-btn"
                         onClick={() => onExportPreset(preset)}
                         title="Export this preset"
+                        aria-label={`Export ${preset.name}`}
                       >
                         <Icon name="download" size={16} />
                       </button>
@@ -313,6 +399,7 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
                           }
                         }}
                         title="Delete this preset"
+                        aria-label={`Delete ${preset.name}`}
                       >
                         <Icon name="trash" size={16} />
                       </button>

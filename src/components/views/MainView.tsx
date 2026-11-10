@@ -524,7 +524,7 @@ export const MainView: React.FC<{}> = ({}) => {
     const now = Date.now();
     const preset: FilterPreset = {
       version: PRESET_FORMAT_VERSION,
-      id: `custom-${now.toString(36)}`,
+      id: `custom-${now.toString(36)}${Math.random().toString(36).slice(2, 6)}`,
       name,
       description: `Made in Vision Lab: ${stack
         .map((entry) => FILTER_METADATA[entry.config.type]?.name ?? entry.config.type)
@@ -612,6 +612,40 @@ export const MainView: React.FC<{}> = ({}) => {
 
       return updated;
     });
+  };
+
+  /** Copy a preset (built-in or custom) as a new custom preset */
+  const handleDuplicatePreset = (preset: FilterPreset) => {
+    const now = Date.now();
+    const copy: FilterPreset = {
+      ...preset,
+      version: PRESET_FORMAT_VERSION,
+      id: `custom-${now.toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+      name: `${preset.name} copy`.slice(0, 100),
+      isBuiltIn: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setCustomPresets((prev) => {
+      const updated = [...prev, copy];
+      sendMessage("VISION_SIMULATOR_SAVE_PRESETS", { presets: updated });
+      return updated;
+    });
+    notifyInFigma(`Added "${copy.name}" to your presets`);
+  };
+
+  /** Rename a custom preset */
+  const handleRenamePreset = (presetId: string, name: string) => {
+    setCustomPresets((prev) => {
+      const updated = prev.map((p) =>
+        p.id === presetId ? { ...p, name, updatedAt: Date.now() } : p
+      );
+      sendMessage("VISION_SIMULATOR_SAVE_PRESETS", { presets: updated });
+      return updated;
+    });
+    if (selectedPreset?.id === presetId) {
+      setSelectedPreset({ ...selectedPreset, name });
+    }
   };
 
   /**
@@ -987,6 +1021,8 @@ export const MainView: React.FC<{}> = ({}) => {
           onDeletePreset={handleDeletePreset}
           onImportPresets={handleImportPresets}
           onExportPreset={handleExportPreset}
+          onDuplicatePreset={handleDuplicatePreset}
+          onRenamePreset={handleRenamePreset}
         />
       )}
     </div>
