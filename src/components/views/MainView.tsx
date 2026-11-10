@@ -46,6 +46,7 @@ import {
   applyCentralVisionLoss,
   applyPeripheralVisionLoss,
   applyFilterPreset,
+  scaleBlurRadius,
 } from "../../utils/image-utils";
 
 type Tab = "generate" | "simulation";
@@ -159,6 +160,139 @@ async function renderQuickSimulationPng(
   return new Uint8Array(await blob.arrayBuffer());
 }
 
+/** Everything Vision Lab needs to render one view */
+interface VisionLabSettings {
+  filter: SimulationType;
+  preset: FilterPreset | null;
+  severity: number;
+  /** Visual field radius as a fraction of the image's smaller side */
+  radius: number;
+  blurRadius: number;
+  blurIterations: number;
+  ghostingOffsetX: number;
+  ghostingOffsetY: number;
+  ghostingOpacity: number;
+  yellowingIntensity: number;
+  yellowingTemperature: number;
+  contrastReduction: number;
+  brightLightIntensity: number;
+  brightLightWashout: number;
+}
+
+/**
+ * Longest side of the live Vision Lab preview, in pixels. Large designs are
+ * filtered on a copy this size instead of the full 2x export (a 1440px-wide
+ * frame drops from ~5M to under 1M pixels per change). "Add current view to
+ * Figma" still filters the full-size image.
+ */
+const MAX_PREVIEW_SIDE = 1200;
+
+/** Pixel data of an image, optionally scaled down to fit `maxSide` */
+interface ImagePixels {
+  data: Uint8ClampedArray;
+  width: number;
+  height: number;
+  /** Size relative to the full image (1 = full size) */
+  scale: number;
+}
+
+function getImagePixels(img: HTMLImageElement, maxSide?: number): ImagePixels {
+  const fit = maxSide
+    ? Math.min(1, maxSide / Math.max(img.width, img.height))
+    : 1;
+  const width = Math.max(1, Math.round(img.width * fit));
+  const height = Math.max(1, Math.round(img.height * fit));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas isn't available");
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, 0, 0, width, height);
+
+  return {
+    data: ctx.getImageData(0, 0, width, height).data,
+    width,
+    height,
+    scale: width / img.width,
+  };
+}
+
+/**
+ * Apply the Vision Lab filter or preset. `scale` is the image size relative
+ * to the full export; pixel-based settings are scaled by it so the
+ * downscaled preview matches what "Add current view to Figma" produces.
+ * Returns the input unchanged for "original" with no preset.
+ */
+function renderVisionLab(
+  source: Uint8ClampedArray,
+  width: number,
+  height: number,
+  s: VisionLabSettings,
+  scale: number
+): Uint8ClampedArray {
+  if (s.preset) {
+    return applyFilterPreset(source, width, height, s.preset, scale);
+  }
+
+  const filter = s.filter;
+  if (filter === "original") return source;
+
+  if (COLOR_BLIND_FILTERS.includes(filter)) {
+    return applyColorBlindness(source, filter as ColorBlindnessType, s.severity);
+  }
+
+  switch (filter) {
+    case "blurred":
+      return applyBlur(source, width, height, {
+        radius: scaleBlurRadius(s.blurRadius, scale),
+        iterations: s.blurIterations,
+      });
+    case "ghosting":
+      return applyGhosting(source, width, height, {
+        offset: {
+          x: Math.round(s.ghostingOffsetX * scale),
+          y: Math.round(s.ghostingOffsetY * scale),
+        },
+        opacity: s.ghostingOpacity,
+      });
+    case "yellowing":
+      return applyYellowing(source, {
+        intensity: s.yellowingIntensity,
+        temperature: s.yellowingTemperature,
+      });
+    case "loss-of-contrast":
+      return applyContrastLoss(source, { reduction: s.contrastReduction });
+    case "bright-light":
+      return applyBrightLight(source, {
+        intensity: s.brightLightIntensity,
+        washout: s.brightLightWashout,
+      });
+    case "central-vision-loss":
+      return applyCentralVisionLoss(
+        source,
+        width,
+        height,
+        { radius: s.radius * Math.min(width, height), severity: s.severity },
+        scale
+      );
+    case "peripheral-vision-loss":
+      return applyPeripheralVisionLoss(
+        source,
+        width,
+        height,
+        {
+          tunnelRadius: s.radius * Math.min(width, height),
+          severity: s.severity,
+        },
+        scale
+      );
+    default:
+      return source;
+  }
+}
+
 export const MainView: React.FC<{}> = ({}) => {
   // Tab state
   const [activeTab, setActiveTab] = useState<Tab>("generate");
@@ -179,7 +313,10 @@ export const MainView: React.FC<{}> = ({}) => {
   const [currentSeverity, setCurrentSeverity] = useState<number>(1.0); // Default to complete (100%)
   const [currentRadius, setCurrentRadius] = useState<number>(0.3); // Default radius as percentage (30% of image dimension)
   const [zoom, setZoom] = useState<number>(DEFAULT_ZOOM);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  // True when a design is loaded into the Vision Lab preview
+  const [hasPreview, setHasPreview] = useState(false);
+  // Bumped each time a new design is loaded, to trigger a redraw
+  const [imageVersion, setImageVersion] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -207,17 +344,11 @@ export const MainView: React.FC<{}> = ({}) => {
   // Parameters panel state
   const [showParameters, setShowParameters] = useState(false);
 
-  // Canvas refs for image processing
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const originalImageRef = useRef<HTMLImageElement | null>(null);
-
-  // Store original node dimensions (not the exported image dimensions which may be 2x)
-  const [originalNodeWidth, setOriginalNodeWidth] = useState<number | null>(
-    null
-  );
-  const [originalNodeHeight, setOriginalNodeHeight] = useState<number | null>(
-    null
-  );
+  // Vision Lab preview
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null); // visible preview
+  const originalImageRef = useRef<HTMLImageElement | null>(null); // full-size export
+  const previewSourceRef = useRef<ImagePixels | null>(null); // downscaled pixels
+  const renderFrameRef = useRef<number | null>(null); // pending redraw
 
   const { sendMessage } = useFigmaMessage();
 
@@ -352,25 +483,16 @@ export const MainView: React.FC<{}> = ({}) => {
         }
       } else if (msg?.type === "VISION_SIMULATOR_PREVIEW_DATA") {
         if (msg.success && msg.data) {
-          // Convert image data to canvas
           setError(null);
-          loadImageForPreview(
-            msg.data.imageData,
-            msg.data.width,
-            msg.data.height
-          );
+          loadImageForPreview(msg.data.imageData);
         } else if (msg.error === null) {
           // No selection, clear preview
-          setPreviewImage(null);
-          setOriginalNodeWidth(null);
-          setOriginalNodeHeight(null);
+          clearPreview();
           setError(null);
           setLoading(false);
         } else {
           // Actual error occurred
-          setPreviewImage(null);
-          setOriginalNodeWidth(null);
-          setOriginalNodeHeight(null);
+          clearPreview();
           setError(null); // Don't show error in UI
           setLoading(false);
           // Show figma notification instead
@@ -409,17 +531,12 @@ export const MainView: React.FC<{}> = ({}) => {
     }
   }, [activeTab, sendMessage]);
 
-  // Apply filter when currentFilter, currentSeverity, currentRadius, or selectedPreset changes
-  useEffect(() => {
-    if (originalImageRef.current && activeTab === "simulation") {
-      applyFilterToPreview(currentFilter);
-    }
-  }, [
-    currentFilter,
-    currentSeverity,
-    currentRadius,
-    selectedPreset,
-    activeTab,
+  // Current Vision Lab settings (used by the preview and by "Add to Figma")
+  const visionLabSettings: VisionLabSettings = {
+    filter: currentFilter,
+    preset: selectedPreset,
+    severity: currentSeverity,
+    radius: currentRadius,
     blurRadius,
     blurIterations,
     ghostingOffsetX,
@@ -430,165 +547,95 @@ export const MainView: React.FC<{}> = ({}) => {
     contrastReduction,
     brightLightIntensity,
     brightLightWashout,
-  ]); // Re-apply when any parameter changes
+  };
+
+  // Redraw the preview when the design or any setting changes. Changes are
+  // coalesced to at most one redraw per animation frame, so dragging a
+  // slider doesn't queue up work. The downscaled copy is drawn straight into
+  // the visible canvas (no PNG encoding).
+  useEffect(() => {
+    if (activeTab !== "simulation" || !previewSourceRef.current) return;
+
+    const settings = visionLabSettings;
+    if (renderFrameRef.current !== null) {
+      cancelAnimationFrame(renderFrameRef.current);
+    }
+    renderFrameRef.current = requestAnimationFrame(() => {
+      renderFrameRef.current = null;
+      const source = previewSourceRef.current;
+      const canvas = previewCanvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      if (!source || !canvas || !ctx) return;
+
+      const filtered = renderVisionLab(
+        source.data,
+        source.width,
+        source.height,
+        settings,
+        source.scale
+      );
+      canvas.width = source.width;
+      canvas.height = source.height;
+      ctx.putImageData(
+        new ImageData(filtered as any, source.width, source.height),
+        0,
+        0
+      );
+    });
+    // visionLabSettings is rebuilt every render; list its parts instead
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    imageVersion,
+    activeTab,
+    currentFilter,
+    currentSeverity,
+    currentRadius,
+    selectedPreset,
+    blurRadius,
+    blurIterations,
+    ghostingOffsetX,
+    ghostingOffsetY,
+    ghostingOpacity,
+    yellowingIntensity,
+    yellowingTemperature,
+    contrastReduction,
+    brightLightIntensity,
+    brightLightWashout,
+  ]);
+
+  // Cancel a pending redraw when the view unmounts
+  useEffect(() => {
+    return () => {
+      if (renderFrameRef.current !== null) {
+        cancelAnimationFrame(renderFrameRef.current);
+      }
+    };
+  }, []);
 
   /**
-   * Load image data into canvas for preview
+   * Load an exported design into the preview: keep the full-size image for
+   * "Add to Figma", and a downscaled copy for the live preview.
    */
-  const loadImageForPreview = async (
-    imageData: Uint8Array,
-    width: number,
-    height: number
-  ) => {
+  const loadImageForPreview = async (imageData: Uint8Array) => {
     try {
-      // Store original node dimensions (these are the actual node dimensions, not the exported image size)
-      setOriginalNodeWidth(width);
-      setOriginalNodeHeight(height);
-
-      // Create blob from image data
-      const blob = new Blob([imageData as any], { type: "image/png" });
-      const url = URL.createObjectURL(blob);
-
-      // Load image
-      const img = new Image();
-      img.onload = () => {
-        originalImageRef.current = img;
-        applyFilterToPreview(currentFilter);
-        setLoading(false);
-        URL.revokeObjectURL(url); // Clean up
-      };
-      img.onerror = () => {
-        setError("Failed to load image");
-        setLoading(false);
-        URL.revokeObjectURL(url);
-      };
-      img.src = url;
+      const img = await loadPngImage(imageData);
+      originalImageRef.current = img;
+      previewSourceRef.current = getImagePixels(img, MAX_PREVIEW_SIDE);
+      setHasPreview(true);
+      setImageVersion((v) => v + 1);
     } catch (err) {
       console.error("Failed to load preview image:", err);
       setError("Failed to load preview");
+    } finally {
       setLoading(false);
     }
   };
 
-  /**
-   * Apply the current filter or preset to the preview image
-   */
-  const applyFilterToPreview = (filter: SimulationType) => {
-    const img = originalImageRef.current;
-    const canvas = canvasRef.current;
-
-    if (!img || !canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    // Set canvas size
-    canvas.width = img.width;
-    canvas.height = img.height;
-
-    // Draw original image
-    ctx.drawImage(img, 0, 0);
-
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    let filteredData: Uint8ClampedArray = imageData.data;
-
-    // Check if a preset is selected
-    if (selectedPreset) {
-      // Apply preset (multiple filters in sequence)
-      filteredData = applyFilterPreset(
-        imageData.data,
-        canvas.width,
-        canvas.height,
-        selectedPreset
-      );
-    } else if (filter !== "original") {
-      // Apply single filter
-      // Apply the appropriate filter
-      if (
-        filter === "protanopia" ||
-        filter === "deuteranopia" ||
-        filter === "tritanopia" ||
-        filter === "achromatopsia" ||
-        filter === "protanomaly" ||
-        filter === "deuteranomaly" ||
-        filter === "tritanomaly"
-      ) {
-        // Apply color blindness with current severity
-        filteredData = applyColorBlindness(
-          imageData.data,
-          filter as ColorBlindnessType,
-          currentSeverity
-        );
-      } else if (filter === "blurred") {
-        filteredData = applyBlur(imageData.data, canvas.width, canvas.height, {
-          radius: blurRadius,
-          iterations: blurIterations,
-        });
-      } else if (filter === "ghosting") {
-        filteredData = applyGhosting(
-          imageData.data,
-          canvas.width,
-          canvas.height,
-          {
-            offset: { x: ghostingOffsetX, y: ghostingOffsetY },
-            opacity: ghostingOpacity,
-          }
-        );
-      } else if (filter === "yellowing") {
-        filteredData = applyYellowing(imageData.data, {
-          intensity: yellowingIntensity,
-          temperature: yellowingTemperature,
-        });
-      } else if (filter === "loss-of-contrast") {
-        filteredData = applyContrastLoss(imageData.data, {
-          reduction: contrastReduction,
-        });
-      } else if (filter === "bright-light") {
-        filteredData = applyBrightLight(imageData.data, {
-          intensity: brightLightIntensity,
-          washout: brightLightWashout,
-        });
-      } else if (filter === "central-vision-loss") {
-        // Calculate pixel radius from percentage: use smaller dimension to ensure proportional effect
-        const imageSize = Math.min(canvas.width, canvas.height);
-        const pixelRadius = currentRadius * imageSize;
-        filteredData = applyCentralVisionLoss(
-          imageData.data,
-          canvas.width,
-          canvas.height,
-          {
-            radius: pixelRadius,
-            severity: currentSeverity,
-          }
-        );
-      } else if (filter === "peripheral-vision-loss") {
-        // Calculate pixel radius from percentage: use smaller dimension to ensure proportional effect
-        const imageSize = Math.min(canvas.width, canvas.height);
-        const pixelRadius = currentRadius * imageSize;
-        filteredData = applyPeripheralVisionLoss(
-          imageData.data,
-          canvas.width,
-          canvas.height,
-          {
-            tunnelRadius: pixelRadius,
-            severity: currentSeverity,
-          }
-        );
-      }
-    }
-
-    // Update canvas with filtered data (only if not original and no errors)
-    if (filter !== "original" || selectedPreset) {
-      const newImageData = new ImageData(
-        filteredData as any,
-        canvas.width,
-        canvas.height
-      );
-      ctx.putImageData(newImageData, 0, 0);
-    }
-
-    // Convert canvas to preview image
-    setPreviewImage(canvas.toDataURL());
+  /** Forget the current design (e.g. nothing is selected) */
+  const clearPreview = () => {
+    originalImageRef.current = null;
+    previewSourceRef.current = null;
+    setHasPreview(false);
   };
 
   /**
@@ -674,24 +721,41 @@ export const MainView: React.FC<{}> = ({}) => {
   };
 
   /**
-   * Export current preview to Figma canvas
+   * Add the current view to the Figma canvas. The preview is downscaled, so
+   * this filters the full-size export once with the same settings.
    */
   const handleExportToCanvas = async () => {
-    const canvas = canvasRef.current;
-    if (!canvas || !previewImage) return;
+    const img = originalImageRef.current;
+    if (!img || !hasPreview) return;
 
-    // Use original node dimensions instead of canvas dimensions
-    // Canvas dimensions may be 2x due to export scale, but we want the actual node size
-    if (originalNodeWidth === null || originalNodeHeight === null) {
-      setError("Original node dimensions not available");
-      return;
-    }
-
+    const settings = visionLabSettings;
     setExporting(true);
     setError(null);
 
+    // Let "Adding to Figma..." show before the (blocking) full-size filter runs
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
     try {
-      // Convert canvas to blob
+      const full = getImagePixels(img);
+      const filtered = renderVisionLab(
+        full.data,
+        full.width,
+        full.height,
+        settings,
+        1
+      );
+
+      const canvas = document.createElement("canvas");
+      canvas.width = full.width;
+      canvas.height = full.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas isn't available");
+      ctx.putImageData(
+        new ImageData(filtered as any, full.width, full.height),
+        0,
+        0
+      );
+
       const blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob((blob) => {
           if (blob) resolve(blob);
@@ -1073,7 +1137,7 @@ export const MainView: React.FC<{}> = ({}) => {
             {/* Preview Area */}
             <div className="main-view__preview">
               {/* Zoom Controls */}
-              {previewImage && (
+              {hasPreview && (
                 <div className="main-view__zoom-controls">
                   <button
                     className="main-view__zoom-btn"
@@ -1105,7 +1169,7 @@ export const MainView: React.FC<{}> = ({}) => {
               )}
 
               <div className="main-view__preview-content">
-                {!previewImage && !loading && (
+                {!hasPreview && !loading && (
                   <div className="main-view__preview-empty">
                     <p>Select a node to view simulation</p>
                   </div>
@@ -1117,18 +1181,26 @@ export const MainView: React.FC<{}> = ({}) => {
                   </div>
                 )}
 
-                {previewImage && (
-                  <div
-                    className="main-view__preview-image-container"
-                    style={{ transform: `scale(${zoom})` }}
-                  >
-                    <img
-                      src={previewImage}
-                      alt="Simulated preview"
-                      className="main-view__preview-image"
-                    />
-                  </div>
-                )}
+                {/* Always mounted so the redraw effect has a canvas to draw
+                    into; hidden until a design is loaded */}
+                <div
+                  className="main-view__preview-image-container"
+                  style={{
+                    transform: `scale(${zoom})`,
+                    display: hasPreview ? undefined : "none",
+                  }}
+                >
+                  <canvas
+                    ref={previewCanvasRef}
+                    className="main-view__preview-image"
+                    role="img"
+                    aria-label={`Preview: ${
+                      selectedPreset
+                        ? selectedPreset.name
+                        : FILTER_METADATA[currentFilter]?.name ?? "Original"
+                    }`}
+                  />
+                </div>
 
                 {error && (
                   <div className="main-view__error">{error}</div>
@@ -1157,7 +1229,7 @@ export const MainView: React.FC<{}> = ({}) => {
 
       {/* Export to Canvas Button - Fixed at bottom, above bottom section */}
       {activeTab === "simulation" &&
-        previewImage &&
+        hasPreview &&
         (currentFilter !== "original" || selectedPreset !== null) && (
           <div className="main-view__export-button-container">
             <Button
@@ -1170,9 +1242,6 @@ export const MainView: React.FC<{}> = ({}) => {
             </Button>
           </div>
         )}
-
-      {/* Hidden canvas for image processing */}
-      <canvas ref={canvasRef} style={{ display: "none" }} />
 
       {/* Preset Manager Modal */}
       {showPresetManager && (
