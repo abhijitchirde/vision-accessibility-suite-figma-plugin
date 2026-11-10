@@ -15,10 +15,10 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
-- **Working on:** Batches A and B — code done 2026-11-10, waiting for Figma test
-- **Next step:** run the "Batch tests" checklist in Figma (needs you). Then pick the next batch; suggested: 3.2 Web Worker, 4.1 per-user presets, 5.1 one filter registry, and the Phase 8 doc fixes that are now unblocked (8.3, 8.5)
+- **Working on:** Batch C — presets per user (4.1 + 4.2 + 4.3), then 5.1 one filter registry, then Phase 8 doc fixes. 3.2 (Web Worker) moved last: the preview is already small, and a worker needs extra webpack setup to inline into Figma's single-file UI. Batch A/B Figma tests still open (needs you)
+- **Next step:** 4.1 Store custom presets per user
 - **Last completed:** 1.9 large-design fix (2026-11-10), after Batch B (2.1 + 2.2) and Batch A (3.1, 3.5, 3.3, 1.8). All build; not yet tested in Figma
-- **In progress / half done:** —
+- **In progress / half done:** 4.1 + 4.2. Plan: `code.ts` reads/writes presets and the selected preset with `figma.clientStorage` (keys `customPresets`, `selectedPresetId`). On load, presets still saved in the document (old key `vision-simulator-presets`) are merged in once; their ids go into `importedLegacyPresetIds` so a deleted preset isn't imported again. Document data is left untouched.
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -93,7 +93,7 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
   - [ ] **Add current view to Figma** on a large frame shows "Adding to Figma..." while it works, and the frame is full quality.
   - [ ] Click quickly through several layers: the preview ends up showing the last one you selected, not an earlier one.
   - [ ] Small layer (e.g. a button): preview and Add to Figma still work as before.
-  - [ ] **Very large design** (wider or taller than 2048 px, e.g. a long landing page): Vision Lab "Add current view to Figma" and Quick simulation (one card and "Add all") work without "Image is too large". The new frame is the same size as the design; blur and ghosting look about as strong as on a smaller design. (Very large designs come out at lower resolution; that's Figma's image limit.)
+  - [x] **Very large design** (wider or taller than 2048 px, e.g. a long landing page): Vision Lab "Add current view to Figma" and Quick simulation (one card and "Add all") work without "Image is too large". The new frame is the same size as the design; blur and ghosting look about as strong as on a smaller design. (Very large designs come out at lower resolution; that's Figma's image limit.) ✅ 2026-11-10
 - [ ] **Batch B — accurate color blindness**
   - [ ] Every color-blind simulation looks different from before (expected), and greys, black and white look unchanged.
   - [ ] Protanopia: reds look dark olive/brown. Deuteranopia: reds look olive/brown, greens beige. Tritanopia: blues look teal, greens look cyan-ish.
