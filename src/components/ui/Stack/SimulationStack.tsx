@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import "./SimulationStack.css";
 import { Icon } from "../Icon/Icon";
 import { FilterIcon } from "../Filter/FilterIcon";
@@ -46,8 +46,57 @@ export const SimulationStack: React.FC<SimulationStackProps> = ({
   onAdd,
   addOptions,
 }) => {
+  // Keep keyboard focus in a sensible place when the list changes: React
+  // re-renders the list after a move or removal and the focused button can
+  // be lost. Where focus should go next is noted here and applied after.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const pendingFocus = useRef<
+    | { kind: "button"; id: string; role: "up" | "down" | "toggle" }
+    | { kind: "add" }
+    | { kind: "last" }
+    | null
+  >(null);
+
+  useEffect(() => {
+    const target = pendingFocus.current;
+    const root = rootRef.current;
+    if (!target || !root) return;
+    pendingFocus.current = null;
+    let element: Element | null = null;
+    if (target.kind === "add") {
+      element = root.querySelector(".simulation-stack__add button");
+    } else if (target.kind === "last") {
+      const items = root.querySelectorAll('[data-role="toggle"]');
+      element = items[items.length - 1] ?? null;
+    } else {
+      element = root.querySelector(
+        `[data-entry-id="${target.id}"] [data-role="${target.role}"]`
+      );
+    }
+    (element as HTMLElement | null)?.focus();
+  }, [entries]);
+
+  const moveEntry = (id: string, index: number, direction: -1 | 1) => {
+    const newIndex = index + direction;
+    let role: "up" | "down" = direction < 0 ? "up" : "down";
+    // At the top the up button is disabled (and at the bottom, down)
+    if (role === "up" && newIndex === 0) role = "down";
+    if (role === "down" && newIndex === entries.length - 1) role = "up";
+    if (entries.length === 2) role = direction < 0 ? "down" : "up";
+    pendingFocus.current = { kind: "button", id, role };
+    onMove(id, direction);
+  };
+
+  const removeEntry = (id: string, index: number) => {
+    const neighbour = entries[index + 1] ?? entries[index - 1];
+    pendingFocus.current = neighbour
+      ? { kind: "button", id: neighbour.id, role: "toggle" }
+      : { kind: "add" };
+    onRemove(id);
+  };
+
   return (
-    <div className="simulation-stack">
+    <div className="simulation-stack" ref={rootRef}>
       {entries.length > 0 && (
         <ol className="simulation-stack__list" aria-label="Simulations, applied top to bottom">
           {entries.map((entry, index) => {
@@ -56,6 +105,7 @@ export const SimulationStack: React.FC<SimulationStackProps> = ({
             return (
               <li
                 key={entry.id}
+                data-entry-id={entry.id}
                 className={`simulation-stack__entry ${
                   expanded ? "simulation-stack__entry--expanded" : ""
                 }`}
@@ -63,6 +113,7 @@ export const SimulationStack: React.FC<SimulationStackProps> = ({
                 <div className="simulation-stack__header">
                   <button
                     className="simulation-stack__toggle"
+                    data-role="toggle"
                     onClick={() => onToggle(entry.id)}
                     aria-expanded={expanded}
                     title={expanded ? "Hide settings" : "Show settings"}
@@ -81,7 +132,8 @@ export const SimulationStack: React.FC<SimulationStackProps> = ({
                   <div className="simulation-stack__actions">
                     <button
                       className="simulation-stack__icon-btn"
-                      onClick={() => onMove(entry.id, -1)}
+                      data-role="up"
+                      onClick={() => moveEntry(entry.id, index, -1)}
                       disabled={index === 0}
                       aria-label={`Move ${name} up`}
                       title="Move up (applied earlier)"
@@ -90,7 +142,8 @@ export const SimulationStack: React.FC<SimulationStackProps> = ({
                     </button>
                     <button
                       className="simulation-stack__icon-btn"
-                      onClick={() => onMove(entry.id, 1)}
+                      data-role="down"
+                      onClick={() => moveEntry(entry.id, index, 1)}
                       disabled={index === entries.length - 1}
                       aria-label={`Move ${name} down`}
                       title="Move down (applied later)"
@@ -99,7 +152,7 @@ export const SimulationStack: React.FC<SimulationStackProps> = ({
                     </button>
                     <button
                       className="simulation-stack__icon-btn"
-                      onClick={() => onRemove(entry.id)}
+                      onClick={() => removeEntry(entry.id, index)}
                       aria-label={`Remove ${name}`}
                       title="Remove"
                     >
@@ -126,7 +179,10 @@ export const SimulationStack: React.FC<SimulationStackProps> = ({
         className="simulation-stack__add"
         value="original"
         onChange={(value) => {
-          if (value !== "original") onAdd(value);
+          if (value !== "original") {
+            pendingFocus.current = { kind: "last" };
+            onAdd(value);
+          }
         }}
         options={addOptions}
         placeholder={entries.length === 0 ? "+ Add a simulation" : "+ Add another simulation"}
