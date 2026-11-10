@@ -18,7 +18,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 - **Working on:** 7.15 (stack of simulations) → 7.13 (in-plugin reference). Batch A/B/C and preset v2 Figma tests still open (needs you)
 - **Next step:** 7.15 Vision Lab as a stack of simulations
 - **Last completed:** 7.17 preset format v2 (2026-11-10). Before that 5.1, Batch C, 1.9, Batch B, Batch A
-- **In progress / half done:** —
+- **In progress / half done:** 7.15. Plan: Vision Lab state becomes `stack: {id, config: CompleteFilterConfig}[]` plus `basePreset` (preset it was loaded from) and `edited`. New `src/components/ui/Stack/SimulationStack.tsx` renders entries (header with summary, ↑ ↓ ✕; one expanded entry with sliders editing the v2 config). "Start from" = preset dropdown (loads a copy, keeps remembering the selected preset id); "+ Add simulation" = FilterDropdown in placeholder mode; "Save as preset" = inline name field, saves `{version: 2, filters}` as a custom preset. Rendering: `renderStack` = `applyFilterPreset` over the configs. Removes the single Simulation dropdown and its separate slider state.
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
