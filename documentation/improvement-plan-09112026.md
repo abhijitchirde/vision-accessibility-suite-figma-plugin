@@ -17,8 +17,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 - **Working on:** Phase 6 done. Remaining: Phase 8 docs, 3.2 Web Worker, low-priority items (2.3, 2.4, 3.7, 3.8, 5.6, 5.8, 5.9, 7.x). Batch A/B/C, v2, reference, keyboard, zoom and window Figma tests not all confirmed
 - **Next step:** Figma tests for today's batches (needs you); code-wise next: Phase 8 doc fixes
-- **Last completed:** Phase 6 plugin accessibility: 6.2, 6.3, 6.4, 6.5 (6.6 already covered), 2026-11-10. Before that 7.16, 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
-- **In progress / half done:** revert 6.4 (resize grip), then 6.8 zoom/pan inside a fixed-size preview: frame `.main-view__preview` (fixed height, position: relative, zoom controls absolutely positioned) around a new scroll viewport `.main-view__preview-viewport` (overflow: auto, pointer-drag panning, grab/grabbing cursor when the content is larger than the viewport, tabIndex 0).
+- **Last completed:** 6.8 zoom and pan inside the preview; 6.4 resizable window reverted at the user's request (2026-11-10). Before that 6.2, 6.3, 6.5, 7.16, 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
+- **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -47,7 +47,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | 3. Performance               | 8     | 4    |
 | 4. Storage                   | 3     | 3    |
 | 5. Code health               | 9     | 4    |
-| 6. UX & plugin accessibility | 7     | 6    |
+| 6. UX & plugin accessibility | 8     | 7    |
 | 7. New features              | 15    | 4    |
 | 8. Documentation accuracy    | 9     | 0    |
 
@@ -146,10 +146,12 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
   - [ ] Dropdowns (Start from, + Add a simulation): ↓ opens with the current option focused, ↑ / ↓ / Home / End move, Enter picks, Esc closes back to the dropdown.
   - [ ] Every slider can be reached with Tab and changed with the arrow keys.
 
-- [ ] **Zoom and window size**
-  - [ ] Vision Lab zoom 200% / 400%: the preview area scrolls horizontally and vertically and you can reach every edge; 100% looks as before.
-  - [ ] Drag the grip in the bottom-right corner: the window resizes (not smaller than 320×480 or larger than 800×1200); layout still fits at small and large sizes.
-  - [ ] Close and reopen the plugin: it opens at the size you left it. Tab to the grip and use the arrow keys: it resizes in steps.
+- [ ] **Zoom and pan (Vision Lab preview)**
+  - [ ] The preview box keeps the same height at every zoom level; the Vision Lab tab itself doesn't start scrolling when you zoom in.
+  - [ ] 100% shows the whole design inside the box (also a tall page); + / − zoom around the centre.
+  - [ ] Zoomed in: hovering shows a grab hand, dragging pans (grabbing hand), the box's own scrollbars and mouse wheel work.
+  - [ ] Click the preview (or Tab to it): arrow keys move around, + / − zoom, 0 fits.
+  - [ ] The plugin window is a fixed size again (no resize grip).
 
 ## Phase 1 — Correctness bugs
 
@@ -225,7 +227,7 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 - [ ] ~~🟠 **6.4 Fix the window height.** 770px doesn't fit on many laptops; make it shorter or resizable.~~ → Dropped 2026-11-10 (user): a resizable window felt heavy to use; the resize grip (8d43bce) is reverted and the window stays 360×770.
 - [x] 🟢 **6.5 Make zoom scrollable.** It uses `transform: scale()` with no scroll container, so a zoomed preview gets cut off. Reworked 2026-11-10 (6.8).
 - [x] 🟢 **6.6 Show feedback while a Quick simulation is generating**, and a clear message when the selection can't be exported. Covered by 0.3/0.4: cards show a generating state, "Add all" shows progress, and failures (no selection, export failed) show a toast.
-- [ ] 🟠 **6.8 Zoom and pan inside a fixed-size preview.** Zooming made the preview box grow taller and the whole tab scroll. The preview frame keeps a fixed height; zoom happens inside it with its own slim scrollbars; hovering shows a grab hand, and click-and-drag pans (grabbing hand while dragging); zooming keeps the centre in view; the preview can be focused and scrolled with the arrow keys (requested 2026-11-10).
+- [x] 🟠 **6.8 Zoom and pan inside a fixed-size preview.** Zooming made the preview box grow taller and the whole tab scroll. The preview frame keeps a fixed height; zoom happens inside it with its own slim scrollbars; hovering shows a grab hand, and click-and-drag pans (grabbing hand while dragging); zooming keeps the centre in view; the preview can be focused and scrolled with the arrow keys (requested 2026-11-10).
 - [x] 🟠 **6.7 No needless scrollbar in Vision Lab; slim scrollbars everywhere.** Vision Lab reserved space for the "Add current view" bar twice (80px preview margin + 56px padding) even when the bar is hidden, so an empty Vision Lab scrolled. Reserve 56px only while the bar shows. Use the QR code generator's slim rounded scrollbar for the whole plugin (found in testing 2026-11-10).
 
 ## Phase 7 — New features
