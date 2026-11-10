@@ -18,7 +18,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 - **Working on:** 7.13 (in-plugin preset reference), then 7.16 (stack polish). Batch A/B/C, preset v2 and stack Figma tests still open (needs you)
 - **Next step:** 7.13 Minimal preset reference inside the Preset Manager
 - **Last completed:** 7.15 Vision Lab stack of simulations (2026-11-10). Before that 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
-- **In progress / half done:** —
+- **In progress / half done:** 7.13. Plan: in PresetManager.tsx replace the hand-built JSON <pre> with a JSON.stringify'd v2 example (+ Copy) and a <details> "Filter reference" generated from PRESET_FILTER_SPEC (type, what it simulates, each setting with range/unit/optional); notes on order and v1 conversion.
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
