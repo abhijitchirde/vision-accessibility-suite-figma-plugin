@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import "./MainView.css";
 import { Button } from "../ui/Button/Button";
 import { FilterIcon } from "../ui/Filter/FilterIcon";
@@ -187,8 +187,11 @@ export const MainView: React.FC<{}> = ({}) => {
     null
   );
   const [zoom, setZoom] = useState<number>(DEFAULT_ZOOM);
-  // Width of the preview image in pixels (sets its on-screen size at 100%)
-  const [previewPixelWidth, setPreviewPixelWidth] = useState(0);
+  // Size of the preview image in pixels
+  const [previewPixelSize, setPreviewPixelSize] = useState({ width: 0, height: 0 });
+  // Size of the preview's scroll area (the fixed-size frame)
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
+  const [panning, setPanning] = useState(false);
   // True when a design is loaded into the Vision Lab preview
   const [hasPreview, setHasPreview] = useState(false);
   // Bumped each time a new design is loaded, to trigger a redraw
@@ -206,6 +209,11 @@ export const MainView: React.FC<{}> = ({}) => {
   const originalImageRef = useRef<HTMLImageElement | null>(null); // full-size export
   const previewSourceRef = useRef<ImagePixels | null>(null); // downscaled pixels
   const renderFrameRef = useRef<number | null>(null); // pending redraw
+  const viewportRef = useRef<HTMLDivElement>(null); // preview scroll area
+  // Drag-to-pan: where the drag started and the scroll position then
+  const panRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
+  // Point (as a fraction of the content) to keep centred across a zoom change
+  const zoomCenterRef = useRef<{ x: number; y: number } | null>(null);
   const pixelsPerDesignPixelRef = useRef(2); // see imagePixelsPerDesignPixel
 
   const { sendMessage } = useFigmaMessage();
@@ -444,7 +452,7 @@ export const MainView: React.FC<{}> = ({}) => {
       // Preview pixels per design pixel = downscale × export scale
       preview.scale *= pixelsPerDesignPixelRef.current;
       previewSourceRef.current = preview;
-      setPreviewPixelWidth(preview.width);
+      setPreviewPixelSize({ width: preview.width, height: preview.height });
       setHasPreview(true);
       setImageVersion((v) => v + 1);
     } catch (err) {
@@ -460,6 +468,107 @@ export const MainView: React.FC<{}> = ({}) => {
     originalImageRef.current = null;
     previewSourceRef.current = null;
     setHasPreview(false);
+  };
+
+  // Track the preview frame's size (it only exists in the Vision Lab tab)
+  useEffect(() => {
+    const element = viewportRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) =>
+      setViewportSize({
+        width: entry.contentRect.width,
+        height: entry.contentRect.height,
+      })
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [activeTab]);
+
+  // On-screen size of the preview. 100% = the whole design fits inside the
+  // frame (never larger than its natural size); zoom scales from there.
+  const PREVIEW_PADDING = 16;
+  const fitScale =
+    previewPixelSize.width > 0 && viewportSize.width > 0
+      ? Math.min(
+          1,
+          (viewportSize.width - PREVIEW_PADDING) / previewPixelSize.width,
+          (viewportSize.height - PREVIEW_PADDING) / previewPixelSize.height
+        )
+      : 1;
+  const displayWidth = Math.max(1, Math.round(previewPixelSize.width * fitScale * zoom));
+  const displayHeight = Math.max(1, Math.round(previewPixelSize.height * fitScale * zoom));
+  // Larger than the frame: show the grab hand and allow dragging
+  const canPan =
+    hasPreview &&
+    (displayWidth > viewportSize.width - PREVIEW_PADDING + 1 ||
+      displayHeight > viewportSize.height - PREVIEW_PADDING + 1);
+
+  /** Change zoom, keeping the point at the centre of the frame in view */
+  const zoomTo = (next: number) => {
+    const clamped = Math.max(0.25, Math.min(4, next));
+    const element = viewportRef.current;
+    if (element && element.scrollWidth > 0) {
+      zoomCenterRef.current = {
+        x: (element.scrollLeft + element.clientWidth / 2) / element.scrollWidth,
+        y: (element.scrollTop + element.clientHeight / 2) / element.scrollHeight,
+      };
+    }
+    setZoom(clamped);
+  };
+
+  useLayoutEffect(() => {
+    const center = zoomCenterRef.current;
+    const element = viewportRef.current;
+    if (!center || !element) return;
+    zoomCenterRef.current = null;
+    element.scrollLeft = center.x * element.scrollWidth - element.clientWidth / 2;
+    element.scrollTop = center.y * element.scrollHeight - element.clientHeight / 2;
+  }, [zoom]);
+
+  const handlePanStart = (event: React.PointerEvent<HTMLDivElement>) => {
+    const element = viewportRef.current;
+    if (!canPan || !element || event.button !== 0) return;
+    // Leave clicks on the frame's own scrollbars alone
+    const rect = element.getBoundingClientRect();
+    if (
+      event.clientX - rect.left >= element.clientWidth ||
+      event.clientY - rect.top >= element.clientHeight
+    ) {
+      return;
+    }
+    event.preventDefault();
+    element.setPointerCapture(event.pointerId);
+    panRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      left: element.scrollLeft,
+      top: element.scrollTop,
+    };
+    setPanning(true);
+  };
+
+  const handlePanMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const start = panRef.current;
+    const element = viewportRef.current;
+    if (!start || !element) return;
+    element.scrollLeft = start.left - (event.clientX - start.x);
+    element.scrollTop = start.top - (event.clientY - start.y);
+  };
+
+  const handlePanEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!panRef.current) return;
+    panRef.current = null;
+    viewportRef.current?.releasePointerCapture(event.pointerId);
+    setPanning(false);
+  };
+
+  /** Keyboard on the focused preview: + / − zoom, 0 fits; arrows scroll natively */
+  const handlePreviewKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "+" || event.key === "=") zoomTo(zoom + 0.25);
+    else if (event.key === "-" || event.key === "_") zoomTo(zoom - 0.25);
+    else if (event.key === "0") zoomTo(1);
+    else return;
+    event.preventDefault();
   };
 
   /** Tabs: ←/→ move between tabs (wrapping), Home/End jump to the ends */
@@ -953,7 +1062,7 @@ export const MainView: React.FC<{}> = ({}) => {
                 <div className="main-view__zoom-controls">
                   <button
                     className="main-view__zoom-btn"
-                    onClick={() => setZoom(Math.max(0.25, zoom - 0.25))}
+                    onClick={() => zoomTo(zoom - 0.25)}
                     disabled={zoom <= 0.25}
                     title="Zoom out"
                     aria-label="Zoom out"
@@ -965,7 +1074,7 @@ export const MainView: React.FC<{}> = ({}) => {
                   </span>
                   <button
                     className="main-view__zoom-btn"
-                    onClick={() => setZoom(Math.min(4, zoom + 0.25))}
+                    onClick={() => zoomTo(zoom + 0.25)}
                     disabled={zoom >= 4}
                     title="Zoom in"
                     aria-label="Zoom in"
@@ -974,7 +1083,7 @@ export const MainView: React.FC<{}> = ({}) => {
                   </button>
                   <button
                     className="main-view__zoom-fit-btn"
-                    onClick={() => setZoom(1)}
+                    onClick={() => zoomTo(1)}
                     title="Fit to view (100%)"
                     aria-label="Fit to view"
                   >
@@ -983,6 +1092,25 @@ export const MainView: React.FC<{}> = ({}) => {
                 </div>
               )}
 
+              {/* Scroll area: zoom happens inside the fixed-size frame;
+                  drag (grab hand) or scroll to move around */}
+              <div
+                ref={viewportRef}
+                className={`main-view__preview-viewport ${
+                  canPan ? "main-view__preview-viewport--pannable" : ""
+                } ${panning ? "main-view__preview-viewport--panning" : ""}`}
+                tabIndex={hasPreview ? 0 : -1}
+                aria-label={
+                  hasPreview
+                    ? "Preview. When zoomed in, drag or use the arrow keys to move around; + and − zoom, 0 fits."
+                    : undefined
+                }
+                onPointerDown={handlePanStart}
+                onPointerMove={handlePanMove}
+                onPointerUp={handlePanEnd}
+                onPointerCancel={handlePanEnd}
+                onKeyDown={handlePreviewKeyDown}
+              >
               <div className="main-view__preview-content">
                 {!hasPreview && !loading && (
                   <div className="main-view__preview-empty">
@@ -1002,16 +1130,12 @@ export const MainView: React.FC<{}> = ({}) => {
                   className="main-view__preview-image-container"
                   style={{ display: hasPreview ? undefined : "none" }}
                 >
-                  {/* Zoom sets the real width (not a visual transform), so a
-                      zoomed-in preview makes the area scroll instead of
-                      being cut off. 100% = natural size, at most the width
-                      of the preview area. */}
+                  {/* Display size from fitScale × zoom (see above) */}
                   <canvas
                     ref={previewCanvasRef}
                     className="main-view__preview-image"
-                    style={{
-                      width: `min(${previewPixelWidth * zoom}px, ${zoom * 100}%)`,
-                    }}
+                    style={{ width: displayWidth, height: displayHeight }}
+                    draggable={false}
                     role="img"
                     aria-label={`Preview: ${stackLabel || "Original"}`}
                   />
@@ -1020,6 +1144,7 @@ export const MainView: React.FC<{}> = ({}) => {
                 {error && (
                   <div className="main-view__error">{error}</div>
                 )}
+              </div>
               </div>
             </div>
           </div>

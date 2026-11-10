@@ -257,16 +257,39 @@
 }
 
 /* Preview Area */
+/* Fixed-size frame: zooming happens inside it and never makes it taller */
 .main-view__preview {
-  flex: 1;
-  min-height: 360px;
+  flex-shrink: 0;
+  height: 360px;
   background-color: var(--figma-color-bg-secondary);
   border: 1px solid var(--figma-color-border);
   border-radius: 4px;
-  overflow: auto;
+  overflow: hidden;
   position: relative;
   display: flex;
   flex-direction: column;
+}
+
+/* Scroll area inside the frame */
+.main-view__preview-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  outline: none;
+}
+
+.main-view__preview-viewport:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--figma-color-border-brand);
+}
+
+/* Zoomed in past the frame: grab hand, grabbing while dragging */
+.main-view__preview-viewport--pannable {
+  cursor: grab;
+}
+
+.main-view__preview-viewport--panning {
+  cursor: grabbing;
+  user-select: none;
 }
 
 .main-view__preview-content {
@@ -276,14 +299,18 @@
   align-items: safe center;
   justify-content: center;
   justify-content: safe center;
-  flex: 1;
+  /* Fill the frame, or grow with the zoomed image so the area scrolls */
+  box-sizing: border-box;
+  min-width: 100%;
   min-height: 100%;
+  width: max-content;
   padding: 8px;
 }
 
 /* Zoom Controls in Preview */
+/* Floats over the top-left of the frame (outside the scroll area) */
 .main-view__zoom-controls {
-  position: sticky;
+  position: absolute;
   top: 8px;
   left: 8px;
   display: inline-flex;
@@ -295,7 +322,6 @@
   padding: 4px;
   z-index: 10;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin: 8px;
   align-self: flex-start;
   width: fit-content;
 }
@@ -387,11 +413,7 @@
 }
 
 .main-view__preview-image-container {
-  /* Lets the canvas's % width refer to the preview area */
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  justify-content: safe center;
+  display: block;
 }
 
 .main-view__preview-image {
