@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import "./PresetManager.css";
 import { FilterPreset } from "../../../utils/vision-simulator.types";
+import {
+  validatePreset,
+  sanitizePresets,
+} from "../../../utils/preset-validation";
 import { Icon } from "../Icon/Icon";
 import { Button } from "../../ui/Button/Button";
 
@@ -63,16 +67,18 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
         return;
       }
 
-      // Validate each preset
+      // Validate each preset fully (types and value ranges of every filter),
+      // so a bad file can't break the preview
       for (const preset of imported) {
-        if (!preset.id || !preset.name || !Array.isArray(preset.filters)) {
-          console.error("Import failed: Invalid preset format", preset);
-          setImportError("Invalid preset format in imported file");
+        const problem = validatePreset(preset);
+        if (problem) {
+          console.error("Import failed:", problem, preset);
+          setImportError(`Can't import: ${problem}`);
           return;
         }
       }
 
-      onImportPresets(imported as FilterPreset[]);
+      onImportPresets(sanitizePresets(imported));
 
       const count = imported.length;
       setImportSuccess(
