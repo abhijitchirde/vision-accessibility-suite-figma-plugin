@@ -316,19 +316,16 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
                   <div key={preset.id} className="preset-manager__item">
                     <div className="preset-manager__item-info">
                       {renamingId === preset.id ? (
-                        <form
-                          className="preset-manager__rename"
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            finishRename();
-                          }}
-                        >
+                        <div className="preset-manager__rename" role="group" aria-label="Rename preset">
                           <input
                             className="preset-manager__rename-input"
                             value={renameValue}
                             onChange={(e) => setRenameValue(e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.key === "Escape") {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                finishRename();
+                              } else if (e.key === "Escape") {
                                 e.stopPropagation();
                                 setRenamingId(null);
                               }
@@ -339,9 +336,10 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
                             onFocus={(e) => e.target.select()}
                           />
                           <button
-                            type="submit"
+                            type="button"
                             className="preset-manager__rename-btn"
                             disabled={!renameValue.trim()}
+                            onClick={finishRename}
                           >
                             Save
                           </button>
@@ -352,7 +350,7 @@ export const PresetManager: React.FC<PresetManagerProps> = ({
                           >
                             Cancel
                           </button>
-                        </form>
+                        </div>
                       ) : (
                         <div className="preset-manager__item-name">
                           {preset.name}

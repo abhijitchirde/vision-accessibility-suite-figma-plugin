@@ -902,26 +902,33 @@ export const MainView: React.FC<{}> = ({}) => {
                     </Button>
                   </div>
                 ) : (
-                  <form
+                  <div
                     className="main-view__save-preset"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handleSavePreset();
-                    }}
+                    role="group"
+                    aria-label="Save as preset"
                   >
                     <input
                       className="main-view__save-preset-input"
                       value={savingPresetName}
                       onChange={(e) => setSavingPresetName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleSavePreset();
+                        } else if (e.key === "Escape") {
+                          setSavingPresetName(null);
+                        }
+                      }}
                       maxLength={100}
                       aria-label="Preset name"
                       autoFocus
                       onFocus={(e) => e.target.select()}
                     />
                     <button
-                      type="submit"
+                      type="button"
                       className="main-view__save-preset-btn main-view__save-preset-btn--primary"
                       disabled={!savingPresetName.trim()}
+                      onClick={handleSavePreset}
                     >
                       Save
                     </button>
@@ -932,7 +939,7 @@ export const MainView: React.FC<{}> = ({}) => {
                     >
                       Cancel
                     </button>
-                  </form>
+                  </div>
                 ))}
             </div>
 
