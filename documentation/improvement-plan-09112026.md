@@ -15,10 +15,10 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
-- **Working on:** Figma testing of today's batches (needs you); then 7.16 stack polish, 3.2 Web Worker, Phase 6 accessibility and Phase 8 docs
-- **Next step:** run the "Batch tests" checklist in Figma (needs you). Code-wise next: 7.16 Stack polish
+- **Working on:** 7.16 stack polish, then Phase 6 plugin accessibility (6.2–6.5). Batch A/B/C, v2 and reference Figma tests not yet confirmed
+- **Next step:** 7.16 Stack polish
 - **Last completed:** 6.7 Vision Lab scrollbar fix and slim scrollbars (2026-11-10). Before that 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
-- **In progress / half done:** —
+- **In progress / half done:** 7.16. Plan: PresetManager gets Duplicate (all presets) and inline Rename (custom presets), handled in MainView (save to clientStorage; renaming the selected preset updates it). SimulationStack keeps keyboard focus: after ↑/↓ focus the same button on the moved entry (the other one if it became disabled); after ✕ focus the next entry, the previous one, or "+ Add". The "edited" indicator already shipped with 7.15.
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
