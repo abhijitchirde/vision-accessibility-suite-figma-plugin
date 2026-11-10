@@ -9,6 +9,8 @@ interface PresetSelectorProps {
   selectedPreset: FilterPreset | null;
   onSelectPreset: (preset: FilterPreset | null) => void;
   onManagePresets?: () => void;
+  /** Heading above the dropdown (default "Presets") */
+  label?: string;
 }
 
 /**
@@ -22,11 +24,12 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
   selectedPreset,
   onSelectPreset,
   onManagePresets,
+  label = "Presets",
 }) => {
   return (
     <div className="preset-selector">
       <div className="preset-selector__header">
-        <label className="preset-selector__label">Presets</label>
+        <label className="preset-selector__label">{label}</label>
       </div>
 
       <div className="preset-selector__controls">
@@ -41,7 +44,7 @@ export const PresetSelector: React.FC<PresetSelectorProps> = ({
           <button
             className="preset-selector__reset-btn"
             onClick={() => onSelectPreset(null)}
-            title="Reset preset"
+            title="Clear: start with no simulations"
           >
             <Icon name="close" size={12} />
             Reset

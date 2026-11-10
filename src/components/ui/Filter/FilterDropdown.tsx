@@ -4,7 +4,7 @@ import { FilterIcon } from "./FilterIcon";
 import { SimulationType } from "../../../utils/vision-simulator.types";
 import { FILTER_METADATA } from "../../../utils/vision-simulator.constants";
 
-interface FilterOption {
+export interface FilterOption {
   value: SimulationType;
   label: string;
   groupLabel?: string;

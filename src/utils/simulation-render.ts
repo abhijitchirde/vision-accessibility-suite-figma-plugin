@@ -85,102 +85,72 @@ export function renderQuickSimulation(
     : source;
 }
 
-/** Everything Vision Lab needs to render one view */
-export interface VisionLabSettings {
-  filter: SimulationType;
-  preset: FilterPreset | null;
-  severity: number;
-  /** Visual field radius as a fraction of the image's smaller side */
-  radius: number;
-  /** Design pixels */
-  blurRadius: number;
-  blurIterations: number;
-  /** Design pixels */
-  ghostingOffsetX: number;
-  /** Design pixels */
-  ghostingOffsetY: number;
-  ghostingOpacity: number;
-  yellowingIntensity: number;
-  yellowingTemperature: number;
-  contrastReduction: number;
-  brightLightIntensity: number;
-  brightLightWashout: number;
-}
-
 /**
- * Filter config for the Vision Lab single-simulation settings, or null for
- * "original".
+ * Default config for a simulation added to the Vision Lab stack: the Quick
+ * simulation defaults, with the color blindness severity written out so its
+ * slider has a value (1.0 for complete -opia types, 0.6 for -omaly).
  */
-export function visionLabConfig(
-  s: VisionLabSettings
+export function defaultStackConfig(
+  filter: SimulationType
 ): CompleteFilterConfig | null {
-  const filter = s.filter;
-  if (COLOR_BLIND_FILTERS.includes(filter)) {
-    return { type: filter as ColorBlindnessType, severity: s.severity };
+  const config = quickSimulationConfig(filter);
+  if (config && COLOR_BLIND_FILTERS.includes(config.type as SimulationType)) {
+    const partial = /omaly$/.test(config.type);
+    return { type: config.type as ColorBlindnessType, severity: partial ? 0.6 : 1 };
   }
-  const radiusPercent = s.radius * 100;
-  switch (filter) {
-    case "blurred":
-      return {
-        type: "blurred",
-        config: { radius: s.blurRadius, iterations: s.blurIterations },
-      };
-    case "ghosting":
-      return {
-        type: "ghosting",
-        config: {
-          offset: { x: s.ghostingOffsetX, y: s.ghostingOffsetY },
-          opacity: s.ghostingOpacity,
-        },
-      };
-    case "yellowing":
-      return {
-        type: "yellowing",
-        config: {
-          intensity: s.yellowingIntensity,
-          temperature: s.yellowingTemperature,
-        },
-      };
-    case "loss-of-contrast":
-      return { type: "loss-of-contrast", config: { reduction: s.contrastReduction } };
-    case "bright-light":
-      return {
-        type: "bright-light",
-        config: {
-          intensity: s.brightLightIntensity,
-          washout: s.brightLightWashout,
-        },
-      };
-    case "central-vision-loss":
-      return {
-        type: "central-vision-loss",
-        config: { radiusPercent, severity: s.severity },
-      };
-    case "peripheral-vision-loss":
-      return {
-        type: "peripheral-vision-loss",
-        config: { radiusPercent, severity: s.severity },
-      };
-    default:
-      return null;
-  }
+  return config;
 }
 
 /**
- * Apply the Vision Lab filter or preset. `scale` is image pixels per design
- * pixel, so the downscaled preview matches what "Add current view to Figma"
- * produces. Returns the input unchanged for "original" with no preset.
+ * Apply a stack of simulations top to bottom (each one's output is the next
+ * one's input). `scale` is image pixels per design pixel, so a downscaled
+ * preview matches what "Add current view to Figma" produces. An empty
+ * stack returns the input unchanged.
  */
-export function renderVisionLab(
+export function renderStack(
   source: Uint8ClampedArray,
   width: number,
   height: number,
-  s: VisionLabSettings,
+  configs: CompleteFilterConfig[],
   scale: number
 ): Uint8ClampedArray {
-  if (s.preset) {
-    return applyFilterPreset(source, width, height, s.preset, scale);
+  if (configs.length === 0) return source;
+  return applyFilterPreset(
+    source,
+    width,
+    height,
+    { id: "stack", name: "stack", description: "", filters: configs },
+    scale
+  );
+}
+
+const pct = (value: number | undefined, fallback = 1) =>
+  `${Math.round((value ?? fallback) * 100)}%`;
+const num = (value: number) => String(Number(value.toFixed(2)));
+
+/** Short one-line description of a config's settings, e.g. "4px · 2 passes" */
+export function describeFilterConfig(config: CompleteFilterConfig): string {
+  switch (config.type) {
+    case "blurred": {
+      const passes = config.config.iterations ?? 1;
+      return `${num(config.config.radius)}px · ${passes} pass${passes === 1 ? "" : "es"}`;
+    }
+    case "ghosting":
+      return `${num(config.config.offset.x)}, ${num(config.config.offset.y)}px · ${pct(config.config.opacity)}`;
+    case "yellowing":
+      return `${pct(config.config.intensity)} · ${config.config.temperature}K`;
+    case "loss-of-contrast":
+      return `−${pct(config.config.reduction)}`;
+    case "bright-light":
+      return `${pct(config.config.intensity)} · washout ${pct(config.config.washout)}`;
+    case "central-vision-loss":
+    case "peripheral-vision-loss":
+      return `${num(config.config.radiusPercent)}% area · ${pct(config.config.severity)}`;
+    default:
+      // Color blindness
+      return `severity ${pct(
+        (config as { severity?: number }).severity,
+        /omaly$/.test(config.type) ? 0.6 : 1
+      )}`;
   }
-  const config = visionLabConfig(s);
-  return config ? applyFilterConfig(source, width, height, config, scale) : source;
 }

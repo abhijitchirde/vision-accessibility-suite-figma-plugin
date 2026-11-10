@@ -1,14 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./MainView.css";
-import { Icon } from "../ui/Icon/Icon";
 import { Button } from "../ui/Button/Button";
 import { FilterIcon } from "../ui/Filter/FilterIcon";
-import { SeveritySlider } from "../ui/Filter/SeveritySlider";
-import { RadiusSlider } from "../ui/Filter/RadiusSlider";
 import { PresetSelector } from "../ui/Presets/PresetSelector";
 import { PresetManager } from "../ui/Presets/PresetManager";
-import { FilterParameterSlider } from "../ui/Filter/FilterParameterSlider";
-import { FilterDropdown } from "../ui/Filter/FilterDropdown";
+import { SimulationStack, StackEntry } from "../ui/Stack/SimulationStack";
 import {
   useFigmaMessage,
   waitForPluginMessage,
@@ -19,6 +15,7 @@ import { GoScreenFull } from "react-icons/go";
 import {
   SimulationType,
   FilterPreset,
+  PRESET_FORMAT_VERSION,
 } from "../../utils/vision-simulator.types";
 import {
   FILTER_METADATA,
@@ -26,14 +23,13 @@ import {
   VISUAL_FIELD_FILTERS,
   OTHER_FILTERS,
   DEFAULT_ZOOM,
-  COLOR_BLIND_FILTERS as ALL_COLOR_BLIND_FILTERS,
   DEFAULT_PRESETS,
 } from "../../utils/vision-simulator.constants";
 import {
   imagePixelsPerDesignPixel,
   renderQuickSimulation,
-  renderVisionLab,
-  VisionLabSettings,
+  renderStack,
+  defaultStackConfig,
 } from "../../utils/simulation-render";
 
 type Tab = "generate" | "simulation";
@@ -172,11 +168,19 @@ export const MainView: React.FC<{}> = ({}) => {
   } | null>(null);
   const isGenerating = generatingFilter !== null || generateProgress !== null;
 
-  // Simulation mode state
-  const [currentFilter, setCurrentFilter] =
-    useState<SimulationType>("original");
-  const [currentSeverity, setCurrentSeverity] = useState<number>(1.0); // Default to complete (100%)
-  const [currentRadius, setCurrentRadius] = useState<number>(0.3); // Default radius as percentage (30% of image dimension)
+  // Vision Lab: a stack of simulations applied top to bottom
+  const [stack, setStack] = useState<StackEntry[]>([]);
+  // The entry whose sliders are shown (one at a time)
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  // Preset the stack was started from, and whether it changed since
+  const [selectedPreset, setSelectedPreset] = useState<FilterPreset | null>(
+    null
+  );
+  const [stackEdited, setStackEdited] = useState(false);
+  // Name typed in the inline "Save as preset" form (null = form closed)
+  const [savingPresetName, setSavingPresetName] = useState<string | null>(
+    null
+  );
   const [zoom, setZoom] = useState<number>(DEFAULT_ZOOM);
   // True when a design is loaded into the Vision Lab preview
   const [hasPreview, setHasPreview] = useState(false);
@@ -186,29 +190,9 @@ export const MainView: React.FC<{}> = ({}) => {
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  // Other filter parameters
-  // Blur radius and ghosting offsets are in design pixels
-  const [blurRadius, setBlurRadius] = useState<number>(4);
-  const [blurIterations, setBlurIterations] = useState<number>(2);
-  const [ghostingOffsetX, setGhostingOffsetX] = useState<number>(5);
-  const [ghostingOffsetY, setGhostingOffsetY] = useState<number>(2.5);
-  const [ghostingOpacity, setGhostingOpacity] = useState<number>(0.5);
-  const [yellowingIntensity, setYellowingIntensity] = useState<number>(0.6);
-  const [yellowingTemperature, setYellowingTemperature] =
-    useState<number>(2500);
-  const [contrastReduction, setContrastReduction] = useState<number>(0.5);
-  const [brightLightIntensity, setBrightLightIntensity] = useState<number>(0.7);
-  const [brightLightWashout, setBrightLightWashout] = useState<number>(0.4);
-
-  // Preset state
-  const [selectedPreset, setSelectedPreset] = useState<FilterPreset | null>(
-    null
-  );
+  // Presets
   const [customPresets, setCustomPresets] = useState<FilterPreset[]>([]);
   const [showPresetManager, setShowPresetManager] = useState(false);
-
-  // Parameters panel state
-  const [showParameters, setShowParameters] = useState(false);
 
   // Vision Lab preview
   const previewCanvasRef = useRef<HTMLCanvasElement>(null); // visible preview
@@ -258,25 +242,11 @@ export const MainView: React.FC<{}> = ({}) => {
     if (pendingPresetId && allPresets.length > 0) {
       const preset = allPresets.find((p) => p.id === pendingPresetId);
       if (preset) {
-        setSelectedPreset(preset);
+        loadPresetIntoStack(preset);
         setPendingPresetId(null);
       }
     }
   }, [pendingPresetId, allPresets]);
-
-  /**
-   * Check if a filter is a color blindness type (supports severity adjustment)
-   */
-  const isColorBlindnessFilter = (filter: SimulationType): boolean => {
-    return ALL_COLOR_BLIND_FILTERS.includes(filter);
-  };
-
-  /**
-   * Check if a filter is a visual field defect type (supports radius and severity)
-   */
-  const isVisualFieldDefect = (filter: SimulationType): boolean => {
-    return VISUAL_FIELD_FILTERS.includes(filter);
-  };
 
   /**
    * Quick simulation, step 2: filter the exported image for each requested
@@ -402,32 +372,17 @@ export const MainView: React.FC<{}> = ({}) => {
     }
   }, [activeTab, sendMessage]);
 
-  // Current Vision Lab settings (used by the preview and by "Add to Figma")
-  const visionLabSettings: VisionLabSettings = {
-    filter: currentFilter,
-    preset: selectedPreset,
-    severity: currentSeverity,
-    radius: currentRadius,
-    blurRadius,
-    blurIterations,
-    ghostingOffsetX,
-    ghostingOffsetY,
-    ghostingOpacity,
-    yellowingIntensity,
-    yellowingTemperature,
-    contrastReduction,
-    brightLightIntensity,
-    brightLightWashout,
-  };
+  // Current Vision Lab simulations (used by the preview and by "Add to Figma")
+  const stackConfigs = stack.map((entry) => entry.config);
 
-  // Redraw the preview when the design or any setting changes. Changes are
+  // Redraw the preview when the design or the stack changes. Changes are
   // coalesced to at most one redraw per animation frame, so dragging a
   // slider doesn't queue up work. The downscaled copy is drawn straight into
   // the visible canvas (no PNG encoding).
   useEffect(() => {
     if (activeTab !== "simulation" || !previewSourceRef.current) return;
 
-    const settings = visionLabSettings;
+    const configs = stackConfigs;
     if (renderFrameRef.current !== null) {
       cancelAnimationFrame(renderFrameRef.current);
     }
@@ -438,11 +393,11 @@ export const MainView: React.FC<{}> = ({}) => {
       const ctx = canvas?.getContext("2d");
       if (!source || !canvas || !ctx) return;
 
-      const filtered = renderVisionLab(
+      const filtered = renderStack(
         source.data,
         source.width,
         source.height,
-        settings,
+        configs,
         source.scale
       );
       canvas.width = source.width;
@@ -453,26 +408,9 @@ export const MainView: React.FC<{}> = ({}) => {
         0
       );
     });
-    // visionLabSettings is rebuilt every render; list its parts instead
+    // stackConfigs is rebuilt every render; stack is what changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    imageVersion,
-    activeTab,
-    currentFilter,
-    currentSeverity,
-    currentRadius,
-    selectedPreset,
-    blurRadius,
-    blurIterations,
-    ghostingOffsetX,
-    ghostingOffsetY,
-    ghostingOpacity,
-    yellowingIntensity,
-    yellowingTemperature,
-    contrastReduction,
-    brightLightIntensity,
-    brightLightWashout,
-  ]);
+  }, [imageVersion, activeTab, stack]);
 
   // Cancel a pending redraw when the view unmounts
   useEffect(() => {
@@ -514,6 +452,98 @@ export const MainView: React.FC<{}> = ({}) => {
     originalImageRef.current = null;
     previewSourceRef.current = null;
     setHasPreview(false);
+  };
+
+  /** Unique id for a stack entry */
+  const newEntryId = () =>
+    `e${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+
+  /** Replace the stack with a copy of a preset's simulations (or empty) */
+  const loadPresetIntoStack = (preset: FilterPreset | null) => {
+    setSelectedPreset(preset);
+    setStack(
+      preset
+        ? preset.filters.map((config) => ({ id: newEntryId(), config }))
+        : []
+    );
+    setExpandedId(null);
+    setStackEdited(false);
+    setSavingPresetName(null);
+  };
+
+  /** "Start from" dropdown: load a preset (remembered per user) */
+  const handleStartFrom = (preset: FilterPreset | null) => {
+    loadPresetIntoStack(preset);
+    sendMessage("VISION_SIMULATOR_SAVE_SELECTED_PRESET", {
+      presetId: preset?.id || null,
+    });
+  };
+
+  /** Change the stack and mark it as edited */
+  const editStack = (update: (entries: StackEntry[]) => StackEntry[]) => {
+    setStack(update);
+    setStackEdited(true);
+  };
+
+  const handleAddSimulation = (filter: SimulationType) => {
+    const config = defaultStackConfig(filter);
+    if (!config) return;
+    const entry = { id: newEntryId(), config };
+    editStack((entries) => [...entries, entry]);
+    setExpandedId(entry.id);
+  };
+
+  const handleMoveSimulation = (id: string, direction: -1 | 1) => {
+    editStack((entries) => {
+      const from = entries.findIndex((e) => e.id === id);
+      const to = from + direction;
+      if (from < 0 || to < 0 || to >= entries.length) return entries;
+      const next = [...entries];
+      [next[from], next[to]] = [next[to], next[from]];
+      return next;
+    });
+  };
+
+  const handleRemoveSimulation = (id: string) => {
+    editStack((entries) => entries.filter((e) => e.id !== id));
+    if (expandedId === id) setExpandedId(null);
+  };
+
+  /** Name shown for the current stack (preset name, or the simulations) */
+  const stackLabel =
+    selectedPreset && !stackEdited
+      ? selectedPreset.name
+      : stack
+          .map((entry) => FILTER_METADATA[entry.config.type]?.name ?? entry.config.type)
+          .join(" + ");
+
+  /** Save the current stack as a custom preset */
+  const handleSavePreset = () => {
+    const name = (savingPresetName ?? "").trim();
+    if (!name || stack.length === 0) return;
+    const now = Date.now();
+    const preset: FilterPreset = {
+      version: PRESET_FORMAT_VERSION,
+      id: `custom-${now.toString(36)}`,
+      name,
+      description: `Made in Vision Lab: ${stack
+        .map((entry) => FILTER_METADATA[entry.config.type]?.name ?? entry.config.type)
+        .join(", ")}`,
+      filters: stack.map((entry) => entry.config),
+      isBuiltIn: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setCustomPresets((prev) => {
+      const updated = [...prev, preset];
+      sendMessage("VISION_SIMULATOR_SAVE_PRESETS", { presets: updated });
+      return updated;
+    });
+    setSelectedPreset(preset);
+    setStackEdited(false);
+    setSavingPresetName(null);
+    sendMessage("VISION_SIMULATOR_SAVE_SELECTED_PRESET", { presetId: preset.id });
+    notifyInFigma(`Saved preset "${name}"`);
   };
 
   /**
@@ -606,7 +636,7 @@ export const MainView: React.FC<{}> = ({}) => {
     const img = originalImageRef.current;
     if (!img || !hasPreview) return;
 
-    const settings = visionLabSettings;
+    const configs = stackConfigs;
     setExporting(true);
     setError(null);
 
@@ -615,11 +645,11 @@ export const MainView: React.FC<{}> = ({}) => {
 
     try {
       const full = getImagePixels(img);
-      const filtered = renderVisionLab(
+      const filtered = renderStack(
         full.data,
         full.width,
         full.height,
-        settings,
+        configs,
         pixelsPerDesignPixelRef.current
       );
 
@@ -645,19 +675,11 @@ export const MainView: React.FC<{}> = ({}) => {
       const arrayBuffer = await blob.arrayBuffer();
       const imageData = new Uint8Array(arrayBuffer);
 
-      // Determine the label for the frame
-      let label = "";
-      if (selectedPreset) {
-        label = selectedPreset.name;
-      } else if (currentFilter !== "original") {
-        label = FILTER_METADATA[currentFilter].name;
-      }
-
       // Figma sizes the frame from the image itself (image size / export scale)
       sendMessage("VISION_SIMULATOR_EXPORT_TO_CANVAS", {
         imageData,
-        label,
-        filter: selectedPreset ? "original" : currentFilter,
+        label: stackLabel || "Vision Simulation",
+        filter: stack.length === 1 ? stack[0].config.type : "original",
       });
     } catch (err) {
       console.error("Failed to export to canvas:", err);
@@ -666,14 +688,8 @@ export const MainView: React.FC<{}> = ({}) => {
     }
   };
 
-  // Prepare filter options for dropdown
+  // Simulations that can be added to the Vision Lab stack
   const filterOptions = [
-    {
-      value: "original" as SimulationType,
-      label: "Original",
-      groupLabel: "None",
-      showIcon: false,
-    },
     ...COLOR_BLIND_FILTERS.map((filter) => ({
       value: filter,
       label: FILTER_METADATA[filter].name,
@@ -766,251 +782,91 @@ export const MainView: React.FC<{}> = ({}) => {
         {/* Simulation Tab */}
         {activeTab === "simulation" && (
           <div className="main-view__simulation">
-            {/* Preset Selector */}
+            {/* Start from a preset (loads an editable copy) */}
             <PresetSelector
+              label="Start from"
               presets={allPresets}
               selectedPreset={selectedPreset}
-              onSelectPreset={(preset) => {
-                setSelectedPreset(preset);
-                // Save selected preset ID to storage
-                sendMessage("VISION_SIMULATOR_SAVE_SELECTED_PRESET", {
-                  presetId: preset?.id || null,
-                });
-                // When a preset is selected, reset to "original" single filter
-                if (preset) {
-                  setCurrentFilter("original");
-                }
-              }}
+              onSelectPreset={handleStartFrom}
               onManagePresets={() => setShowPresetManager(true)}
             />
 
-            {/* Controls - Always show simulation dropdown */}
-            <div className="main-view__controls-row">
-              {/* Simulation Dropdown */}
-              <div className="main-view__control main-view__control--simulation">
-                <label className="main-view__control-label">
-                  Simulation
-                </label>
-                <FilterDropdown
-                  value={currentFilter}
-                  onChange={(value) => {
-                    // If a preset was selected, reset it when a simulation is chosen
-                    if (selectedPreset) {
-                      setSelectedPreset(null);
-                      // Save cleared preset to storage
-                      sendMessage("VISION_SIMULATOR_SAVE_SELECTED_PRESET", {
-                        presetId: null,
-                      });
-                    }
-                    setCurrentFilter(value);
-                    // Set appropriate default severity based on filter type
-                    if (
-                      value === "protanomaly" ||
-                      value === "deuteranomaly" ||
-                      value === "tritanomaly"
-                    ) {
-                      // Partial color blindness defaults to 60%
-                      setCurrentSeverity(0.6);
-                    } else if (
-                      isColorBlindnessFilter(value) ||
-                      isVisualFieldDefect(value)
-                    ) {
-                      // Complete color blindness and visual field defects default to 100%
-                      setCurrentSeverity(1.0);
-                    }
-                    // Reset radius to default (30%) when switching to visual field defects
-                    if (isVisualFieldDefect(value)) {
-                      setCurrentRadius(0.3);
-                    }
-                    // Reset parameters panel visibility when changing filter
-                    setShowParameters(false);
-                  }}
-                  options={filterOptions}
-                  placeholder="preset is applied"
-                  showPlaceholder={!!selectedPreset}
-                />
-              </div>
+            {/* Simulations, applied top to bottom */}
+            <div className="main-view__stack">
+              <div className="main-view__control-label">Simulations</div>
+              <SimulationStack
+                entries={stack}
+                expandedId={expandedId}
+                onToggle={(id) =>
+                  setExpandedId((current) => (current === id ? null : id))
+                }
+                onChange={(id, config) =>
+                  editStack((entries) =>
+                    entries.map((e) => (e.id === id ? { ...e, config } : e))
+                  )
+                }
+                onMove={handleMoveSimulation}
+                onRemove={handleRemoveSimulation}
+                onAdd={handleAddSimulation}
+                addOptions={filterOptions}
+              />
 
-              {/* Parameters Button - Only show if no preset is selected */}
-              {!selectedPreset && (
-                <button
-                  className="main-view__params-btn"
-                  onClick={() => setShowParameters(!showParameters)}
-                  disabled={currentFilter === "original"}
-                  title="Change parameters"
-                >
-                  <Icon name="parameters" size={16} />
-                </button>
-              )}
+              {stack.length > 0 &&
+                (savingPresetName === null ? (
+                  <div className="main-view__stack-footer">
+                    <span className="main-view__stack-status">
+                      {selectedPreset
+                        ? `${selectedPreset.name}${stackEdited ? " · edited" : ""}`
+                        : `${stack.length} simulation${stack.length === 1 ? "" : "s"}`}
+                    </span>
+                    <Button
+                      variant="secondary"
+                      size="small"
+                      onClick={() =>
+                        setSavingPresetName(
+                          selectedPreset
+                            ? `${selectedPreset.name} (edited)`
+                            : "My preset"
+                        )
+                      }
+                    >
+                      Save as preset
+                    </Button>
+                  </div>
+                ) : (
+                  <form
+                    className="main-view__save-preset"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSavePreset();
+                    }}
+                  >
+                    <input
+                      className="main-view__save-preset-input"
+                      value={savingPresetName}
+                      onChange={(e) => setSavingPresetName(e.target.value)}
+                      maxLength={100}
+                      aria-label="Preset name"
+                      autoFocus
+                      onFocus={(e) => e.target.select()}
+                    />
+                    <button
+                      type="submit"
+                      className="main-view__save-preset-btn main-view__save-preset-btn--primary"
+                      disabled={!savingPresetName.trim()}
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      className="main-view__save-preset-btn"
+                      onClick={() => setSavingPresetName(null)}
+                    >
+                      Cancel
+                    </button>
+                  </form>
+                ))}
             </div>
-
-            {/* Parameters Panel - Collapsible */}
-            {!selectedPreset &&
-              showParameters &&
-              currentFilter !== "original" && (
-                <div className="main-view__parameters">
-                  {/* Severity Slider - only show for color blindness filters */}
-                  {isColorBlindnessFilter(currentFilter) && (
-                    <SeveritySlider
-                      value={currentSeverity}
-                      onChange={setCurrentSeverity}
-                      label="Severity"
-                      showPercentage={true}
-                    />
-                  )}
-
-                  {/* Visual Field Defect Controls */}
-                  {isVisualFieldDefect(currentFilter) && (
-                    <>
-                      <RadiusSlider
-                        value={Math.round(currentRadius * 100)}
-                        onChange={(value) => setCurrentRadius(value / 100)}
-                        label={
-                          currentFilter === "central-vision-loss"
-                            ? "Affected Area Radius"
-                            : "Clear Center Radius"
-                        }
-                        min={10}
-                        max={90}
-                        showValue={true}
-                        unit="%"
-                      />
-                      <div style={{ marginTop: "16px" }}>
-                        <SeveritySlider
-                          value={currentSeverity}
-                          onChange={setCurrentSeverity}
-                          label="Severity"
-                          showPercentage={true}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {/* Blurred Filter Controls */}
-                  {currentFilter === "blurred" && (
-                    <>
-                      <FilterParameterSlider
-                        label="Blur Radius"
-                        value={blurRadius}
-                        onChange={setBlurRadius}
-                        min={0.5}
-                        max={15}
-                        step={0.5}
-                        unit="px"
-                        description="Blur strength (higher = more blur)"
-                      />
-                      <div style={{ marginTop: "16px" }}>
-                        <FilterParameterSlider
-                          label="Iterations"
-                          value={blurIterations}
-                          onChange={setBlurIterations}
-                          min={1}
-                          max={5}
-                          step={1}
-                          description="Number of blur passes (higher = smoother)"
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {/* Ghosting Filter Controls */}
-                  {currentFilter === "ghosting" && (
-                    <>
-                      <FilterParameterSlider
-                        label="Horizontal Offset"
-                        value={ghostingOffsetX}
-                        onChange={setGhostingOffsetX}
-                        min={0}
-                        max={15}
-                        step={0.5}
-                        unit="px"
-                        description="Ghost image horizontal displacement"
-                      />
-                      <FilterParameterSlider
-                        label="Vertical Offset"
-                        value={ghostingOffsetY}
-                        onChange={setGhostingOffsetY}
-                        min={0}
-                        max={15}
-                        step={0.5}
-                        unit="px"
-                        description="Ghost image vertical displacement"
-                      />
-                      <FilterParameterSlider
-                        label="Ghost Opacity"
-                        value={ghostingOpacity}
-                        onChange={setGhostingOpacity}
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        description="Ghost image transparency"
-                      />
-                    </>
-                  )}
-
-                  {/* Yellowing Filter Controls */}
-                  {currentFilter === "yellowing" && (
-                    <>
-                      <FilterParameterSlider
-                        label="Intensity"
-                        value={yellowingIntensity}
-                        onChange={setYellowingIntensity}
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        description="Yellow tint strength"
-                      />
-                      <FilterParameterSlider
-                        label="Temperature"
-                        value={yellowingTemperature}
-                        onChange={setYellowingTemperature}
-                        min={1000}
-                        max={4000}
-                        step={100}
-                        unit="K"
-                        description="Color temperature (warmer = more yellow)"
-                      />
-                    </>
-                  )}
-
-                  {/* Loss of Contrast Filter Controls */}
-                  {currentFilter === "loss-of-contrast" && (
-                    <FilterParameterSlider
-                      label="Contrast Reduction"
-                      value={contrastReduction}
-                      onChange={setContrastReduction}
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      description="Amount of contrast loss (higher = less contrast)"
-                    />
-                  )}
-
-                  {/* Bright Light Filter Controls */}
-                  {currentFilter === "bright-light" && (
-                    <>
-                      <FilterParameterSlider
-                        label="Brightness Intensity"
-                        value={brightLightIntensity}
-                        onChange={setBrightLightIntensity}
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        description="Brightness increase amount"
-                      />
-                      <FilterParameterSlider
-                        label="Color Washout"
-                        value={brightLightWashout}
-                        onChange={setBrightLightWashout}
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        description="Color desaturation amount"
-                      />
-                    </>
-                  )}
-                </div>
-              )}
 
             {/* Preview Area */}
             <div className="main-view__preview">
@@ -1072,11 +928,7 @@ export const MainView: React.FC<{}> = ({}) => {
                     ref={previewCanvasRef}
                     className="main-view__preview-image"
                     role="img"
-                    aria-label={`Preview: ${
-                      selectedPreset
-                        ? selectedPreset.name
-                        : FILTER_METADATA[currentFilter]?.name ?? "Original"
-                    }`}
+                    aria-label={`Preview: ${stackLabel || "Original"}`}
                   />
                 </div>
 
@@ -1108,7 +960,7 @@ export const MainView: React.FC<{}> = ({}) => {
       {/* Export to Canvas Button - Fixed at bottom, above bottom section */}
       {activeTab === "simulation" &&
         hasPreview &&
-        (currentFilter !== "original" || selectedPreset !== null) && (
+        stack.length > 0 && (
           <div className="main-view__export-button-container">
             <Button
               variant="primary"
