@@ -1,7 +1,7 @@
 // Renders the community assets (icons, cover, carousel slides) to PNG with headless Edge/Chrome.
 //
 //   npm run build                                   # cover and slides embed the real plugin UI from dist/
-//   node documentation/community/render.mjs         # everything; cover/slides use icon option 1
+//   node documentation/community/render.mjs         # everything; cover/slides use icon option 8
 //   node documentation/community/render.mjs --icon 3
 //   node documentation/community/render.mjs --icons-only
 //
@@ -25,7 +25,7 @@ const root = path.join(here, "..", "..");
 const src = path.join(here, "src");
 const out = path.join(here, "exports");
 const iconArg = process.argv.indexOf("--icon");
-const icon = iconArg !== -1 ? Number(process.argv[iconArg + 1]) : 1;
+const icon = iconArg !== -1 ? Number(process.argv[iconArg + 1]) : 8;
 const iconsOnly = process.argv.includes("--icons-only");
 
 const candidates = [
