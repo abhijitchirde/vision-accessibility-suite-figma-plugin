@@ -42,7 +42,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 Paused on 2026-11-10 after publishing 2.0. Nothing below is started. Pick a group when there's time; each item links to its full description further down.
 
 **0. Housekeeping first (a few minutes)**
-- [ ] Merge `sandbox` into `master` now that 2.0 is published (planned: `master` matches what's on the Community), and push. On 2026-11-10 `sandbox` was 9 commits ahead of GitHub; a normal push is fine (no force needed).
+- [x] Merge `sandbox` into `master` now that 2.0 is published (planned: `master` matches what's on the Community), and push. On 2026-11-10 `sandbox` was 9 commits ahead of GitHub; a normal push is fine (no force needed). ✅ Done 2026-11-10: merged with a merge commit and pushed; `sandbox` pushed too and kept for future work.
 - [ ] Note which icon option went live (9.2) in `documentation/community/README.md`.
 - [ ] The "Batch tests" groups still unticked (Batch A, B, C, preset format v2, Preset Manager reference, stack polish keyboard check, plugin keyboard access): tick what was checked before publishing, or re-run them.
 
