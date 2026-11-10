@@ -81,7 +81,7 @@ if (!iconsOnly) {
   // The plugin's filters, bundled for the browser pages
   execFileSync(process.execPath, [path.join(here, "make-lib.mjs")], { stdio: "inherit" });
   // The sample design, at 2x like the plugin's export
-  shot("sample-design.html", {}, 520, 680, "sample-design.png", 2);
+  shot("sample-design.html", {}, 520, 720, "sample-design.png", 2);
 
   shot("cover.html", { icon }, 1920, 960, "cover-1920x960.png");
   for (const n of [1, 2, 3, 4]) {
