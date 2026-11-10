@@ -18,7 +18,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 - **Working on:** Batch A — smooth Vision Lab (3.1 + 3.3 + 3.5), then Batch B — accurate color blindness (2.1 + 2.2). Started 2026-11-10
 - **Next step:** Batch B — 2.1 + 2.2 Accurate color-blindness model
 - **Last completed:** Batch A code (3.1, 3.5, 3.3, 1.8) on 2026-11-10. Builds; not yet tested in Figma (see "Batch tests")
-- **In progress / half done:** —
+- **In progress / half done:** 2.1 + 2.2. Plan: new file `src/utils/machado-matrices.ts` with Machado (2009) protan/deutan/tritan matrices at severity 0.0–1.0 in 0.1 steps; `applyColorBlindness` decodes sRGB → linear (lookup table), applies the matrix (interpolating between the two nearest severity steps), encodes back. Achromatopsia = Rec. 709 luminance in linear RGB. Old ColorJack matrices removed.
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
