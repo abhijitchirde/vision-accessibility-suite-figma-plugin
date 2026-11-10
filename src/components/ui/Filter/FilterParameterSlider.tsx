@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useId } from 'react';
 import './FilterParameterSlider.css';
 
 interface FilterParameterSliderProps {
@@ -11,6 +11,15 @@ interface FilterParameterSliderProps {
   unit?: string;
   description?: string;
 }
+
+const UNIT_WORDS: Record<string, string> = {
+  px: "pixels",
+  "%": "percent",
+  K: "kelvin",
+};
+
+/** 4 -> "4", 0.45 -> "0.45", 2.5 -> "2.5" */
+const formatNumber = (value: number) => String(Number(value.toFixed(2)));
 
 /**
  * Generic slider component for filter parameters
@@ -28,18 +37,27 @@ export const FilterParameterSlider: React.FC<FilterParameterSliderProps> = ({
   unit,
   description,
 }) => {
-  const displayValue = unit ? `${value.toFixed(2)}${unit}` : value.toFixed(2);
+  const id = useId();
+  const displayValue = `${formatNumber(value)}${unit ?? ""}`;
+  const spokenValue = unit
+    ? `${formatNumber(value)} ${UNIT_WORDS[unit] ?? unit}`
+    : formatNumber(value);
 
   return (
     <div className="filter-parameter-slider">
       <div className="filter-parameter-slider__header">
-        <label className="filter-parameter-slider__label">{label}</label>
+        <label className="filter-parameter-slider__label" htmlFor={id}>
+          {label}
+        </label>
         <span className="filter-parameter-slider__value">{displayValue}</span>
       </div>
 
       <input
+        id={id}
         type="range"
         className="filter-parameter-slider__range"
+        aria-valuetext={spokenValue}
+        aria-describedby={description ? `${id}-description` : undefined}
         min={min}
         max={max}
         step={step}
@@ -48,7 +66,9 @@ export const FilterParameterSlider: React.FC<FilterParameterSliderProps> = ({
       />
 
       {description && (
-        <p className="filter-parameter-slider__description">{description}</p>
+        <p className="filter-parameter-slider__description" id={`${id}-description`}>
+          {description}
+        </p>
       )}
     </div>
   );

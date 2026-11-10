@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useDropdownKeyboard } from "../../../hooks/useDropdownKeyboard";
 import "./PresetDropdown.css";
 import { FilterPreset } from "../../../utils/vision-simulator.types";
 
@@ -46,15 +47,13 @@ export const PresetDropdown: React.FC<PresetDropdownProps> = ({
     };
   }, [isOpen]);
 
-  // Handle keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      setIsOpen(false);
-      buttonRef.current?.focus();
-    } else if (e.key === "ArrowDown" && !isOpen) {
-      setIsOpen(true);
-    }
-  };
+  // Keyboard: arrows move between options, Escape closes (shared hook)
+  const handleKeyDown = useDropdownKeyboard(
+    dropdownRef,
+    buttonRef,
+    isOpen,
+    setIsOpen
+  );
 
   const handleOptionClick = (preset: FilterPreset | null) => {
     onChange(preset);

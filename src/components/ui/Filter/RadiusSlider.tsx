@@ -5,7 +5,7 @@
  * (e.g., central vision loss radius, tunnel vision radius)
  */
 
-import React from "react";
+import React, { useId } from "react";
 import "./RadiusSlider.css";
 
 export interface RadiusSliderProps {
@@ -33,13 +33,16 @@ export const RadiusSlider: React.FC<RadiusSliderProps> = ({
     onChange(Number(event.target.value));
   };
 
+  const id = useId();
   // Determine step based on unit - use 1 for percentages, 10 for pixels
   const step = unit === "%" ? 1 : 10;
 
   return (
     <div className="radius-slider">
       <div className="radius-slider__header">
-        <label className="radius-slider__label">{label}</label>
+        <label className="radius-slider__label" htmlFor={id}>
+          {label}
+        </label>
         {showValue && (
           <span className="radius-slider__value">
             {value}
@@ -57,10 +60,7 @@ export const RadiusSlider: React.FC<RadiusSliderProps> = ({
         value={value}
         onChange={handleSliderChange}
         disabled={disabled}
-        aria-label={label}
-        aria-valuemin={min}
-        aria-valuemax={max}
-        aria-valuenow={value}
+        id={id}
         aria-valuetext={`${value} ${unit === "%" ? "percent" : "pixels"}`}
       />
     </div>

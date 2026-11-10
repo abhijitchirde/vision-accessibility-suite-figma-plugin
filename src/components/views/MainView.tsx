@@ -953,6 +953,7 @@ export const MainView: React.FC<{}> = ({}) => {
                     onClick={() => setZoom(Math.max(0.25, zoom - 0.25))}
                     disabled={zoom <= 0.25}
                     title="Zoom out"
+                    aria-label="Zoom out"
                   >
                     <FaMinus size={12} />
                   </button>
@@ -964,6 +965,7 @@ export const MainView: React.FC<{}> = ({}) => {
                     onClick={() => setZoom(Math.min(4, zoom + 0.25))}
                     disabled={zoom >= 4}
                     title="Zoom in"
+                    aria-label="Zoom in"
                   >
                     <FaPlus size={12} />
                   </button>
@@ -971,6 +973,7 @@ export const MainView: React.FC<{}> = ({}) => {
                     className="main-view__zoom-fit-btn"
                     onClick={() => setZoom(1)}
                     title="Fit to view (100%)"
+                    aria-label="Fit to view"
                   >
                     <GoScreenFull size={12} />
                   </button>
