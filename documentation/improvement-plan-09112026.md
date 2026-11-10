@@ -18,7 +18,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 - **Working on:** 7.17 → 7.15 (stack) → 7.13 (in-plugin reference). Batch A/B/C Figma tests still open (needs you)
 - **Next step:** 7.17 Preset format v2
 - **Last completed:** 5.1 one filter registry (2026-11-10), checked pixel-identical on 210 cases. Before that Batch C, 1.9, Batch B, Batch A
-- **In progress / half done:** —
+- **In progress / half done:** 7.17. Design: presets carry `"version": 2`. v2 units: visual-field `radiusPercent` (0–100, of the design's smaller side; replaces `radius` / `tunnelRadius` px), blur `radius` and ghosting `offset` in design pixels (v1 used 2× export pixels, so v1 values ÷ 2). No version = v1, converted on import/load (`upgradePreset`; v1 visual-field px → % of a 500px design). Internally `pixelScale` = image pixels per design pixel (2 at a normal export). Vision Lab blur/ghosting sliders show design px (half the old numbers, same look). Expected: identical output except presets with a visual-field filter (built-in: only Aging Vision 80+).
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
