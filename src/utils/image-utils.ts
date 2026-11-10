@@ -454,8 +454,8 @@ export function applyBrightLight(
     let g2 = g + intensity * (255 - g);
     let b2 = b + intensity * (255 - b);
 
-    // Apply washout (desaturation toward white)
-    const gray = (r2 + g2 + b2) / 3;
+    // Washout: blend toward white. Glare adds a veil of light over the whole
+    // view, which lowers contrast and saturation together (veiling glare).
     r2 = r2 * (1 - washout) + 255 * washout;
     g2 = g2 * (1 - washout) + 255 * washout;
     b2 = b2 * (1 - washout) + 255 * washout;
