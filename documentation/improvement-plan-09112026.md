@@ -15,10 +15,10 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
-- **Working on:** release prep: 9.2 final icon (user), 9.3 README + current docs, 9.4 version bump; cleanup batch (1.6 tick, 1.7, 2.3, 5.8). Open Figma test groups: Batch A/B/C, v2, reference, stack polish (keyboard), keyboard
-- **Next step:** cleanup batch (1.6, 1.7, 2.3, 5.8), then 9.3 docs and 9.4 version bump
-- **Last completed:** 9.1 community assets (2026-11-10). Before that 6.8 zoom/pan, 6.4 reverted, 6.2, 6.3, 6.5, 7.16, 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
-- **In progress / half done:** cleanup batch. Plan: tick 1.6 (fixed by 7.17: pixel settings are design pixels); 1.7 register the MainView message listener once and call the latest handler through a ref; 2.3 keep washout (blending toward white models veiling glare, which lowers contrast and saturation together) and remove the unused `gray`; 5.8 `npm test` with Node's built-in test runner: transpile src/utils to a temp folder and test the Machado matrices, color blindness invariants, the registry, presets (validation, v1 → v2) and summaries.
+- **Working on:** release prep: 9.3 README + current docs (covers Phase 8), 9.4 version bump; 9.2 final icon (user). Open Figma test groups: Batch A/B/C, v2, reference, stack polish (keyboard), keyboard
+- **Next step:** 9.3 README and implementation.md rewrite
+- **Last completed:** cleanup batch: 1.6 (already fixed), 1.7, 2.3, 5.8 tests (2026-11-10). Before that 9.1 community assets, 6.8, 6.2, 6.3, 6.5, 7.16, 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
+- **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -33,7 +33,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 - **Filters (after 5.1):** `applyFilterConfig(data, w, h, config, pixelScale)` in image-utils.ts is the only place that maps a `CompleteFilterConfig` to a filter function; `applyFilterPreset` loops over it. `src/utils/simulation-render.ts` builds configs: `quickSimulationConfig` (Quick simulation defaults) and `visionLabConfig` (Vision Lab settings). Config units are preset format v2 (see below); `pixelScale` = image pixels per design pixel (2 at a normal export).
 - **Preset format v2 (after 7.17):** presets have `"version": 2`; visual field `radiusPercent` (% of the design's smaller side), blur `radius` and ghosting `offset` in design pixels. No version = v1 (2×-export pixels, fixed-pixel visual field radii), converted by `upgradePreset` in preset-validation.ts on import and load. `PRESET_FILTER_SPEC` there lists every setting with its range — build 7.13's reference from it.
 - **Vision Lab (after 7.15):** state is `stack: StackEntry[]` (`{id, config}`), `expandedId`, `selectedPreset` (the "Start from" preset) and `stackEdited`. `components/ui/Stack/SimulationStack.tsx` renders the list and each entry's sliders; `renderStack` (simulation-render.ts) applies it; `defaultStackConfig` gives a new entry's settings; `describeFilterConfig` the one-line summary. "Save as preset" builds a v2 preset in `handleSavePreset` (MainView).
-- **Notes for whoever resumes:** Work on branch `sandbox`. **Don't merge into `master` or push:** all changes stay on `sandbox` until they are published to the Figma Community; merge to `master` after publishing (decided 2026-11-09). Commit after each item. Messages follow the style of the other plugin repos: `type(area): plain summary` (no plan numbers in the subject), an optional line on why, then bullets saying what changed, ending with `- Plan items: 4.1, 4.2`. Find an item's commits with `git log --grep "Plan items:.*4.1"`. (All earlier commits were reworded into this style on 2026-11-10; the old messages and hashes are kept on the local branch `sandbox-before-reword` (safe to delete once the user is happy).) Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build` and `npm run typecheck` to check a change (typecheck should report no errors).
+- **Notes for whoever resumes:** Work on branch `sandbox`. **Don't merge into `master` or push:** all changes stay on `sandbox` until they are published to the Figma Community; merge to `master` after publishing (decided 2026-11-09). Commit after each item. Messages follow the style of the other plugin repos: `type(area): plain summary` (no plan numbers in the subject), an optional line on why, then bullets saying what changed, ending with `- Plan items: 4.1, 4.2`. Find an item's commits with `git log --grep "Plan items:.*4.1"`. (All earlier commits were reworded into this style on 2026-11-10; the old messages and hashes are kept on the local branch `sandbox-before-reword` (safe to delete once the user is happy).) Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build`, `npm run typecheck` (no errors) and `npm test` (all pass) to check a change. `npm run community` re-renders the Community images.
 
 ---
 
@@ -42,11 +42,11 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | Phase                        | Items | Done |
 | ---------------------------- | ----- | ---- |
 | 0. Quick wins                | 13    | 13   |
-| 1. Correctness bugs          | 9     | 7    |
-| 2. Simulation accuracy       | 4     | 2    |
+| 1. Correctness bugs          | 9     | 9    |
+| 2. Simulation accuracy       | 4     | 3    |
 | 3. Performance               | 8     | 4    |
 | 4. Storage                   | 3     | 3    |
-| 5. Code health               | 9     | 4    |
+| 5. Code health               | 9     | 5    |
 | 6. UX & plugin accessibility | 8     | 7    |
 | 7. New features              | 15    | 4    |
 | 8. Documentation accuracy    | 9     | 0    |
@@ -165,8 +165,8 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 - [x] 🟠 **1.4 Remove the duplicate export in Quick simulation.** `generateSimulations` exports the node and discards the result, then `prepareImageForPreview` exports it again.
 - [x] 🟠 **1.5 Scale the peripheral vision loss radius in Quick simulation.** Central loss scales with image size; peripheral still uses fixed pixel values.
   - [MainView.tsx:265-271](../src/components/views/MainView.tsx#L265-L271)
-- [ ] 🟠 **1.6 Correct pixel-based parameters for the 2× export.** Blur radius and ghosting offset are applied to a 2× image, so they come out at half the size the labels claim. Multiply by the export scale.
-- [ ] 🟠 **1.7 Stop re-attaching the message listener on every render.** The effect depends on `processFilterForGenerate`, which is a new function each render. Stabilise it with `useCallback` or a ref to remove the stale-closure risk.
+- [x] 🟠 **1.6 Correct pixel-based parameters for the 2× export.** Blur radius and ghosting offset are applied to a 2× image, so they come out at half the size the labels claim. Multiply by the export scale. Fixed by 7.17: pixel settings are in design pixels and scaled per image.
+- [x] 🟠 **1.7 Stop re-attaching the message listener on every render.** The effect depends on `processFilterForGenerate`, which is a new function each render. Stabilise it with `useCallback` or a ref to remove the stale-closure risk.
   - [MainView.tsx:375](../src/components/views/MainView.tsx#L375)
 - [x] 🟠 **1.8 Ignore stale previews.** Tag each preview request with an ID (or the node ID) and drop responses that arrive after a newer selection.
 
@@ -177,7 +177,7 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 - [x] 🔴 **2.1 Replace the color-blindness matrices with Machado et al. (2009).** The current protan/deutan/tritan matrices are the inaccurate "ColorJack"/Coblis set. Machado provides severity steps from 0.1 to 1.0, which can replace the linear blend toward the identity matrix.
   - [vision-simulator.constants.ts:41-64](../src/utils/vision-simulator.constants.ts#L41-L64)
 - [x] 🔴 **2.2 Apply color matrices in linear RGB.** Convert sRGB to linear, apply the matrix, then convert back. A lookup table keeps this fast.
-- [ ] 🟠 **2.3 Make bright-light "washout" reduce saturation.** It currently blends toward white, and the `gray` value it computes is never used.
+- [x] 🟠 **2.3 Make bright-light "washout" reduce saturation.** It currently blends toward white, and the `gray` value it computes is never used. Resolved 2026-11-10 without changing the look: blending toward white is the right model for veiling glare (it lowers contrast and saturation together); the unused grey value is removed.
   - [image-utils.ts:519](../src/utils/image-utils.ts#L519)
 - [ ] 🟢 **2.4 Premultiply alpha in blur.** This prevents dark fringes on transparent edges.
 
@@ -217,7 +217,7 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
   - [x] Unused `SelectionService` methods
   - [x] `addLabel`, `deleteGeneratedSimulations`, `getAllExportableNodes` (unless used by 7.1)
   - [x] Commented-out `console.log` lines
-- [ ] 🟢 **5.8 Add unit tests (Vitest)** for `image-utils.ts`. For example: severity 0 returns the input unchanged, and achromatopsia output has R = G = B.
+- [x] 🟢 **5.8 Add unit tests (Vitest)** for `image-utils.ts`. For example: severity 0 returns the input unchanged, and achromatopsia output has R = G = B. Done with Node's built-in test runner instead of Vitest (no new packages): `npm test`, 18 tests in `tests/`.
 - [ ] 🟢 **5.9 Add ESLint**, including `react-hooks/exhaustive-deps`.
 
 ## Phase 6 — UX & accessibility of the plugin UI
