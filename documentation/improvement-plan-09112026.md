@@ -122,7 +122,7 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
   - [x] "+ Add a simulation" adds one with its sliders open; adding a second collapses nothing else but opens the new one; clicking a header opens/closes it.
   - [x] ↑ / ↓ reorder (e.g. Blur then Contrast vs Contrast then Blur looks different); ✕ removes; first ↑ and last ↓ are disabled.
   - [x] "Start from" a built-in preset: its simulations appear in the list; changing a slider shows "· edited" in the status line; the saved built-in preset itself is unchanged when you pick it again.
-  - [x] "Save as preset": type a name, Save → toast, it appears in the dropdown and in Manage presets, and survives closing the plugin. Cancel closes the field.
+  - [ ] "Save as preset": type a name, Save → toast, it appears in the dropdown and in Manage presets, and survives closing the plugin. Cancel closes the field. — retest: used the same kind of form as Rename (fixed 2026-11-10).
   - [x] "Add current view to Figma" appears once there's at least one simulation; the frame is named after the preset or e.g. "Blurred + Yellowing", and matches the preview.
   - [x] The clear (✕ Reset) button next to "Start from" empties the list.
   - [x] With a long list, nothing is hidden behind the bottom bar (you can scroll to the preview).
@@ -137,8 +137,8 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
   - [x] Where something does scroll (long stack, dropdown menus, Preset Manager), the scrollbar is slim and rounded, in light and dark mode.
 
 - [ ] **Stack polish**
-  - [ ] Manage presets: Duplicate on a built-in preset adds "… copy" under Custom presets, and it can be picked in Start from.
-  - [ ] Rename a custom preset (pencil icon): Enter saves, Escape or Cancel keeps the old name; if it's the preset loaded in Vision Lab, the status line shows the new name.
+  - [x] Manage presets: Duplicate on a built-in preset adds "… copy" under Custom presets, and it can be picked in Start from. ✅ 2026-11-10
+  - [ ] Rename a custom preset (pencil icon): Enter saves, Escape or Cancel keeps the old name; if it's the preset loaded in Vision Lab, the status line shows the new name. ❌ 2026-11-10: rename did nothing (the field was an HTML form, which Figma's sandbox blocks). Fixed; please retest.
   - [ ] Keyboard only (Tab / Enter / Space) in the stack: after ↑ or ↓ focus stays on that entry's arrow; after ✕ it moves to the next entry (or "+ Add" when empty); after adding, it's on the new entry.
 
 ## Phase 1 — Correctness bugs
