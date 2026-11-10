@@ -138,7 +138,7 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 
 - [ ] **Stack polish**
   - [x] Manage presets: Duplicate on a built-in preset adds "… copy" under Custom presets, and it can be picked in Start from. ✅ 2026-11-10
-  - [ ] Rename a custom preset (pencil icon): Enter saves, Escape or Cancel keeps the old name; if it's the preset loaded in Vision Lab, the status line shows the new name. ❌ 2026-11-10: rename did nothing (the field was an HTML form, which Figma's sandbox blocks). Fixed; then the field was squeezed to ~0 width (screenshot) — also fixed: full-width field while renaming. Please retest.
+  - [x] Rename a custom preset (pencil icon): Enter saves, Escape or Cancel keeps the old name; if it's the preset loaded in Vision Lab, the status line shows the new name. ❌ 2026-11-10: rename did nothing (the field was an HTML form, which Figma's sandbox blocks). Fixed; then the field was squeezed to ~0 width (screenshot) — also fixed: full-width field while renaming. Please retest. ✅ Retested 2026-11-10: works.
   - [ ] Keyboard only (Tab / Enter / Space) in the stack: after ↑ or ↓ focus stays on that entry's arrow; after ✕ it moves to the next entry (or "+ Add" when empty); after adding, it's on the new entry.
 
 - [ ] **Plugin accessibility (keyboard)**
