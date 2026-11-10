@@ -325,58 +325,62 @@ export const MainView: React.FC<{}> = ({}) => {
     sendMessage("VISION_SIMULATOR_GENERATE", { filters: ALL_QUICK_FILTERS });
   };
 
-  // Listen for messages from plugin code
-  useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      const msg = event.data.pluginMessage;
+  // Messages from the plugin code. The listener is registered once and calls
+  // the latest handler through a ref, so it isn't removed and re-added on every
+  // render (the handler reads current state and functions).
+  const handleMessageRef = useRef<(event: MessageEvent) => void>(() => {});
+  handleMessageRef.current = async (event: MessageEvent) => {
+    const msg = event.data.pluginMessage;
 
-      if (msg?.type === "VISION_SIMULATOR_GENERATE_RESULT") {
-        // Only sent when generation can't start (no selection, export failed)
-        if (!msg.success) {
-          setGeneratingFilter(null);
-          setGenerateProgress(null);
-          setError(msg.error || "Failed to generate simulation");
-        }
-      } else if (msg?.type === "VISION_SIMULATOR_PREVIEW_DATA") {
-        if (msg.success && msg.data) {
-          setError(null);
-          loadImageForPreview(msg.data.imageData, msg.data.exportScale);
-        } else if (msg.error === null) {
-          // No selection, clear preview
-          clearPreview();
-          setError(null);
-          setLoading(false);
-        } else {
-          // Actual error occurred
-          clearPreview();
-          setError(null); // Don't show error in UI
-          setLoading(false);
-          // Show figma notification instead
-          parent.postMessage(
-            {
-              pluginMessage: {
-                type: "SHOW_NOTIFICATION",
-                message: msg.error || "Failed to load preview",
-              },
-            },
-            "*"
-          );
-        }
-      } else if (msg?.type === "VISION_SIMULATOR_PROCESS_FILTER") {
-        await runQuickSimulations(msg.sourceNodeId, msg.filters, msg.imageData);
-      } else if (msg?.type === "VISION_SIMULATOR_EXPORT_TO_CANVAS_RESULT") {
-        setExporting(false);
-        if (msg.success) {
-          setError(null);
-        } else {
-          setError(msg.error || "Failed to export to canvas");
-        }
+    if (msg?.type === "VISION_SIMULATOR_GENERATE_RESULT") {
+      // Only sent when generation can't start (no selection, export failed)
+      if (!msg.success) {
+        setGeneratingFilter(null);
+        setGenerateProgress(null);
+        setError(msg.error || "Failed to generate simulation");
       }
-    };
+    } else if (msg?.type === "VISION_SIMULATOR_PREVIEW_DATA") {
+      if (msg.success && msg.data) {
+        setError(null);
+        loadImageForPreview(msg.data.imageData, msg.data.exportScale);
+      } else if (msg.error === null) {
+        // No selection, clear preview
+        clearPreview();
+        setError(null);
+        setLoading(false);
+      } else {
+        // Actual error occurred
+        clearPreview();
+        setError(null); // Don't show error in UI
+        setLoading(false);
+        // Show figma notification instead
+        parent.postMessage(
+          {
+            pluginMessage: {
+              type: "SHOW_NOTIFICATION",
+              message: msg.error || "Failed to load preview",
+            },
+          },
+          "*"
+        );
+      }
+    } else if (msg?.type === "VISION_SIMULATOR_PROCESS_FILTER") {
+      await runQuickSimulations(msg.sourceNodeId, msg.filters, msg.imageData);
+    } else if (msg?.type === "VISION_SIMULATOR_EXPORT_TO_CANVAS_RESULT") {
+      setExporting(false);
+      if (msg.success) {
+        setError(null);
+      } else {
+        setError(msg.error || "Failed to export to canvas");
+      }
+    }
+  };
 
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [runQuickSimulations]);
+  useEffect(() => {
+    const listener = (event: MessageEvent) => handleMessageRef.current(event);
+    window.addEventListener("message", listener);
+    return () => window.removeEventListener("message", listener);
+  }, []);
 
   // Notify plugin when Vision Lab tab becomes active/inactive
   useEffect(() => {
