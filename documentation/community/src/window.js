@@ -54,9 +54,9 @@
 
   /**
    * @param {{ theme?: "light"|"dark", icon?: number, scale?: number,
-   *           tab?: "quick"|"lab", preset?: string, expandFirst?: boolean, height?: number }} opts
+   *           tab?: "quick"|"lab", preset?: string, expandIndex?: number, height?: number }} opts
    *   tab: "lab" opens Vision Lab; preset: built-in preset id to start from;
-   *   expandFirst: open the first simulation's sliders; height: crop the UI (before scaling)
+   *   expandIndex: open that simulation's sliders (0 = first); height: crop the UI (before scaling)
    */
   window.pluginWindow = function (opts) {
     const o = opts || {};
@@ -113,10 +113,10 @@
         setTimeout(() => {
           const tab = doc.getElementById("tab-simulation");
           if (tab) tab.click();
-          if (o.expandFirst) {
+          if (typeof o.expandIndex === "number") {
             setTimeout(() => {
-              const first = doc.querySelector(".simulation-stack__toggle");
-              if (first) first.click();
+              const toggles = doc.querySelectorAll(".simulation-stack__toggle");
+              if (toggles[o.expandIndex]) toggles[o.expandIndex].click();
             }, 300);
           }
         }, 300);
