@@ -15,10 +15,10 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
-- **Working on:** 7.17 → 7.15 (stack) → 7.13 (in-plugin reference). Batch A/B/C Figma tests still open (needs you)
-- **Next step:** 7.17 Preset format v2
-- **Last completed:** 5.1 one filter registry (2026-11-10), checked pixel-identical on 210 cases. Before that Batch C, 1.9, Batch B, Batch A
-- **In progress / half done:** 7.17. Design: presets carry `"version": 2`. v2 units: visual-field `radiusPercent` (0–100, of the design's smaller side; replaces `radius` / `tunnelRadius` px), blur `radius` and ghosting `offset` in design pixels (v1 used 2× export pixels, so v1 values ÷ 2). No version = v1, converted on import/load (`upgradePreset`; v1 visual-field px → % of a 500px design). Internally `pixelScale` = image pixels per design pixel (2 at a normal export). Vision Lab blur/ghosting sliders show design px (half the old numbers, same look). Expected: identical output except presets with a visual-field filter (built-in: only Aging Vision 80+).
+- **Working on:** 7.15 (stack of simulations) → 7.13 (in-plugin reference). Batch A/B/C and preset v2 Figma tests still open (needs you)
+- **Next step:** 7.15 Vision Lab as a stack of simulations
+- **Last completed:** 7.17 preset format v2 (2026-11-10). Before that 5.1, Batch C, 1.9, Batch B, Batch A
+- **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -30,7 +30,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 - **How Vision Lab renders (after Batch A):** `loadImageForPreview` keeps the full export in `originalImageRef` and a copy ≤ `MAX_PREVIEW_SIDE` (1200px) in `previewSourceRef`. A redraw effect calls `renderVisionLab(..., scale)` at most once per animation frame and draws into the visible `previewCanvasRef`. Pixel settings are multiplied by `scale` (the `pixelScale` parameter in image-utils) so the preview matches the export. "Add current view to Figma" runs `renderVisionLab` on the full-size image with scale 1. `code.ts` debounces selection (150 ms) and drops superseded previews (`latestPreviewRequest`).
 - **Color blindness (after Batch B):** `applyColorBlindness` (image-utils.ts) converts sRGB → linear with lookup tables, applies `getColorBlindnessMatrix(type, severity)`, converts back. Matrices are in `machado-matrices.ts` (Machado 2009, severity steps 0.0–1.0, interpolated); achromatopsia = Rec. 709 luminance. Transcription checked: all 90 matrix rows sum to 1 and steps are smooth; worth one comparison against the paper's published table before release.
 - **Presets (after Batch C):** `src/services/preset-store.ts` saves custom presets (`customPresets`) and the selected preset (`selectedPresetId`) in `figma.clientStorage`. Presets found in a file's old plugin data (`vision-simulator-presets`) are imported once; seen ids are kept in `importedLegacyPresetIds`. `src/utils/preset-validation.ts` (`validatePreset`, `sanitizePresets`) checks imports and stored data.
-- **Filters (after 5.1):** `applyFilterConfig(data, w, h, config, pixelScale)` in image-utils.ts is the only place that maps a `CompleteFilterConfig` to a filter function; `applyFilterPreset` loops over it. `src/utils/simulation-render.ts` builds configs: `quickSimulationConfig` (Quick simulation defaults) and `visionLabConfig` (Vision Lab settings). Pixel values in configs are 2×-export pixels; `pixelScale` converts to the image being filtered.
+- **Filters (after 5.1):** `applyFilterConfig(data, w, h, config, pixelScale)` in image-utils.ts is the only place that maps a `CompleteFilterConfig` to a filter function; `applyFilterPreset` loops over it. `src/utils/simulation-render.ts` builds configs: `quickSimulationConfig` (Quick simulation defaults) and `visionLabConfig` (Vision Lab settings). Config units are preset format v2 (see below); `pixelScale` = image pixels per design pixel (2 at a normal export).
+- **Preset format v2 (after 7.17):** presets have `"version": 2`; visual field `radiusPercent` (% of the design's smaller side), blur `radius` and ghosting `offset` in design pixels. No version = v1 (2×-export pixels, fixed-pixel visual field radii), converted by `upgradePreset` in preset-validation.ts on import and load. `PRESET_FILTER_SPEC` there lists every setting with its range — build 7.13's reference from it.
 - **Notes for whoever resumes:** Work on branch `sandbox`. **Don't merge into `master` or push:** all changes stay on `sandbox` until they are published to the Figma Community; merge to `master` after publishing (decided 2026-11-09). Commit after each item. Messages follow the style of the other plugin repos: `type(area): plain summary` (no plan numbers in the subject), an optional line on why, then bullets saying what changed, ending with `- Plan items: 4.1, 4.2`. Find an item's commits with `git log --grep "Plan items:.*4.1"`. (All earlier commits were reworded into this style on 2026-11-10; the old messages and hashes are kept on the local branch `sandbox-before-reword` (safe to delete once the user is happy).) Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build` and `npm run typecheck` to check a change (typecheck should report no errors).
 
 ---
@@ -46,7 +47,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | 4. Storage                   | 3     | 3    |
 | 5. Code health               | 9     | 4    |
 | 6. UX & plugin accessibility | 6     | 1    |
-| 7. New features              | 15    | 0    |
+| 7. New features              | 15    | 1    |
 | 8. Documentation accuracy    | 9     | 0    |
 
 ---
@@ -102,6 +103,12 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
   - [ ] Select a preset, close and reopen the plugin (also in another file): the same preset is selected. Clear it, reopen: nothing is selected.
   - [ ] In a file you can only view: presets load and the selected preset is remembered.
   - [ ] Import a broken file (e.g. a filter with `"radius": 5000`, or a missing `config`): you get a message saying what's wrong, and nothing is imported.
+- [ ] **Preset format v2**
+  - [ ] Every built-in preset except Aging Vision (80+) looks the same as before. Aging Vision (80+): the dark centre is now the same share of a small and a large design.
+  - [ ] Vision Lab blur and ghosting sliders start at 4 / 5 / 2.5 px (half the old numbers) and the preview looks the same as before at those values.
+  - [ ] Export a custom or built-in preset: the file has `"version": 2`. Re-import it: it works.
+  - [ ] Import an old file without `"version"` (e.g. one exported before today): it's accepted and looks the same as before (visual field filters: same share of a 500px design).
+  - [ ] Presets you imported earlier today (saved per user) still load and look the same.
 - [ ] **Batch B — accurate color blindness**
   - [ ] Every color-blind simulation looks different from before (expected), and greys, black and white look unchanged.
   - [ ] Protanopia: reds look dark olive/brown. Deuteranopia: reds look olive/brown, greens beige. Tritanopia: blues look teal, greens look cyan-ish.
@@ -202,7 +209,7 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 - [ ] 🟢 **7.14 Full preset guide for abhijitchirde.com (later, after release).** Markdown in `documentation/` for the user to publish: what each filter simulates, every setting with range/default/unit, examples, sample presets, why filter order matters, and what each import error means. Link to it from the Preset Manager once it's live (decided 2026-11-10).
 - [ ] 🔴 **7.15 Vision Lab as a stack of simulations (part a).** What you see is a list of simulations applied top to bottom: a single simulation is a list of one, a preset is a saved list. "Start from" a preset loads an editable copy; "+ Add simulation" appends one; each entry has ↑ ↓ ✕ buttons; only one entry is expanded with its sliders, the others show a one-line summary; "Save as preset" stores the list as a custom preset. Replaces the separate Presets/Simulation dropdowns, 7.3 and 7.8. Needs 5.1 and 7.17 first (decided 2026-11-10).
 - [ ] 🟢 **7.16 Stack polish (part b).** "Edited" indicator when a loaded preset is changed, duplicate/rename custom presets, keyboard focus handling for the list.
-- [ ] 🔴 **7.17 Preset format v2 before release.** Visual-field radius as a percentage of the design's smaller side (like the Vision Lab slider), blur radius and ghosting offset in design pixels (not 2× export pixels). Add `"version": 2`; read v1 files and built-ins by converting them; update `preset-validation.ts` ranges (decided 2026-11-10).
+- [x] 🔴 **7.17 Preset format v2 before release.** Visual-field radius as a percentage of the design's smaller side (like the Vision Lab slider), blur radius and ghosting offset in design pixels (not 2× export pixels). Add `"version": 2`; read v1 files and built-ins by converting them; update `preset-validation.ts` ranges (decided 2026-11-10).
 
 **Not planned** (from implementation.md's future list): community preset sharing (needs a backend, and the manifest blocks network access), ML-based simulation, VR/AR preview, and A/B mode (7.2 covers most of it).
 
