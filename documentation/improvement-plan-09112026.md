@@ -15,10 +15,10 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
-- **Working on:** Phase 0 complete (2026-11-09)
-- **Next step:** pick the next batch. Suggested: 3.1 Downscale the Vision Lab preview, then 2.1 + 2.2 Accurate color-blindness model
+- **Working on:** Batch A — smooth Vision Lab (3.1 + 3.3 + 3.5), then Batch B — accurate color blindness (2.1 + 2.2). Started 2026-11-10
+- **Next step:** 3.1 Downscale the Vision Lab preview
 - **Last completed:** 0.9 — all Phase 0 items built and tested in Figma (2026-11-09)
-- **In progress / half done:** —
+- **In progress / half done:** 3.1. Plan: keep the full-size export for "Add current view to Figma" (filtered once on click); filter a copy scaled to ≤ 2× the panel width for the live preview
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
