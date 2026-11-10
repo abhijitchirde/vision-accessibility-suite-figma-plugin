@@ -34,6 +34,11 @@ import {
 
 type Tab = "generate" | "simulation";
 
+const TABS: { id: Tab; label: string }[] = [
+  { id: "generate", label: "Quick simulation" },
+  { id: "simulation", label: "Vision Lab" },
+];
+
 /** Sections and cards shown in the Quick simulation tab, in display order */
 const QUICK_SIMULATION_SECTIONS: {
   title: string;
@@ -454,6 +459,20 @@ export const MainView: React.FC<{}> = ({}) => {
     setHasPreview(false);
   };
 
+  /** Tabs: ←/→ move between tabs (wrapping), Home/End jump to the ends */
+  const handleTabKeyDown = (event: React.KeyboardEvent) => {
+    const index = TABS.findIndex((tab) => tab.id === activeTab);
+    let next = index;
+    if (event.key === "ArrowRight") next = (index + 1) % TABS.length;
+    else if (event.key === "ArrowLeft") next = (index - 1 + TABS.length) % TABS.length;
+    else if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = TABS.length - 1;
+    else return;
+    event.preventDefault();
+    setActiveTab(TABS[next].id);
+    document.getElementById(`tab-${TABS[next].id}`)?.focus();
+  };
+
   /** Unique id for a stack entry */
   const newEntryId = () =>
     `e${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
@@ -746,32 +765,41 @@ export const MainView: React.FC<{}> = ({}) => {
 
   return (
     <div className="main-view">
-      {/* Tabs */}
-      <div className="main-view__tabs">
-        <button
-          className={`main-view__tab ${
-            activeTab === "generate"
-              ? "main-view__tab--active"
-              : ""
-          }`}
-          onClick={() => setActiveTab("generate")}
-        >
-          Quick simulation
-        </button>
-        <button
-          className={`main-view__tab ${
-            activeTab === "simulation"
-              ? "main-view__tab--active"
-              : ""
-          }`}
-          onClick={() => setActiveTab("simulation")}
-        >
-          Vision Lab
-        </button>
+      {/* Tabs (ARIA tabs pattern: arrow keys switch, one tab stop) */}
+      <div
+        className="main-view__tabs"
+        role="tablist"
+        aria-label="Simulation mode"
+        onKeyDown={handleTabKeyDown}
+      >
+        {TABS.map((tab) => {
+          const selected = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              id={`tab-${tab.id}`}
+              role="tab"
+              aria-selected={selected}
+              aria-controls={`tabpanel-${tab.id}`}
+              tabIndex={selected ? 0 : -1}
+              className={`main-view__tab ${
+                selected ? "main-view__tab--active" : ""
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab Content */}
-      <div className="main-view__content">
+      <div
+        className="main-view__content"
+        role="tabpanel"
+        id={`tabpanel-${activeTab}`}
+        aria-labelledby={`tab-${activeTab}`}
+      >
         {/* Quick simulation tab */}
         {activeTab === "generate" && (
           <div className="main-view__generate">
