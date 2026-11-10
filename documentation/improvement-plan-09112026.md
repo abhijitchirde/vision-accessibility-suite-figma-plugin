@@ -45,7 +45,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | 4. Storage                   | 3     | 3    |
 | 5. Code health               | 9     | 3    |
 | 6. UX & plugin accessibility | 6     | 1    |
-| 7. New features              | 12    | 0    |
+| 7. New features              | 14    | 0    |
 | 8. Documentation accuracy    | 9     | 0    |
 
 ---
@@ -197,6 +197,8 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 - [ ] 🟢 **7.10 More conditions:** diabetic retinopathy (scattered dark spots) and halos/glare first. _(impl.md: Future #5)_
 - [ ] 🟢 **7.11 Preset categories** (medical condition, age, environment) in the preset dropdown. _(impl.md: Future #6)_
 - [ ] 🟢 **7.12 Refresh the preview when the selected node is edited.** Use `figma.currentPage.on("nodechange")`, which doesn't need `loadAllPagesAsync` (see 3.6). Debounce it. _(impl.md: Future #10)_
+- [ ] 🟠 **7.13 Minimal preset reference inside the Preset Manager (now).** Replace the long hand-written JSON block with a short copyable example and a collapsible "Filter reference": every filter type, its settings, ranges and defaults, one line each. Generate it from the same range definitions `preset-validation.ts` uses, so the two can't drift apart (decided 2026-11-10).
+- [ ] 🟢 **7.14 Full preset guide for abhijitchirde.com (later, after release).** Markdown in `documentation/` for the user to publish: what each filter simulates, every setting with range/default/unit, examples, sample presets, why filter order matters, and what each import error means. Link to it from the Preset Manager once it's live (decided 2026-11-10).
 
 **Not planned** (from implementation.md's future list): community preset sharing (needs a backend, and the manifest blocks network access), ML-based simulation, VR/AR preview, and A/B mode (7.2 covers most of it).
 
