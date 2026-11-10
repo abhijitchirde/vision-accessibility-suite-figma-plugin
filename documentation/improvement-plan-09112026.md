@@ -15,10 +15,10 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
-- **Working on:** 7.15 (stack of simulations) → 7.13 (in-plugin reference). Batch A/B/C and preset v2 Figma tests still open (needs you)
-- **Next step:** 7.15 Vision Lab as a stack of simulations
-- **Last completed:** 7.17 preset format v2 (2026-11-10). Before that 5.1, Batch C, 1.9, Batch B, Batch A
-- **In progress / half done:** 7.15. Plan: Vision Lab state becomes `stack: {id, config: CompleteFilterConfig}[]` plus `basePreset` (preset it was loaded from) and `edited`. New `src/components/ui/Stack/SimulationStack.tsx` renders entries (header with summary, ↑ ↓ ✕; one expanded entry with sliders editing the v2 config). "Start from" = preset dropdown (loads a copy, keeps remembering the selected preset id); "+ Add simulation" = FilterDropdown in placeholder mode; "Save as preset" = inline name field, saves `{version: 2, filters}` as a custom preset. Rendering: `renderStack` = `applyFilterPreset` over the configs. Removes the single Simulation dropdown and its separate slider state.
+- **Working on:** 7.13 (in-plugin preset reference), then 7.16 (stack polish). Batch A/B/C, preset v2 and stack Figma tests still open (needs you)
+- **Next step:** 7.13 Minimal preset reference inside the Preset Manager
+- **Last completed:** 7.15 Vision Lab stack of simulations (2026-11-10). Before that 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
+- **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -32,6 +32,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 - **Presets (after Batch C):** `src/services/preset-store.ts` saves custom presets (`customPresets`) and the selected preset (`selectedPresetId`) in `figma.clientStorage`. Presets found in a file's old plugin data (`vision-simulator-presets`) are imported once; seen ids are kept in `importedLegacyPresetIds`. `src/utils/preset-validation.ts` (`validatePreset`, `sanitizePresets`) checks imports and stored data.
 - **Filters (after 5.1):** `applyFilterConfig(data, w, h, config, pixelScale)` in image-utils.ts is the only place that maps a `CompleteFilterConfig` to a filter function; `applyFilterPreset` loops over it. `src/utils/simulation-render.ts` builds configs: `quickSimulationConfig` (Quick simulation defaults) and `visionLabConfig` (Vision Lab settings). Config units are preset format v2 (see below); `pixelScale` = image pixels per design pixel (2 at a normal export).
 - **Preset format v2 (after 7.17):** presets have `"version": 2`; visual field `radiusPercent` (% of the design's smaller side), blur `radius` and ghosting `offset` in design pixels. No version = v1 (2×-export pixels, fixed-pixel visual field radii), converted by `upgradePreset` in preset-validation.ts on import and load. `PRESET_FILTER_SPEC` there lists every setting with its range — build 7.13's reference from it.
+- **Vision Lab (after 7.15):** state is `stack: StackEntry[]` (`{id, config}`), `expandedId`, `selectedPreset` (the "Start from" preset) and `stackEdited`. `components/ui/Stack/SimulationStack.tsx` renders the list and each entry's sliders; `renderStack` (simulation-render.ts) applies it; `defaultStackConfig` gives a new entry's settings; `describeFilterConfig` the one-line summary. "Save as preset" builds a v2 preset in `handleSavePreset` (MainView).
 - **Notes for whoever resumes:** Work on branch `sandbox`. **Don't merge into `master` or push:** all changes stay on `sandbox` until they are published to the Figma Community; merge to `master` after publishing (decided 2026-11-09). Commit after each item. Messages follow the style of the other plugin repos: `type(area): plain summary` (no plan numbers in the subject), an optional line on why, then bullets saying what changed, ending with `- Plan items: 4.1, 4.2`. Find an item's commits with `git log --grep "Plan items:.*4.1"`. (All earlier commits were reworded into this style on 2026-11-10; the old messages and hashes are kept on the local branch `sandbox-before-reword` (safe to delete once the user is happy).) Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build` and `npm run typecheck` to check a change (typecheck should report no errors).
 
 ---
@@ -47,7 +48,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | 4. Storage                   | 3     | 3    |
 | 5. Code health               | 9     | 4    |
 | 6. UX & plugin accessibility | 6     | 1    |
-| 7. New features              | 15    | 1    |
+| 7. New features              | 15    | 2    |
 | 8. Documentation accuracy    | 9     | 0    |
 
 ---
@@ -115,6 +116,16 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
   - [ ] Severity slider: 0% looks identical to the original; moving towards 100% changes smoothly, with no sudden jumps.
   - [ ] Achromatopsia is grey, with brightness that looks natural (yellows light, blues dark).
   - [ ] Optional: compare one screenshot against another simulator that uses Machado (e.g. Chrome DevTools → Rendering → Emulate vision deficiencies). Results should look very close.
+
+- [ ] **Stack of simulations (Vision Lab)**
+  - [ ] Vision Lab shows "Start from" and "Simulations"; the old Simulation dropdown and gear-parameters button are gone.
+  - [ ] "+ Add a simulation" adds one with its sliders open; adding a second collapses nothing else but opens the new one; clicking a header opens/closes it.
+  - [ ] ↑ / ↓ reorder (e.g. Blur then Contrast vs Contrast then Blur looks different); ✕ removes; first ↑ and last ↓ are disabled.
+  - [ ] "Start from" a built-in preset: its simulations appear in the list; changing a slider shows "· edited" in the status line; the saved built-in preset itself is unchanged when you pick it again.
+  - [ ] "Save as preset": type a name, Save → toast, it appears in the dropdown and in Manage presets, and survives closing the plugin. Cancel closes the field.
+  - [ ] "Add current view to Figma" appears once there's at least one simulation; the frame is named after the preset or e.g. "Blurred + Yellowing", and matches the preview.
+  - [ ] The clear (✕ Reset) button next to "Start from" empties the list.
+  - [ ] With a long list, nothing is hidden behind the bottom bar (you can scroll to the preview).
 
 ## Phase 1 — Correctness bugs
 
@@ -207,7 +218,7 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 - [ ] 🟢 **7.12 Refresh the preview when the selected node is edited.** Use `figma.currentPage.on("nodechange")`, which doesn't need `loadAllPagesAsync` (see 3.6). Debounce it. _(impl.md: Future #10)_
 - [ ] 🟠 **7.13 Minimal preset reference inside the Preset Manager (now).** Replace the long hand-written JSON block with a short copyable example and a collapsible "Filter reference": every filter type, its settings, ranges and defaults, one line each. Generate it from the same range definitions `preset-validation.ts` uses, so the two can't drift apart (decided 2026-11-10).
 - [ ] 🟢 **7.14 Full preset guide for abhijitchirde.com (later, after release).** Markdown in `documentation/` for the user to publish: what each filter simulates, every setting with range/default/unit, examples, sample presets, why filter order matters, and what each import error means. Link to it from the Preset Manager once it's live (decided 2026-11-10).
-- [ ] 🔴 **7.15 Vision Lab as a stack of simulations (part a).** What you see is a list of simulations applied top to bottom: a single simulation is a list of one, a preset is a saved list. "Start from" a preset loads an editable copy; "+ Add simulation" appends one; each entry has ↑ ↓ ✕ buttons; only one entry is expanded with its sliders, the others show a one-line summary; "Save as preset" stores the list as a custom preset. Replaces the separate Presets/Simulation dropdowns, 7.3 and 7.8. Needs 5.1 and 7.17 first (decided 2026-11-10).
+- [x] 🔴 **7.15 Vision Lab as a stack of simulations (part a).** What you see is a list of simulations applied top to bottom: a single simulation is a list of one, a preset is a saved list. "Start from" a preset loads an editable copy; "+ Add simulation" appends one; each entry has ↑ ↓ ✕ buttons; only one entry is expanded with its sliders, the others show a one-line summary; "Save as preset" stores the list as a custom preset. Replaces the separate Presets/Simulation dropdowns, 7.3 and 7.8. Needs 5.1 and 7.17 first (decided 2026-11-10).
 - [ ] 🟢 **7.16 Stack polish (part b).** "Edited" indicator when a loaded preset is changed, duplicate/rename custom presets, keyboard focus handling for the list.
 - [x] 🔴 **7.17 Preset format v2 before release.** Visual-field radius as a percentage of the design's smaller side (like the Vision Lab slider), blur radius and ghosting offset in design pixels (not 2× export pixels). Add `"version": 2`; read v1 files and built-ins by converting them; update `preset-validation.ts` ranges (decided 2026-11-10).
 
