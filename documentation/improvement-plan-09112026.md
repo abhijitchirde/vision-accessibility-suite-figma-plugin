@@ -15,10 +15,10 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
-- **Working on:** 5.1 → 7.17 → 7.15 (stack) → 7.13 (in-plugin reference). Batch A/B/C Figma tests still open (needs you)
-- **Next step:** 5.1 One filter registry
-- **Last completed:** Batch C (4.1, 4.2, 4.3), 2026-11-10. Before that 1.9, Batch B, Batch A. All build; Batch A/B/C not yet fully tested in Figma
-- **In progress / half done:** 5.1 (resumed 2026-11-10). Plan: `applyFilterConfig(data, w, h, config, pixelScale)` in image-utils.ts handles every filter type; `applyFilterPreset` loops over it; Quick simulation and Vision Lab build a `CompleteFilterConfig` and call it. Pixel values in configs are in 2× export pixels and get multiplied by `pixelScale`. Must give identical output (checked with a before/after pixel comparison).
+- **Working on:** 7.17 → 7.15 (stack) → 7.13 (in-plugin reference). Batch A/B/C Figma tests still open (needs you)
+- **Next step:** 7.17 Preset format v2
+- **Last completed:** 5.1 one filter registry (2026-11-10), checked pixel-identical on 210 cases. Before that Batch C, 1.9, Batch B, Batch A
+- **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -30,6 +30,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 - **How Vision Lab renders (after Batch A):** `loadImageForPreview` keeps the full export in `originalImageRef` and a copy ≤ `MAX_PREVIEW_SIDE` (1200px) in `previewSourceRef`. A redraw effect calls `renderVisionLab(..., scale)` at most once per animation frame and draws into the visible `previewCanvasRef`. Pixel settings are multiplied by `scale` (the `pixelScale` parameter in image-utils) so the preview matches the export. "Add current view to Figma" runs `renderVisionLab` on the full-size image with scale 1. `code.ts` debounces selection (150 ms) and drops superseded previews (`latestPreviewRequest`).
 - **Color blindness (after Batch B):** `applyColorBlindness` (image-utils.ts) converts sRGB → linear with lookup tables, applies `getColorBlindnessMatrix(type, severity)`, converts back. Matrices are in `machado-matrices.ts` (Machado 2009, severity steps 0.0–1.0, interpolated); achromatopsia = Rec. 709 luminance. Transcription checked: all 90 matrix rows sum to 1 and steps are smooth; worth one comparison against the paper's published table before release.
 - **Presets (after Batch C):** `src/services/preset-store.ts` saves custom presets (`customPresets`) and the selected preset (`selectedPresetId`) in `figma.clientStorage`. Presets found in a file's old plugin data (`vision-simulator-presets`) are imported once; seen ids are kept in `importedLegacyPresetIds`. `src/utils/preset-validation.ts` (`validatePreset`, `sanitizePresets`) checks imports and stored data.
+- **Filters (after 5.1):** `applyFilterConfig(data, w, h, config, pixelScale)` in image-utils.ts is the only place that maps a `CompleteFilterConfig` to a filter function; `applyFilterPreset` loops over it. `src/utils/simulation-render.ts` builds configs: `quickSimulationConfig` (Quick simulation defaults) and `visionLabConfig` (Vision Lab settings). Pixel values in configs are 2×-export pixels; `pixelScale` converts to the image being filtered.
 - **Notes for whoever resumes:** Work on branch `sandbox`. **Don't merge into `master` or push:** all changes stay on `sandbox` until they are published to the Figma Community; merge to `master` after publishing (decided 2026-11-09). Commit after each item. Messages follow the style of the other plugin repos: `type(area): plain summary` (no plan numbers in the subject), an optional line on why, then bullets saying what changed, ending with `- Plan items: 4.1, 4.2`. Find an item's commits with `git log --grep "Plan items:.*4.1"`. (All earlier commits were reworded into this style on 2026-11-10; the old messages and hashes are kept on the local branch `sandbox-before-reword` (safe to delete once the user is happy).) Check `git status` first: uncommitted changes mean the "In progress" item was interrupted. Run `npm run build` and `npm run typecheck` to check a change (typecheck should report no errors).
 
 ---
@@ -43,7 +44,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | 2. Simulation accuracy       | 4     | 2    |
 | 3. Performance               | 8     | 4    |
 | 4. Storage                   | 3     | 3    |
-| 5. Code health               | 9     | 3    |
+| 5. Code health               | 9     | 4    |
 | 6. UX & plugin accessibility | 6     | 1    |
 | 7. New features              | 15    | 0    |
 | 8. Documentation accuracy    | 9     | 0    |
@@ -156,7 +157,7 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 
 ## Phase 5 — Code health
 
-- [ ] 🔴 **5.1 Use one filter registry.** Replace the `if/else` chain copied in `processFilterForGenerate`, `applyFilterToPreview` and `applyFilterPreset` with a single `Record<SimulationType, (data, w, h, params) => data>`.
+- [x] 🔴 **5.1 Use one filter registry.** Replace the `if/else` chain copied in `processFilterForGenerate`, `applyFilterToPreview` and `applyFilterPreset` with a single `Record<SimulationType, (data, w, h, params) => data>`.
 - [ ] 🟠 **5.2 Split `MainView.tsx` (1,369 lines)** into `QuickSimulationTab`, `VisionLabTab` and a `useFilterPipeline` hook.
 - [x] 🟠 **5.3 Generate the Quick simulation filter cards from `FILTER_METADATA`** instead of writing each one by hand. This also removes the duplicated prevalence text.
 - [ ] 🟠 **5.4 Type the plugin ↔ UI messages** with one shared union type, and pick a single payload shape instead of `msg.data?.x || msg.x`.
