@@ -781,7 +781,13 @@ export const MainView: React.FC<{}> = ({}) => {
 
         {/* Simulation Tab */}
         {activeTab === "simulation" && (
-          <div className="main-view__simulation">
+          <div
+            className={`main-view__simulation ${
+              hasPreview && stack.length > 0
+                ? "main-view__simulation--with-bar"
+                : ""
+            }`}
+          >
             {/* Start from a preset (loads an editable copy) */}
             <PresetSelector
               label="Start from"

@@ -157,12 +157,17 @@
 }
 
 /* Simulation Tab */
+/* While the fixed "Add current view to Figma" bar shows, leave room for it
+   (bar is 53px tall at 50px from the bottom; content already ends 56px up) */
+.main-view__simulation--with-bar {
+  padding-bottom: 56px;
+}
+
 .main-view__simulation {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  /* Bottom space so the preview clears the fixed "Add current view" bar */
-  padding: 16px 16px 56px;
+  padding: 16px;
   margin: -16px -16px 0 -16px;
   border-radius: 0;
 }
@@ -262,7 +267,6 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  margin-bottom: 80px; /* Extra space to prevent content from being hidden behind fixed export button */
 }
 
 .main-view__preview-content {

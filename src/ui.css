@@ -120,6 +120,42 @@ html[data-theme="dark"] {
    SECTION 2: BASE STYLES
    ============================================ */
 
+/* Slim scrollbar wherever content is taller than its box (same design as
+   the QR code generator plugin). Chromium/Safari (Figma desktop and Chrome)
+   use the ::-webkit-scrollbar rules; Firefox, which lacks them, gets the
+   standard thin scrollbar. (Chromium ignores ::-webkit-scrollbar once
+   scrollbar-width is set, hence @supports.) */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--figma-color-border-strong) transparent;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--figma-color-border-strong);
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--figma-color-text-secondary);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 body {
   background-color: var(--figma-color-bg-secondary);
   font-family: var(--figma-font-family);
