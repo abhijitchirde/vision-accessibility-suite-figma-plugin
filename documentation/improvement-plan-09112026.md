@@ -7,7 +7,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 **Started:** 2026-11-09 · **Branch:** `sandbox`
 
-**Sources:** a code review on 2026-11-09, plus the "Known Limitations" and "Future Enhancements" sections of [implementation.md](implementation.md). Items that came from implementation.md are marked _(impl.md)_.
+**Sources:** a code review on 2026-11-09, plus the "Known Limitations" and "Future Enhancements" sections of [implementation.md](archive-2025-12/implementation.md). Items that came from implementation.md are marked _(impl.md)_.
 
 ---
 
@@ -15,9 +15,9 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 > Update this block at the end of every work session (or after every item), so work can restart from here if a session is interrupted.
 
-- **Working on:** release prep: 9.3 README + current docs (covers Phase 8), 9.4 version bump; 9.2 final icon (user). Open Figma test groups: Batch A/B/C, v2, reference, stack polish (keyboard), keyboard
-- **Next step:** 9.3 README and implementation.md rewrite
-- **Last completed:** cleanup batch: 1.6 (already fixed), 1.7, 2.3, 5.8 tests (2026-11-10). Before that 9.1 community assets, 6.8, 6.2, 6.3, 6.5, 7.16, 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
+- **Working on:** release prep: 9.4 version bump + changelog; 9.2 final icon (user). Open Figma test groups: Batch A/B/C, v2, reference, stack polish (keyboard), keyboard
+- **Next step:** 9.4 version bump and changelog
+- **Last completed:** 9.3 README + architecture.md, old docs archived (2026-11-10). Before that the cleanup batch (1.6, 1.7, 2.3, 5.8), 9.1 community assets, 6.8, 6.2, 6.3, 6.5, 7.16, 6.7, 7.13, 7.15, 7.17, 5.1, Batch C, 1.9, Batch B, Batch A
 - **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
@@ -49,8 +49,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | 5. Code health               | 9     | 5    |
 | 6. UX & plugin accessibility | 8     | 7    |
 | 7. New features              | 15    | 4    |
-| 8. Documentation accuracy    | 9     | 0    |
-| 9. Community release         | 4     | 1    |
+| 8. Documentation accuracy    | 9     | 9    |
+| 9. Community release         | 4     | 2    |
 
 ---
 
@@ -254,18 +254,19 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
 **Not planned** (from implementation.md's future list): community preset sharing (needs a backend, and the manifest blocks network access), ML-based simulation, VR/AR preview, and A/B mode (7.2 covers most of it).
 
 ## Phase 8 — Documentation accuracy
+> Resolved 2026-11-10 (user's choice): instead of patching implementation.md, the six December 2025 documents moved to `archive-2025-12/` with a note saying they're out of date, and [`architecture.md`](architecture.md) describes the plugin as it is now. Every item below is covered by that.
 
-[implementation.md](implementation.md) says the plugin is "production ready" with "no known issues", but several of its claims don't match the code. Update each item once the related code change lands, or correct the text now if the feature isn't planned.
+[implementation.md](archive-2025-12/implementation.md) says the plugin is "production ready" with "no known issues", but several of its claims don't match the code. Update each item once the related code change lands, or correct the text now if the feature isn't planned.
 
-- [ ] 🟠 **8.1 Describe the Quick simulation tab as it is now.** The doc still describes an older "Generate" tab: a filter dropdown, a severity slider, "Advanced Parameters" and a Generate button. This appears in Features → Generate Mode, the Generate Mode Layout mockup, the Generate Mode Flow and the "Severity applied correctly in Generate mode" test. That design was replaced by the "Quick simulation" card grid, where each card generates immediately with default values. The doc's Vision Lab sections are correct. Rewrite the Generate sections to match the card grid and rename them "Quick simulation". The flow should also say that `GENERATE_RESULT` is currently sent _before_ the image is applied (see 1.3).
-- [ ] 🟠 **8.2 "Labeled frames".** Only the frame _name_ includes the filter; no text label is placed on the canvas (`addLabel` is never called). Fix the doc, or do it as part of 7.1.
-- [ ] 🟠 **8.3 Preview downscaling.** Limitation 3 says it's "already implemented for Vision Lab mode"; Performance §3 says it isn't. It isn't. Update after 3.1.
-- [ ] 🟠 **8.4 Optimizations that don't exist.** "Canvas API hardware acceleration (50× faster)", "progressive rendering" and "Uint8ClampedArray reuse" are listed as done. All pixel work runs in JS loops on the UI thread, and each filter allocates a new buffer. Rewrite the Performance section after Phase 3.
-- [ ] 🟠 **8.5 Scientific claims.** The doc says the plugin uses the Brettel (1997) algorithm with "peer-reviewed, physiologically validated" matrices. The code uses the ColorJack/Coblis matrices. Update after 2.1–2.2.
-- [ ] 🟢 **8.6 Parameter ranges.** Doc vs code: blur radius 1–20 vs 1–30 px, ghosting offset −20..+20 vs 0..30 px, temperature 2000–3500 K vs 1000–4000 K.
-- [ ] 🟢 **8.7 Zoom levels.** The doc lists fixed steps (25/50/100/200/400%), matching `ZOOM_LEVELS`. The code ignores that constant and steps by 25%, and no button highlights the current level. Pick one behavior.
-- [ ] 🟢 **8.8 Status claims.** Remove or re-verify "Zero TypeScript errors" (see 5.5), "Known issues: none", "keyboard navigable, WCAG compliant UI" (see 6.2–6.3) and "theme toggle works" (see 6.1).
-- [ ] 🟢 **8.9 Versions and dates.** React 18.3 → 19, and the "Last updated" date.
+- [x] 🟠 **8.1 Describe the Quick simulation tab as it is now.** The doc still describes an older "Generate" tab: a filter dropdown, a severity slider, "Advanced Parameters" and a Generate button. This appears in Features → Generate Mode, the Generate Mode Layout mockup, the Generate Mode Flow and the "Severity applied correctly in Generate mode" test. That design was replaced by the "Quick simulation" card grid, where each card generates immediately with default values. The doc's Vision Lab sections are correct. Rewrite the Generate sections to match the card grid and rename them "Quick simulation". The flow should also say that `GENERATE_RESULT` is currently sent _before_ the image is applied (see 1.3).
+- [x] 🟠 **8.2 "Labeled frames".** Only the frame _name_ includes the filter; no text label is placed on the canvas (`addLabel` is never called). Fix the doc, or do it as part of 7.1.
+- [x] 🟠 **8.3 Preview downscaling.** Limitation 3 says it's "already implemented for Vision Lab mode"; Performance §3 says it isn't. It isn't. Update after 3.1.
+- [x] 🟠 **8.4 Optimizations that don't exist.** "Canvas API hardware acceleration (50× faster)", "progressive rendering" and "Uint8ClampedArray reuse" are listed as done. All pixel work runs in JS loops on the UI thread, and each filter allocates a new buffer. Rewrite the Performance section after Phase 3.
+- [x] 🟠 **8.5 Scientific claims.** The doc says the plugin uses the Brettel (1997) algorithm with "peer-reviewed, physiologically validated" matrices. The code uses the ColorJack/Coblis matrices. Update after 2.1–2.2.
+- [x] 🟢 **8.6 Parameter ranges.** Doc vs code: blur radius 1–20 vs 1–30 px, ghosting offset −20..+20 vs 0..30 px, temperature 2000–3500 K vs 1000–4000 K.
+- [x] 🟢 **8.7 Zoom levels.** The doc lists fixed steps (25/50/100/200/400%), matching `ZOOM_LEVELS`. The code ignores that constant and steps by 25%, and no button highlights the current level. Pick one behavior.
+- [x] 🟢 **8.8 Status claims.** Remove or re-verify "Zero TypeScript errors" (see 5.5), "Known issues: none", "keyboard navigable, WCAG compliant UI" (see 6.2–6.3) and "theme toggle works" (see 6.1).
+- [x] 🟢 **8.9 Versions and dates.** React 18.3 → 19, and the "Last updated" date.
 
 ---
 
@@ -275,7 +276,7 @@ Everything needed to publish on the Figma Community. Assets live in `documentati
 
 - [x] 🔴 **9.1 Community assets.** 4 icon options (128 px to upload, 512 px preview, overview sheet at 64/32/16 px on light and dark), a 1920×960 cover with the real plugin UI, 4 carousel slides (1920×1080), and `description.md` (tagline options, tags, full description to paste). Simulated images come from the plugin's own filter code run on a sample design, so they show real output (requested 2026-11-10). Done 2026-11-10: 8 icon options (5–8 after the original dot-eye icon), cover, 4 slides, description.md, README; `npm run community`.
 - [ ] 🟠 **9.2 Pick the icon** (user) and set it in the plugin/README; re-render the cover and slides with it (`npm run community -- --icon N`). Cover and slides use option 8 (dot iris) for now (user, 2026-11-10); final pick still open.
-- [ ] 🟠 **9.3 Docs for release:** README, and implementation.md rewritten to describe the plugin as it is now (covers Phase 8).
+- [x] 🟠 **9.3 Docs for release:** README, and implementation.md rewritten to describe the plugin as it is now (covers Phase 8). Done 2026-11-10: README.md, `documentation/architecture.md`, old docs archived in `documentation/archive-2025-12/`.
 - [ ] 🟠 **9.4 Version bump** in package.json, and a short changelog of what's new.
 
 ## Change log

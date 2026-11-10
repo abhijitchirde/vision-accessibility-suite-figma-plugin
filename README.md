@@ -54,7 +54,9 @@ Things that matter inside Figma:
 | `src/services/` | Selection events and per-user preset storage |
 | `tests/` | `npm test` (Node's built-in test runner) |
 | `documentation/community/` | Icon options, cover, slides and page text for the Figma Community, with their sources |
+| `documentation/architecture.md` | How the plugin works: messages, rendering, filters, presets, storage |
 | `documentation/improvement-plan-09112026.md` | The improvement plan and test checklists |
+| `documentation/archive-2025-12/` | Older, out-of-date documentation, kept for reference |
 
 ## Preset files
 
