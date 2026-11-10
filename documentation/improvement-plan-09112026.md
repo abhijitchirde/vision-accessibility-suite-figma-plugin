@@ -17,8 +17,8 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 
 - **Working on:** Batches A and B — code done 2026-11-10, waiting for Figma test
 - **Next step:** run the "Batch tests" checklist in Figma (needs you). Then pick the next batch; suggested: 3.2 Web Worker, 4.1 per-user presets, 5.1 one filter registry, and the Phase 8 doc fixes that are now unblocked (8.3, 8.5)
-- **Last completed:** Batch B (2.1 + 2.2) and Batch A (3.1, 3.5, 3.3, 1.8), 2026-11-10. Both build; not yet tested in Figma
-- **In progress / half done:** 1.9 Large designs fail with "Image is too large" (found while testing batch A)
+- **Last completed:** 1.9 large-design fix (2026-11-10), after Batch B (2.1 + 2.2) and Batch A (3.1, 3.5, 3.3, 1.8). All build; not yet tested in Figma
+- **In progress / half done:** —
 - **Quick simulation cards (after 0.11):** sections and cards come from `QUICK_SIMULATION_SECTIONS` in MainView.tsx; tooltip text is `FILTER_METADATA[filter].description` in vision-simulator.constants.ts. "Add all" uses the same list.
 - **How Quick simulation works now (after 0.2 + 0.3):**
   - The plugin side exports the design once and sends `PROCESS_FILTER { sourceNodeId, filters[], imageData }`. No frame is created yet.
@@ -38,7 +38,7 @@ Tick a box when the change is merged, and add the commit hash or PR link after i
 | Phase                        | Items | Done |
 | ---------------------------- | ----- | ---- |
 | 0. Quick wins                | 13    | 13   |
-| 1. Correctness bugs          | 9     | 6    |
+| 1. Correctness bugs          | 9     | 7    |
 | 2. Simulation accuracy       | 4     | 2    |
 | 3. Performance               | 8     | 4    |
 | 4. Storage                   | 3     | 0    |
@@ -93,6 +93,7 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
   - [ ] **Add current view to Figma** on a large frame shows "Adding to Figma..." while it works, and the frame is full quality.
   - [ ] Click quickly through several layers: the preview ends up showing the last one you selected, not an earlier one.
   - [ ] Small layer (e.g. a button): preview and Add to Figma still work as before.
+  - [ ] **Very large design** (wider or taller than 2048 px, e.g. a long landing page): Vision Lab "Add current view to Figma" and Quick simulation (one card and "Add all") work without "Image is too large". The new frame is the same size as the design; blur and ghosting look about as strong as on a smaller design. (Very large designs come out at lower resolution; that's Figma's image limit.)
 - [ ] **Batch B — accurate color blindness**
   - [ ] Every color-blind simulation looks different from before (expected), and greys, black and white look unchanged.
   - [ ] Protanopia: reds look dark olive/brown. Deuteranopia: reds look olive/brown, greens beige. Tritanopia: blues look teal, greens look cyan-ish.
@@ -116,7 +117,7 @@ Run `npm run build`, then test in Figma desktop. Tick each check as it passes; w
   - [MainView.tsx:375](../src/components/views/MainView.tsx#L375)
 - [x] 🟠 **1.8 Ignore stale previews.** Tag each preview request with an ID (or the node ID) and drop responses that arrive after a newer selection.
 
-- [ ] 🔴 **1.9 Large designs fail with "in createImage: Image is too large".** Figma images are limited to 4096 px per side, but designs are always exported at 2×, so anything over 2048 px fails (Vision Lab "Add to Figma" and Quick simulation). Fix: pick the export scale per design (2× if it fits, otherwise the largest scale under the limit) and size the frame with that same scale. Found in testing 2026-11-10.
+- [x] 🔴 **1.9 Large designs fail with "in createImage: Image is too large".** Figma images are limited to 4096 px per side, but designs are always exported at 2×, so anything over 2048 px fails (Vision Lab "Add to Figma" and Quick simulation). Fix: pick the export scale per design (2× if it fits, otherwise the largest scale under the limit) and size the frame with that same scale. Found in testing 2026-11-10.
 
 ## Phase 2 — Simulation accuracy
 
